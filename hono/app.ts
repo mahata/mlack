@@ -1,7 +1,7 @@
-import { createNodeWebSocket } from '@hono/node-ws';
-import { Hono } from 'hono';
-import { WSContext } from 'hono/ws';
-import { WebSocket } from 'ws';
+import { createNodeWebSocket } from "@hono/node-ws";
+import { Hono } from "hono";
+import type { WSContext } from "hono/ws";
+import { WebSocket } from "ws";
 
 const app = new Hono();
 
@@ -11,15 +11,15 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 // Store connected WebSocket clients
 const clients = new Set<WSContext>();
 
-app.get('/health', (c) => {
+app.get("/health", (c) => {
   return c.json({
-    status: 'ok',
-    message: 'Service is running',
+    status: "ok",
+    message: "Service is running",
   });
 });
 
 // Root page with chat interface
-app.get('/', (c) => {
+app.get("/", (c) => {
   return c.html(`
     <!DOCTYPE html>
     <html lang="en">
@@ -182,20 +182,20 @@ app.get('/', (c) => {
 
 // WebSocket endpoint
 app.get(
-  '/ws',
+  "/ws",
   upgradeWebSocket(() => {
     return {
       onOpen: (_evt, ws) => {
-        console.log('WebSocket client connected');
+        console.log("WebSocket client connected");
         clients.add(ws);
       },
       onMessage: (evt) => {
         const message = evt.data;
-        console.log('Received message:', message);
+        console.log("Received message:", message);
 
         // Convert message to string if it's not already
         let messageStr: string;
-        if (typeof message === 'string') {
+        if (typeof message === "string") {
           messageStr = message;
         } else if (message instanceof ArrayBuffer) {
           messageStr = new TextDecoder().decode(message);
@@ -213,11 +213,11 @@ app.get(
         });
       },
       onClose: (_evt, ws) => {
-        console.log('WebSocket client disconnected');
+        console.log("WebSocket client disconnected");
         clients.delete(ws);
       },
       onError: (evt, ws) => {
-        console.error('WebSocket error:', evt);
+        console.error("WebSocket error:", evt);
         clients.delete(ws);
       },
     };
