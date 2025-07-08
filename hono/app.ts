@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
 import { createNodeWebSocket } from '@hono/node-ws';
+import { Hono } from 'hono';
 import { WSContext } from 'hono/ws';
 import { WebSocket } from 'ws';
 
@@ -181,44 +181,47 @@ app.get('/', (c) => {
 });
 
 // WebSocket endpoint
-app.get('/ws', upgradeWebSocket(() => {
-  return {
-    onOpen: (_evt, ws) => {
-      console.log('WebSocket client connected');
-      clients.add(ws);
-    },
-    onMessage: (evt) => {
-      const message = evt.data;
-      console.log('Received message:', message);
-      
-      // Convert message to string if it's not already
-      let messageStr: string;
-      if (typeof message === 'string') {
-        messageStr = message;
-      } else if (message instanceof ArrayBuffer) {
-        messageStr = new TextDecoder().decode(message);
-      } else if (message instanceof Uint8Array) {
-        messageStr = new TextDecoder().decode(message);
-      } else {
-        messageStr = String(message);
-      }
-      
-      // Broadcast message to all connected clients
-      clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(messageStr);
+app.get(
+  '/ws',
+  upgradeWebSocket(() => {
+    return {
+      onOpen: (_evt, ws) => {
+        console.log('WebSocket client connected');
+        clients.add(ws);
+      },
+      onMessage: (evt) => {
+        const message = evt.data;
+        console.log('Received message:', message);
+
+        // Convert message to string if it's not already
+        let messageStr: string;
+        if (typeof message === 'string') {
+          messageStr = message;
+        } else if (message instanceof ArrayBuffer) {
+          messageStr = new TextDecoder().decode(message);
+        } else if (message instanceof Uint8Array) {
+          messageStr = new TextDecoder().decode(message);
+        } else {
+          messageStr = String(message);
         }
-      });
-    },
-    onClose: (_evt, ws) => {
-      console.log('WebSocket client disconnected');
-      clients.delete(ws);
-    },
-    onError: (evt, ws) => {
-      console.error('WebSocket error:', evt);
-      clients.delete(ws);
-    },
-  };
-}));
+
+        // Broadcast message to all connected clients
+        clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(messageStr);
+          }
+        });
+      },
+      onClose: (_evt, ws) => {
+        console.log('WebSocket client disconnected');
+        clients.delete(ws);
+      },
+      onError: (evt, ws) => {
+        console.error('WebSocket error:', evt);
+        clients.delete(ws);
+      },
+    };
+  }),
+);
 
 export { app, injectWebSocket };
