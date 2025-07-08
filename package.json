@@ -1,0 +1,39 @@
+{
+  "name": "mlack",
+  "version": "1.0.0",
+  "description": "A slack-like app experiment",
+  "main": "hono/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch hono/index.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx hono/index.ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+  },
+  "keywords": [
+    "hono",
+    "slack",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4",
+  "dependencies": {
+    "@hono/node-server": "^1.15.0",
+    "hono": "^4.8.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^24.0.10",
+    "eslint": "^9.30.1",
+    "globals": "^16.3.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0",
+    "vitest": "^3.2.4"
+  }
+}
