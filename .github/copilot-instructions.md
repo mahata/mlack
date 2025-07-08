@@ -8,7 +8,7 @@ Please use `pnpm` as your package manager. However, try to avoid introducing unn
 
 ## Implementation
 
-Write code in `TypeScript` and avoid using the `any` type as much as possible. Maintain code formatting according to `ESLint` rules.
+Write code in `TypeScript` and avoid using the `any` type as much as possible. Maintain code formatting according to `Biome` rules.
 
 Avoid code comments. Instead, consider using descriptive variable names to make it clear what the code is doing on its own.
 
