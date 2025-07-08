@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mlack
+    runtime: node
+    plan: free
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+    autoDeploy: true
