@@ -11,7 +11,7 @@ It's an experiment to create a slack-like app just by vibe coding with GitHub Co
 - **Health Check Endpoint**: A `/health` endpoint built with Hono framework that returns service status
 - **TypeScript**: Full TypeScript support with strict type checking
 - **Testing**: Comprehensive test suite using Vitest
-- **Linting**: ESLint configuration for code quality
+- **Linting**: Biome for code quality and formatting
 
 ## Getting Started
 
@@ -101,7 +101,7 @@ mlack/
 ├── package.json    # Project dependencies and scripts
 ├── tsconfig.json   # TypeScript configuration
 ├── vitest.config.ts # Vitest configuration
-└── eslint.config.js # ESLint configuration
+└── biome.json      # Biome configuration
 ```
 
 ## Technology Stack
@@ -111,5 +111,5 @@ mlack/
 - **Runtime**: Node.js with [@hono/node-server](https://github.com/honojs/node-server)
 - **Language**: TypeScript
 - **Testing**: Vitest
-- **Linting**: ESLint with TypeScript support
+- **Linting**: Biome for code quality and formatting
 - **Package Manager**: pnpm
