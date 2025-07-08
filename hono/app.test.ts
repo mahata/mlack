@@ -31,9 +31,7 @@ describe('Root page', () => {
     const response = await app.request('/');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe(
-      'text/html; charset=UTF-8',
-    );
+    expect(response.headers.get('Content-Type')).toBe('text/html; charset=UTF-8');
 
     const html = await response.text();
     expect(html).toContain('<h1>Hello, world!</h1>');
