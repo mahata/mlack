@@ -10,11 +10,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false
+      "recommended": true
     },
     "includes": ["**", "!dist"]
   },
-  "javascript": { "formatter": { "quoteStyle": "single" }, "globals": [] },
   "assist": {
     "enabled": true,
     "actions": { "source": { "organizeImports": "on" } }
