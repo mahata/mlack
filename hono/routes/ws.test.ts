@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { describe, expect, it, vi } from "vitest";
-import { createWsRoute } from "./ws";
+import { createWsRoute } from "./ws.js";
 
 describe("WebSocket endpoint", () => {
   it("should create WebSocket route with proper handlers", () => {

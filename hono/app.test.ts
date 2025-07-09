@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { app } from "./app.tsx";
+import { app } from "./app.js";
 
 describe("App integration", () => {
   it("should return 404 for non-existent routes", async () => {

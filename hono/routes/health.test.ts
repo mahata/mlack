@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { health } from "./health";
+import { health } from "./health.js";
 
 describe("Health endpoint", () => {
   it("should return status 200 with health message", async () => {

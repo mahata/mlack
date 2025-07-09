@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { ChatPage } from "../components/ChatPage";
+import { ChatPage } from "../components/ChatPage.js";
 
 const index = new Hono();
 
