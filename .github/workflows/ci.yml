@@ -30,6 +30,9 @@ jobs:
     - name: Run tests
       run: pnpm test:run
       
+    - name: Clean build artifacts
+      run: rm -rf dist
+      
     - name: Run linter
       run: pnpm lint
       

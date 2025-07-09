@@ -2,7 +2,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
 import { WebSocket } from "ws";
-import { ChatPage } from "./components/ChatPage.js";
+import { ChatPage } from "./components/ChatPage";
 
 const app = new Hono();
 
@@ -21,7 +21,12 @@ app.get("/health", (c) => {
 
 // Root page with chat interface
 app.get("/", (c) => {
-  return c.html(`<!DOCTYPE html>${ChatPage()}`);
+  return c.html(
+    <>
+      {"<!DOCTYPE html>"}
+      <ChatPage />
+    </>,
+  );
 });
 
 // WebSocket endpoint
