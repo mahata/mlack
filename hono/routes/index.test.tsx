@@ -9,7 +9,7 @@ describe("Root page", () => {
     expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
 
     const html = await response.text();
-    expect(html).toContain("<h1>Hello, world!</h1>");
+    expect(html).toContain("Hello, world!");
     expect(html).toContain("MLack - Real-time Chat");
     expect(html).toContain("Type your message...");
     expect(html).toContain("new WebSocket(");

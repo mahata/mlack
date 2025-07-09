@@ -1,3 +1,32 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Manual CSS modules implementation
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+function generateCSSModules(cssContent: string, _filename: string) {
+  // Generate a simple hash for scoping (in a real implementation this would be more robust)
+  const hash = "chatpage";
+
+  // Create a mapping of class names to scoped names
+  const classRegex = /\.([a-zA-Z][a-zA-Z0-9_-]*)/g;
+  const classNames: Record<string, string> = {};
+  const scopedCSS = cssContent.replace(classRegex, (_match, className) => {
+    const scopedName = `${className}_${hash}`;
+    classNames[className] = scopedName;
+    return `.${scopedName}`;
+  });
+
+  return { classNames, scopedCSS };
+}
+
+// Read and process the CSS file
+const cssPath = join(__dirname, "ChatPage.module.css");
+const cssContent = readFileSync(cssPath, "utf-8");
+const { classNames: styles, scopedCSS } = generateCSSModules(cssContent, "ChatPage");
+
 export function ChatPage() {
   return (
     <html lang="en">
@@ -8,92 +37,33 @@ export function ChatPage() {
         <style>
           {`
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
         }
-        .container {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        #messages {
-            height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 20px;
-            background-color: #fafafa;
-            border-radius: 4px;
-        }
-        .message {
-            margin-bottom: 10px;
-            padding: 8px;
-            background-color: #e3f2fd;
-            border-radius: 4px;
-            border-left: 4px solid #2196f3;
-        }
-        .input-container {
-            display: flex;
-            gap: 10px;
-        }
-        #messageInput {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        #sendButton {
-            padding: 10px 20px;
-            background-color: #2196f3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #sendButton:hover {
-            background-color: #1976d2;
-        }
-        #sendButton:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .status {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-        .connected {
-            color: #4caf50;
-        }
-        .disconnected {
-            color: #f44336;
-        }
+        ${scopedCSS}
           `}
         </style>
       </head>
       <body>
-        <div className="container">
-          <h1>Hello, world!</h1>
-          <div id="status" className="status disconnected">
-            Connecting...
-          </div>
-          <div id="messages"></div>
-          <div className="input-container">
-            <input type="text" id="messageInput" placeholder="Type your message..." disabled />
-            <button type="button" id="sendButton" disabled>
-              Send
-            </button>
+        <div className={styles.page}>
+          <div className={styles.container}>
+            <h1 className={styles.title}>Hello, world!</h1>
+            <div id="status" className={`${styles.status} ${styles.disconnected}`}>
+              Connecting...
+            </div>
+            <div id="messages" className={styles.messages}></div>
+            <div className={styles.inputContainer}>
+              <input
+                type="text"
+                id="messageInput"
+                className={styles.messageInput}
+                placeholder="Type your message..."
+                disabled
+              />
+              <button type="button" id="sendButton" className={styles.sendButton} disabled>
+                Send
+              </button>
+            </div>
           </div>
         </div>
 
@@ -110,7 +80,7 @@ export function ChatPage() {
         ws.onopen = function(event) {
             console.log('Connected to WebSocket');
             statusDiv.textContent = 'Connected';
-            statusDiv.className = 'status connected';
+            statusDiv.className = '${styles.status} ${styles.connected}';
             messageInput.disabled = false;
             sendButton.disabled = false;
         };
@@ -118,7 +88,7 @@ export function ChatPage() {
         ws.onmessage = function(event) {
             const message = event.data;
             const messageElement = document.createElement('div');
-            messageElement.className = 'message';
+            messageElement.className = '${styles.message}';
             messageElement.textContent = message;
             messagesDiv.appendChild(messageElement);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -127,7 +97,7 @@ export function ChatPage() {
         ws.onclose = function(event) {
             console.log('Disconnected from WebSocket');
             statusDiv.textContent = 'Disconnected';
-            statusDiv.className = 'status disconnected';
+            statusDiv.className = '${styles.status} ${styles.disconnected}';
             messageInput.disabled = true;
             sendButton.disabled = true;
         };
@@ -135,7 +105,7 @@ export function ChatPage() {
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
             statusDiv.textContent = 'Connection Error';
-            statusDiv.className = 'status disconnected';
+            statusDiv.className = '${styles.status} ${styles.disconnected}';
         };
 
         // Send message function
