@@ -1,19 +1,19 @@
 import { Hono } from "hono";
-import type { WSContext } from "hono/ws";
+import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
 import { WebSocket } from "ws";
 
-export function createWsRoute(upgradeWebSocket: any, clients: Set<WSContext>) {
+export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<WSContext>) {
   const ws = new Hono();
 
   ws.get(
     "/ws",
     upgradeWebSocket(() => {
       return {
-        onOpen: (_evt: any, ws: WSContext) => {
+        onOpen: (_evt: Event, ws: WSContext) => {
           console.log("WebSocket client connected");
           clients.add(ws);
         },
-        onMessage: (evt: any) => {
+        onMessage: (evt: MessageEvent<WSMessageReceive>) => {
           const message = evt.data;
           console.log("Received message:", message);
 
@@ -36,11 +36,11 @@ export function createWsRoute(upgradeWebSocket: any, clients: Set<WSContext>) {
             }
           });
         },
-        onClose: (_evt: any, ws: WSContext) => {
+        onClose: (_evt: CloseEvent, ws: WSContext) => {
           console.log("WebSocket client disconnected");
           clients.delete(ws);
         },
-        onError: (evt: any, ws: WSContext) => {
+        onError: (evt: Event, ws: WSContext) => {
           console.error("WebSocket error:", evt);
           clients.delete(ws);
         },

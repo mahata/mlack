@@ -3,11 +3,11 @@ import { ChatPage } from "../components/ChatPage";
 
 const index = new Hono();
 
-index.get("/", (c) => {
+index.get("/", async (c) => {
   return c.html(
     <>
       {"<!DOCTYPE html>"}
-      <ChatPage />
+      {await ChatPage()}
     </>,
   );
 });
