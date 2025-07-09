@@ -1,6 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.0.6/schema.json",
-  "files": { "ignoreUnknown": false },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": ["**"],
+    "experimentalScannerIgnores": ["dist/**"]
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -11,8 +15,7 @@
     "enabled": true,
     "rules": {
       "recommended": true
-    },
-    "includes": ["**", "!dist"]
+    }
   },
   "assist": {
     "enabled": true,

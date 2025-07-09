@@ -6,8 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch hono/index.ts",
-    "build": "tsc --noEmit",
+    "build": "tsc --project tsconfig.prod.json",
+    "build:check": "tsc --noEmit",
     "start": "tsx hono/index.ts",
+    "start:prod": "node dist/hono/index.js",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "biome check .",
