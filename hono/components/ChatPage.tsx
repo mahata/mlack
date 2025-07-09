@@ -1,10 +1,47 @@
-export function ChatPage() {
+import { css, Style } from "hono/css";
+
+export async function ChatPage() {
+  const containerClass = await css`
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  `;
+
+  const messageClass = await css`
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    border-left: 4px solid #2196f3;
+  `;
+
+  const inputContainerClass = await css`
+    display: flex;
+    gap: 10px;
+  `;
+
+  const statusClass = await css`
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+  `;
+
+  const connectedClass = await css`
+    color: #4caf50;
+  `;
+
+  const disconnectedClass = await css`
+    color: #f44336;
+  `;
+
   return (
     <html lang="en">
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>MLack - Real-time Chat</title>
+        <Style />
         <style>
           {`
         body {
@@ -13,12 +50,6 @@ export function ChatPage() {
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
             color: #333;
@@ -33,17 +64,6 @@ export function ChatPage() {
             margin-bottom: 20px;
             background-color: #fafafa;
             border-radius: 4px;
-        }
-        .message {
-            margin-bottom: 10px;
-            padding: 8px;
-            background-color: #e3f2fd;
-            border-radius: 4px;
-            border-left: 4px solid #2196f3;
-        }
-        .input-container {
-            display: flex;
-            gap: 10px;
         }
         #messageInput {
             flex: 1;
@@ -68,28 +88,17 @@ export function ChatPage() {
             background-color: #ccc;
             cursor: not-allowed;
         }
-        .status {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-        .connected {
-            color: #4caf50;
-        }
-        .disconnected {
-            color: #f44336;
-        }
           `}
         </style>
       </head>
       <body>
-        <div className="container">
+        <div className={containerClass}>
           <h1>Hello, world!</h1>
-          <div id="status" className="status disconnected">
+          <div id="status" className={`${statusClass} ${disconnectedClass}`}>
             Connecting...
           </div>
           <div id="messages"></div>
-          <div className="input-container">
+          <div className={inputContainerClass}>
             <input type="text" id="messageInput" placeholder="Type your message..." disabled />
             <button type="button" id="sendButton" disabled>
               Send
@@ -104,13 +113,19 @@ export function ChatPage() {
         const sendButton = document.getElementById('sendButton');
         const statusDiv = document.getElementById('status');
 
+        // CSS classes from hono/css
+        const statusClass = '${statusClass}';
+        const connectedClass = '${connectedClass}';
+        const disconnectedClass = '${disconnectedClass}';
+        const messageClass = '${messageClass}';
+
         // WebSocket connection
         const ws = new WebSocket('ws://localhost:3000/ws');
 
         ws.onopen = function(event) {
             console.log('Connected to WebSocket');
             statusDiv.textContent = 'Connected';
-            statusDiv.className = 'status connected';
+            statusDiv.className = statusClass + ' ' + connectedClass;
             messageInput.disabled = false;
             sendButton.disabled = false;
         };
@@ -118,7 +133,7 @@ export function ChatPage() {
         ws.onmessage = function(event) {
             const message = event.data;
             const messageElement = document.createElement('div');
-            messageElement.className = 'message';
+            messageElement.className = messageClass;
             messageElement.textContent = message;
             messagesDiv.appendChild(messageElement);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -127,7 +142,7 @@ export function ChatPage() {
         ws.onclose = function(event) {
             console.log('Disconnected from WebSocket');
             statusDiv.textContent = 'Disconnected';
-            statusDiv.className = 'status disconnected';
+            statusDiv.className = statusClass + ' ' + disconnectedClass;
             messageInput.disabled = true;
             sendButton.disabled = true;
         };
@@ -135,7 +150,7 @@ export function ChatPage() {
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
             statusDiv.textContent = 'Connection Error';
-            statusDiv.className = 'status disconnected';
+            statusDiv.className = statusClass + ' ' + disconnectedClass;
         };
 
         // Send message function
