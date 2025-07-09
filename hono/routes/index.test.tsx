@@ -14,4 +14,15 @@ describe("Root page", () => {
     expect(html).toContain("Type your message...");
     expect(html).toContain("new WebSocket(");
   });
+
+  it("should have proper HTML5 structure with unescaped DOCTYPE", async () => {
+    const response = await index.request("/");
+    const html = await response.text();
+
+    // Verify DOCTYPE is at the beginning and not escaped
+    expect(html).toMatch(/^<!DOCTYPE html><html/);
+
+    // Verify DOCTYPE is not escaped anywhere in the document
+    expect(html).not.toContain("&lt;!DOCTYPE html&gt;");
+  });
 });

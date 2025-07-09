@@ -4,12 +4,7 @@ import { ChatPage } from "../components/ChatPage.js";
 const index = new Hono();
 
 index.get("/", async (c) => {
-  return c.html(
-    <>
-      {"<!DOCTYPE html>"}
-      {await ChatPage()}
-    </>,
-  );
+  return c.html(`<!DOCTYPE html>${await ChatPage()}`);
 });
 
 export { index };
