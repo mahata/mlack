@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { WSContext } from "hono/ws";
+import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { describe, expect, it, vi } from "vitest";
 import { createWsRoute } from "./ws";
 
@@ -9,7 +9,7 @@ describe("WebSocket endpoint", () => {
     const mockUpgradeWebSocket = vi.fn((handler) => {
       // Return a mock handler that can be called
       return () => handler();
-    });
+    }) as unknown as UpgradeWebSocket;
 
     const clients = new Set<WSContext>();
 
@@ -28,7 +28,7 @@ describe("WebSocket endpoint", () => {
         // Return a response that simulates WebSocket upgrade failure (no proper headers)
         return new Response("Upgrade Required", { status: 426 });
       };
-    });
+    }) as unknown as UpgradeWebSocket;
 
     const clients = new Set<WSContext>();
     const wsRoute = createWsRoute(mockUpgradeWebSocket, clients);

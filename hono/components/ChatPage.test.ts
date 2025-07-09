@@ -22,7 +22,7 @@ describe("ChatPage component", () => {
   it("should use CSS-in-JS class names", async () => {
     const jsxElement = await ChatPage();
 
-    // Convert JSX to string to test content  
+    // Convert JSX to string to test content
     const html = jsxElement.toString();
     // Should contain generated CSS class names (they start with 'css-')
     expect(html).toMatch(/class="[^"]*css-[0-9]+[^"]*"/);
