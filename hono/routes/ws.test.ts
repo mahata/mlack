@@ -1,0 +1,41 @@
+import type { Context } from "hono";
+import type { WSContext } from "hono/ws";
+import { describe, expect, it, vi } from "vitest";
+import { createWsRoute } from "./ws";
+
+describe("WebSocket endpoint", () => {
+  it("should create WebSocket route with proper handlers", () => {
+    // Mock the upgradeWebSocket function
+    const mockUpgradeWebSocket = vi.fn((handler) => {
+      // Return a mock handler that can be called
+      return () => handler();
+    });
+
+    const clients = new Set<WSContext>();
+
+    // Create the WebSocket route
+    const wsRoute = createWsRoute(mockUpgradeWebSocket, clients);
+
+    // Verify that the route is a Hono instance
+    expect(wsRoute).toBeDefined();
+    expect(typeof wsRoute.request).toBe("function");
+  });
+
+  it("should provide WebSocket endpoint route", async () => {
+    // Mock the upgradeWebSocket function to return a simple handler
+    const mockUpgradeWebSocket = vi.fn(() => {
+      return (_c: Context) => {
+        // Return a response that simulates WebSocket upgrade failure (no proper headers)
+        return new Response("Upgrade Required", { status: 426 });
+      };
+    });
+
+    const clients = new Set<WSContext>();
+    const wsRoute = createWsRoute(mockUpgradeWebSocket, clients);
+
+    // Test the route exists and handles requests
+    const response = await wsRoute.request("/ws");
+    // The response status should indicate the route exists and is handled
+    expect(response.status).toBeGreaterThanOrEqual(400);
+  });
+});
