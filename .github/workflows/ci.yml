@@ -38,3 +38,37 @@ jobs:
       
     - name: Run build
       run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.12.4
+        
+    - name: Install dependencies
+      run: pnpm install
+      
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+      
+    - name: Run Playwright tests
+      run: pnpm test:e2e
+      
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
