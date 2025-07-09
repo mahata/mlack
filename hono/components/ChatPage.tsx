@@ -1,39 +1,40 @@
-import { css, Style } from "hono/css";
+import { createCssContext } from "hono/css";
+
+const { css, Style } = createCssContext({ id: "hono-css" });
 
 export async function ChatPage() {
-  const containerClass = await css`
-    background-color: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  `;
-
-  const messageClass = await css`
-    margin-bottom: 10px;
-    padding: 8px;
-    background-color: #e3f2fd;
-    border-radius: 4px;
-    border-left: 4px solid #2196f3;
-  `;
-
-  const inputContainerClass = await css`
-    display: flex;
-    gap: 10px;
-  `;
-
-  const statusClass = await css`
-    text-align: center;
-    margin-bottom: 20px;
-    font-weight: bold;
-  `;
-
-  const connectedClass = await css`
-    color: #4caf50;
-  `;
-
-  const disconnectedClass = await css`
-    color: #f44336;
-  `;
+  // Generate all CSS classes and collect their styles
+  const [containerClass, messageClass, inputContainerClass, statusClass, connectedClass, disconnectedClass] =
+    await Promise.all([
+      css`
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    `,
+      css`
+      margin-bottom: 10px;
+      padding: 8px;
+      background-color: #e3f2fd;
+      border-radius: 4px;
+      border-left: 4px solid #2196f3;
+    `,
+      css`
+      display: flex;
+      gap: 10px;
+    `,
+      css`
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: bold;
+    `,
+      css`
+      color: #4caf50;
+    `,
+      css`
+      color: #f44336;
+    `,
+    ]);
 
   return (
     <html lang="en">
@@ -88,11 +89,45 @@ export async function ChatPage() {
             background-color: #ccc;
             cursor: not-allowed;
         }
+        .css-3719599696 {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .css-1569315864 {
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+        .css-4040854844 {
+            display: flex;
+            gap: 10px;
+        }
+        .css-279625048 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .css-2506884646 {
+            color: #4caf50;
+        }
+        .css-3383144041 {
+            color: #f44336;
+        }
           `}
         </style>
       </head>
       <body>
-        <div className={containerClass}>
+        <div
+          className={containerClass}
+          data-status-class={statusClass}
+          data-connected-class={connectedClass}
+          data-disconnected-class={disconnectedClass}
+          data-message-class={messageClass}
+        >
           <h1>Hello, world!</h1>
           <div id="status" className={`${statusClass} ${disconnectedClass}`}>
             Connecting...
@@ -106,18 +141,18 @@ export async function ChatPage() {
           </div>
         </div>
 
-        <script>
-          {`
+        <script>{`
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const statusDiv = document.getElementById('status');
 
-        // CSS classes from hono/css
-        const statusClass = '${statusClass}';
-        const connectedClass = '${connectedClass}';
-        const disconnectedClass = '${disconnectedClass}';
-        const messageClass = '${messageClass}';
+        // Get CSS classes from data attributes
+        const container = document.querySelector('[data-status-class]');
+        const statusClass = container.getAttribute('data-status-class');
+        const connectedClass = container.getAttribute('data-connected-class');
+        const disconnectedClass = container.getAttribute('data-disconnected-class');
+        const messageClass = container.getAttribute('data-message-class');
 
         // WebSocket connection
         const ws = new WebSocket('ws://localhost:3000/ws');
@@ -174,8 +209,7 @@ export async function ChatPage() {
         window.addEventListener('load', function() {
             messageInput.focus();
         });
-          `}
-        </script>
+        `}</script>
       </body>
     </html>
   );
