@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { app, injectWebSocket } from "./app.js";
+import { app, injectWebSocket } from "./app.tsx";
 
 const port = Number(process.env.PORT) || 3000;
 console.log(`Server is running on port ${port}`);

@@ -1,10 +1,12 @@
-export function ChatPage(): string {
-  return `<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLack - Real-time Chat</title>
-    <style>
+export function ChatPage() {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>MLack - Real-time Chat</title>
+        <style>
+          {`
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
@@ -77,20 +79,26 @@ export function ChatPage(): string {
         .disconnected {
             color: #f44336;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Hello, world!</h1>
-        <div id="status" class="status disconnected">Connecting...</div>
-        <div id="messages"></div>
-        <div class="input-container">
-            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
-            <button id="sendButton" disabled>Send</button>
+          `}
+        </style>
+      </head>
+      <body>
+        <div className="container">
+          <h1>Hello, world!</h1>
+          <div id="status" className="status disconnected">
+            Connecting...
+          </div>
+          <div id="messages"></div>
+          <div className="input-container">
+            <input type="text" id="messageInput" placeholder="Type your message..." disabled />
+            <button type="button" id="sendButton" disabled>
+              Send
+            </button>
+          </div>
         </div>
-    </div>
 
-    <script>
+        <script>
+          {`
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
@@ -151,7 +159,9 @@ export function ChatPage(): string {
         window.addEventListener('load', function() {
             messageInput.focus();
         });
-    </script>
-</body>
-</html>`;
+          `}
+        </script>
+      </body>
+    </html>
+  );
 }

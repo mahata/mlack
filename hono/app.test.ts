@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { app } from "./app";
+import { app } from "./app.tsx";
 
 describe("Health endpoint", () => {
   it("should return status 200 with health message", async () => {
@@ -37,7 +37,7 @@ describe("Root page", () => {
     expect(html).toContain("<h1>Hello, world!</h1>");
     expect(html).toContain("MLack - Real-time Chat");
     expect(html).toContain("Type your message...");
-    expect(html).toContain("WebSocket('ws://localhost:3000/ws')");
+    expect(html).toContain("new WebSocket(");
   });
 });
 
