@@ -1,9 +1,9 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
-import { health } from "./routes/health";
-import { index } from "./routes/index";
-import { createWsRoute } from "./routes/ws";
+import { health } from "./routes/health.js";
+import { index } from "./routes/index.js";
+import { createWsRoute } from "./routes/ws.js";
 
 const app = new Hono();
 

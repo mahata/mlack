@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ChatPage } from "./ChatPage.tsx";
+import { ChatPage } from "./ChatPage.js";
 
 describe("ChatPage component", () => {
   it("should include WebSocket functionality", async () => {

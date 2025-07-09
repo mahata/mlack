@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { index } from "./index";
+import { index } from "./index.js";
 
 describe("Root page", () => {
   it("should return HTML page with chat interface", async () => {
