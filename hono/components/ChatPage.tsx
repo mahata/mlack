@@ -135,8 +135,9 @@ export async function ChatPage() {
           </div>
         </div>
 
-        <script>
-          {`
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
@@ -203,8 +204,9 @@ export async function ChatPage() {
         window.addEventListener('load', function() {
             messageInput.focus();
         });
-          `}
-        </script>
+          `,
+          }}
+        />
       </body>
     </html>
   );
