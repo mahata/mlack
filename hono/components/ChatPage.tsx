@@ -121,7 +121,13 @@ export async function ChatPage() {
         </style>
       </head>
       <body>
-        <div className={containerClass}>
+        <div
+          className={containerClass}
+          data-status-class={statusClass}
+          data-connected-class={connectedClass}
+          data-disconnected-class={disconnectedClass}
+          data-message-class={messageClass}
+        >
           <h1>Hello, world!</h1>
           <div id="status" className={`${statusClass} ${disconnectedClass}`}>
             Connecting...
@@ -135,19 +141,18 @@ export async function ChatPage() {
           </div>
         </div>
 
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+        <script>{`
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const statusDiv = document.getElementById('status');
 
-        // CSS classes from hono/css
-        const statusClass = '${statusClass}';
-        const connectedClass = '${connectedClass}';
-        const disconnectedClass = '${disconnectedClass}';
-        const messageClass = '${messageClass}';
+        // Get CSS classes from data attributes
+        const container = document.querySelector('[data-status-class]');
+        const statusClass = container.getAttribute('data-status-class');
+        const connectedClass = container.getAttribute('data-connected-class');
+        const disconnectedClass = container.getAttribute('data-disconnected-class');
+        const messageClass = container.getAttribute('data-message-class');
 
         // WebSocket connection
         const ws = new WebSocket('ws://localhost:3000/ws');
@@ -204,9 +209,7 @@ export async function ChatPage() {
         window.addEventListener('load', function() {
             messageInput.focus();
         });
-          `,
-          }}
-        />
+        `}</script>
       </body>
     </html>
   );
