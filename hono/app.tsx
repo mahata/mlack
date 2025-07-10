@@ -1,3 +1,4 @@
+import { serveStatic } from "@hono/node-server/serve-static";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
@@ -12,6 +13,9 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 // Store connected WebSocket clients
 const clients = new Set<WSContext>();
+
+// Serve static files from components directory
+app.use("/components/*", serveStatic({ root: "./hono" }));
 
 // Register route handlers
 app.route("/", health);
