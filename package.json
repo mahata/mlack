@@ -5,8 +5,11 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch hono/index.ts",
-    "build": "tsc --project tsconfig.prod.json",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "vite build --watch",
+    "dev:server": "tsx watch hono/index.ts",
+    "build": "npm run build:client && tsc --project tsconfig.prod.json",
+    "build:client": "vite build",
     "build:check": "tsc --noEmit",
     "start": "tsx hono/index.ts",
     "start:prod": "node dist/hono/index.js",
@@ -33,10 +36,14 @@
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
     "@playwright/test": "^1.53.2",
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^24.0.10",
     "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.0",
+    "jsdom": "^26.1.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
+    "vite": "^7.0.3",
     "vitest": "^3.2.4"
   }
 }

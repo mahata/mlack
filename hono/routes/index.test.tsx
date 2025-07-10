@@ -12,7 +12,7 @@ describe("Root page", () => {
     expect(html).toContain("<h1>Hello, world!</h1>");
     expect(html).toContain("MLack - Real-time Chat");
     expect(html).toContain("Type your message...");
-    expect(html).toContain("new WebSocket(");
+    expect(html).toContain('<script type="module" src="/static/chat-page-client.js"></script>');
   });
 
   it("should have proper HTML5 structure with unescaped DOCTYPE", async () => {

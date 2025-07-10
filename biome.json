@@ -3,7 +3,7 @@
   "files": {
     "ignoreUnknown": false,
     "includes": ["**"],
-    "experimentalScannerIgnores": ["dist/**"]
+    "ignore": ["dist/**"]
   },
   "formatter": {
     "enabled": true,
