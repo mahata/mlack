@@ -34,8 +34,13 @@ describe("Root page", () => {
     expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
   });
 
-  it("should construct correct WebSocket URL for HTTPS requests", async () => {
-    const response = await index.request("https://example.com/");
+  it("should construct correct WebSocket URL when X-Forwarded-Proto header is https", async () => {
+    const response = await index.request("http://example.com/", {
+      headers: {
+        "x-forwarded-proto": "https",
+      },
+    });
+
     const html = await response.text();
 
     // Should use wss:// for HTTPS requests

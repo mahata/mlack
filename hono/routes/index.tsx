@@ -4,9 +4,10 @@ import { ChatPage } from "../components/ChatPage.js";
 const index = new Hono();
 
 index.get("/", async (c) => {
-  // Construct WebSocket URL from request
+  // Prefer X-Forwarded-Proto header if available
+  const protoHeader = c.req.header("x-forwarded-proto");
+  const protocol = protoHeader === "https" ? "wss:" : "ws:";
   const url = new URL(c.req.url);
-  const protocol = url.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${url.host}/ws`;
 
   return c.html(`<!DOCTYPE html>${await ChatPage(wsUrl)}`);
