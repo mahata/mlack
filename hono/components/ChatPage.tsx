@@ -15,7 +15,7 @@ export async function ChatPage() {
           data-disconnected-class="disconnected"
           data-message-class="message"
         >
-          <h1>Hello, world!</h1>
+          <h1 className="page-title">Hello, world!</h1>
           <div id="status" className="status disconnected">
             Connecting...
           </div>
