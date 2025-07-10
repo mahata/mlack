@@ -49,3 +49,42 @@ h1 {
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+/* Container styles */
+.chat-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Message styles */
+.message {
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+  border-left: 4px solid #2196f3;
+}
+
+/* Input container styles */
+.input-container {
+  display: flex;
+  gap: 10px;
+}
+
+/* Status styles */
+.status {
+  text-align: center;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+/* Connection status styles */
+.connected {
+  color: #4caf50;
+}
+
+.disconnected {
+  color: #f44336;
+}
