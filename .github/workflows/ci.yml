@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -22,9 +22,10 @@ jobs:
       with:
         node-version-file: '.nvmrc'
         cache: 'pnpm'
+        cache-dependency-path: 'pnpm-lock.yaml'
         
     - name: Install dependencies
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
       
     - name: Run tests
       run: pnpm test:run
@@ -36,7 +37,7 @@ jobs:
       run: pnpm build
 
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -50,9 +51,10 @@ jobs:
       with:
         node-version-file: '.nvmrc'
         cache: 'pnpm'
+        cache-dependency-path: 'pnpm-lock.yaml'
         
     - name: Install dependencies
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
       
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium

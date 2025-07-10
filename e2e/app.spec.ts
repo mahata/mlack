@@ -35,7 +35,8 @@ test("Send message and verify it appears in messages div", async ({ page }) => {
   // Wait for WebSocket connection to be established
   await expect(page.locator("#status")).toContainText("Connected", { timeout: 10000 });
 
-  const testMessage = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+  const testMessage =
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
   // Type the test message in the input field
   await page.locator("#messageInput").fill(testMessage);
