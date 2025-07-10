@@ -12,6 +12,7 @@
     "start:prod": "node dist/hono/index.js",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:e2e": "playwright test",
     "lint": "biome check .",
     "lint:fix": "biome check --write ."
   },
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
+    "@playwright/test": "^1.53.2",
     "@types/node": "^24.0.10",
     "@types/ws": "^8.18.1",
     "tsx": "^4.20.3",

@@ -42,6 +42,9 @@ pnpm test
 # Run tests once
 pnpm test:run
 
+# Run E2E tests
+pnpm test:e2e
+
 # Lint code
 pnpm lint
 
@@ -94,11 +97,13 @@ ws.send('Hello, world!');
 
 ```
 mlack/
+├── e2e/            # Playwright E2E tests
 ├── hono/           # Hono application
 │   ├── app.ts      # Main application setup
 │   ├── app.test.ts # Application tests
 │   └── index.ts    # Server entry point
 ├── package.json    # Project dependencies and scripts
+├── playwright.config.ts # Playwright configuration
 ├── tsconfig.json   # TypeScript configuration
 ├── vitest.config.ts # Vitest configuration
 └── biome.json      # Biome configuration
@@ -110,6 +115,37 @@ mlack/
 - **WebSocket**: [@hono/node-ws](https://github.com/honojs/middleware/tree/main/packages/node-ws) - WebSocket support for Node.js
 - **Runtime**: Node.js with [@hono/node-server](https://github.com/honojs/node-server)
 - **Language**: TypeScript
-- **Testing**: Vitest
+- **Testing**: Vitest for unit tests, Playwright for E2E tests
 - **Linting**: Biome for code quality and formatting
 - **Package Manager**: pnpm
+
+## Testing
+
+The project includes both unit tests and end-to-end (E2E) tests:
+
+### Unit Tests
+Unit tests are powered by [Vitest](https://vitest.dev/) and test individual components and functions:
+
+```bash
+# Run unit tests in watch mode
+pnpm test
+
+# Run unit tests once
+pnpm test:run
+```
+
+### E2E Tests
+E2E tests use [Playwright](https://playwright.dev/) to test the complete application flow:
+
+```bash
+# Run E2E tests
+pnpm test:e2e
+```
+
+The E2E tests verify:
+- The application renders correctly
+- "Hello, world!" message is displayed
+- Chat interface elements are present and functional
+- Real-time WebSocket connectivity
+
+Test artifacts (screenshots, traces) are automatically saved on failure for debugging.
