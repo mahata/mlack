@@ -53,7 +53,7 @@ export async function ChatPage() {
           data-disconnected-class={disconnectedClass}
           data-message-class={messageClass}
         >
-          <h1>Hello, world!</h1>
+          <h1 className="page-title">Hello, world!</h1>
           <div id="status" className={`${statusClass} ${disconnectedClass}`}>
             Connecting...
           </div>
