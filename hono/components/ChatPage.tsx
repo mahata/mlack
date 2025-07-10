@@ -1,4 +1,4 @@
-export async function ChatPage() {
+export async function ChatPage(wsUrl?: string) {
   return (
     <html lang="en">
       <head>
@@ -14,6 +14,7 @@ export async function ChatPage() {
           data-connected-class="connected"
           data-disconnected-class="disconnected"
           data-message-class="message"
+          data-ws-url={wsUrl || "ws://localhost:3000/ws"}
         >
           <h1 className="page-title">Hello, world!</h1>
           <div id="status" className="status disconnected">

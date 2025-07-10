@@ -25,4 +25,20 @@ describe("Root page", () => {
     // Verify DOCTYPE is not escaped anywhere in the document
     expect(html).not.toContain("&lt;!DOCTYPE html&gt;");
   });
+
+  it("should include WebSocket URL in data attribute", async () => {
+    const response = await index.request("http://localhost:3000/");
+    const html = await response.text();
+
+    // Should contain the WebSocket URL data attribute
+    expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
+  });
+
+  it("should construct correct WebSocket URL for HTTPS requests", async () => {
+    const response = await index.request("https://example.com/");
+    const html = await response.text();
+
+    // Should use wss:// for HTTPS requests
+    expect(html).toContain('data-ws-url="wss://example.com/ws"');
+  });
 });

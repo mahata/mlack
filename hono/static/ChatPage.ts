@@ -9,9 +9,10 @@ const statusClass = container.getAttribute("data-status-class") as string;
 const connectedClass = container.getAttribute("data-connected-class") as string;
 const disconnectedClass = container.getAttribute("data-disconnected-class") as string;
 const messageClass = container.getAttribute("data-message-class") as string;
+const wsUrl = container.getAttribute("data-ws-url") as string;
 
 // WebSocket connection
-const ws = new WebSocket("ws://localhost:3000/ws");
+const ws = new WebSocket(wsUrl);
 
 ws.onopen = (_event: Event) => {
   console.log("Connected to WebSocket");
