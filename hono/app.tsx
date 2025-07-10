@@ -17,6 +17,9 @@ const clients = new Set<WSContext>();
 // Serve static files from components directory
 app.use("/components/*", serveStatic({ root: "./hono" }));
 
+// Serve static files from static directory
+app.use("/static/*", serveStatic({ root: "./hono" }));
+
 // Register route handlers
 app.route("/", health);
 app.route("/", index);

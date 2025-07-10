@@ -5,13 +5,15 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch hono/index.ts",
-    "build": "tsc --project tsconfig.prod.json",
+    "dev": "pnpm run build:client:watch & tsx watch hono/index.ts",
+    "build": "pnpm run build:client && tsc --project tsconfig.prod.json",
+    "build:client": "tsc --project tsconfig.client.json",
+    "build:client:watch": "tsc --project tsconfig.client.json --watch",
     "build:check": "tsc --noEmit",
     "start": "tsx hono/index.ts",
     "start:prod": "node dist/hono/index.js",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "vitest run --logHeapUsage",
     "test:e2e": "playwright test",
     "lint": "biome check .",
     "lint:fix": "biome check --write ."
