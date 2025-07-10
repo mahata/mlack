@@ -1,3 +1,7 @@
+# Generated client-side JavaScript from TypeScript
+hono/static/*.js
+hono/static/*.js.map
+
 # Node.js dependencies
 node_modules/
 npm-debug.log*
