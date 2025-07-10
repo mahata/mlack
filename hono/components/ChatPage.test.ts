@@ -10,21 +10,25 @@ describe("ChatPage component", () => {
     expect(html).toContain('src="/static/ChatPage.js"');
   });
 
-  it("should use hono/css Style component", async () => {
+  it("should include CSS stylesheet", async () => {
     const jsxElement = await ChatPage();
 
     // Convert JSX to string to test content
     const html = jsxElement.toString();
-    // Should contain the Style component from hono/css
-    expect(html).toContain('<style id="hono-css">');
+    // Should contain the CSS stylesheet link
+    expect(html).toContain('href="/components/ChatPage.css"');
   });
 
-  it("should use CSS-in-JS class names", async () => {
+  it("should use CSS classes instead of CSS-in-JS", async () => {
     const jsxElement = await ChatPage();
 
     // Convert JSX to string to test content
     const html = jsxElement.toString();
-    // Should contain generated CSS class names (they start with 'css-')
-    expect(html).toMatch(/class="[^"]*css-[0-9]+[^"]*"/);
+    // Should contain the new CSS class names
+    expect(html).toContain('class="chat-container"');
+    expect(html).toContain('class="status disconnected"');
+    expect(html).toContain('class="input-container"');
+    // Should not contain generated CSS class names (they start with 'css-')
+    expect(html).not.toMatch(/class="[^"]*css-[0-9]+[^"]*"/);
   });
 });
