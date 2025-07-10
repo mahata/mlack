@@ -31,4 +31,21 @@ describe("ChatPage component", () => {
     // Should not contain generated CSS class names (they start with 'css-')
     expect(html).not.toMatch(/class="[^"]*css-[0-9]+[^"]*"/);
   });
+
+  it("should include default WebSocket URL when none provided", async () => {
+    const jsxElement = await ChatPage();
+
+    // Convert JSX to string to test content
+    const html = jsxElement.toString();
+    expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
+  });
+
+  it("should include custom WebSocket URL when provided", async () => {
+    const customWsUrl = "wss://example.com/ws";
+    const jsxElement = await ChatPage(customWsUrl);
+
+    // Convert JSX to string to test content
+    const html = jsxElement.toString();
+    expect(html).toContain(`data-ws-url="${customWsUrl}"`);
+  });
 });
