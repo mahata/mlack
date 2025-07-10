@@ -30,11 +30,8 @@ jobs:
     - name: Run tests
       run: pnpm test:run
       
-    - name: Clean build artifacts
-      run: rm -rf dist
-      
-    - name: Run linter
-      run: pnpm lint
+    - name: Run linter (without build artifacts)
+      run: rm -rf dist && rm -f hono/static/*.js hono/static/*.js.map && pnpm lint
       
     - name: Run build
       run: pnpm build

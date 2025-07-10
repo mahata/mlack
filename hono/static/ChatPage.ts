@@ -13,10 +13,10 @@ const messageClass = container.getAttribute("data-message-class") as string;
 // WebSocket connection
 const ws = new WebSocket("ws://localhost:3000/ws");
 
-ws.onopen = (event: Event) => {
+ws.onopen = (_event: Event) => {
   console.log("Connected to WebSocket");
   statusDiv.textContent = "Connected";
-  statusDiv.className = statusClass + " " + connectedClass;
+  statusDiv.className = `${statusClass} ${connectedClass}`;
   messageInput.disabled = false;
   sendButton.disabled = false;
 };
@@ -30,10 +30,10 @@ ws.onmessage = (event: MessageEvent) => {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 };
 
-ws.onclose = (event: CloseEvent) => {
+ws.onclose = (_event: CloseEvent) => {
   console.log("Disconnected from WebSocket");
   statusDiv.textContent = "Disconnected";
-  statusDiv.className = statusClass + " " + disconnectedClass;
+  statusDiv.className = `${statusClass} ${disconnectedClass}`;
   messageInput.disabled = true;
   sendButton.disabled = true;
 };
@@ -41,7 +41,7 @@ ws.onclose = (event: CloseEvent) => {
 ws.onerror = (error: Event) => {
   console.error("WebSocket error:", error);
   statusDiv.textContent = "Connection Error";
-  statusDiv.className = statusClass + " " + disconnectedClass;
+  statusDiv.className = `${statusClass} ${disconnectedClass}`;
 };
 
 // Send message function
