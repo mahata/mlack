@@ -44,7 +44,7 @@ export default defineConfig({
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // timing out in 2 mins
-    stderr: 'pipe',
-    stdout: 'pipe',
+    stderr: "pipe",
+    stdout: "pipe",
   },
 });
