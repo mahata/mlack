@@ -19,7 +19,7 @@ export async function ChatPage(wsUrl?: string) {
           <h1 className="page-title">Hello, world!</h1>
           <div id="status" className="status disconnected">
             {}
-            Connecting to {wsUrl} from <span id="current-url">loading...</span>...
+            Connecting to {wsUrl}...
           </div>
           <div id="messages"></div>
           <div className="input-container">
@@ -30,20 +30,6 @@ export async function ChatPage(wsUrl?: string) {
           </div>
         </div>
 
-        <script
-          type="text/javascript"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: temporary
-          dangerouslySetInnerHTML={{
-            __html: `
-              document.addEventListener('DOMContentLoaded', () => {
-                const urlElement = document.getElementById('current-url');
-                if (urlElement) {
-                  urlElement.textContent = window.location.href;
-                }
-              });
-            `,
-          }}
-        />
         <script src="/static/ChatPage.js"></script>
       </body>
     </html>
