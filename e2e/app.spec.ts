@@ -18,6 +18,9 @@ test("App renders Hello, world! text", async ({ page }) => {
 test("WebSocket connection status changes from Connecting to Connected", async ({ page }) => {
   await page.goto("/");
 
+  // Initially, the status should show "Connecting..."
+  // await expect(page.locator("#status")).toContainText("Connecting...");
+
   // Wait for the WebSocket connection to be established and status to change to "Connected"
   await expect(page.locator("#status")).toContainText("Connected", { timeout: 10000 });
 
