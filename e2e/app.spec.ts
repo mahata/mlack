@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  // サーバーが完全に起動するまで待機
+  // Wait for a server to be ready before running tests
   await page.goto("/health");
   await expect(page.locator("body")).toContainText("ok");
 });
