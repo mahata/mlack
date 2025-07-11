@@ -59,6 +59,8 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
       
+    - name: Build JavaScript files
+      run: pnpm build
     - name: Run Playwright tests
       run: pnpm test:e2e
       
