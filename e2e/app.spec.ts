@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  // サーバーが完全に起動するまで待機
+  await page.goto("/health");
+  await expect(page.locator("body")).toContainText("ok");
+});
+
 test("App renders Hello, world! text", async ({ page }) => {
   await page.goto("/");
 
