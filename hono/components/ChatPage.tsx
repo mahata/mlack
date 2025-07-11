@@ -18,7 +18,7 @@ export async function ChatPage(wsUrl?: string) {
         >
           <h1 className="page-title">Hello, world!</h1>
           <div id="status" className="status disconnected">
-            Connecting...
+            Connecting to {wsUrl}...
           </div>
           <div id="messages"></div>
           <div className="input-container">
