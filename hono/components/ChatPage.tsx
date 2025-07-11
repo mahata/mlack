@@ -1,5 +1,3 @@
-import { text } from "stream/consumers";
-
 export async function ChatPage(wsUrl?: string) {
   return (
     <html lang="en">
@@ -32,7 +30,7 @@ export async function ChatPage(wsUrl?: string) {
           </div>
         </div>
 
-        <script 
+        <script
           type="text/javascript"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: temporary
           dangerouslySetInnerHTML={{
@@ -43,7 +41,7 @@ export async function ChatPage(wsUrl?: string) {
                   urlElement.textContent = window.location.href;
                 }
               });
-            `
+            `,
           }}
         />
         <script src="/static/ChatPage.js"></script>

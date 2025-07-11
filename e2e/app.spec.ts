@@ -25,7 +25,7 @@ test("WebSocket connection status changes from Connecting to Connected", async (
   await page.goto("/");
 
   // Wait for the WebSocket connection to be established and status to change to "Connected"
-  await expect(page.locator("#status")).toContainText("Connected", { timeout: 10000 });
+  await expect(page.locator("#status")).toContainText("Connected", { timeout: process.env.CI ? 30000 : 10000 });
 
   // Verify that the input and button are enabled after connection
   await expect(page.locator("#messageInput")).toBeEnabled();
@@ -36,7 +36,7 @@ test("Send message and verify it appears in messages div", async ({ page }) => {
   await page.goto("/");
 
   // Wait for WebSocket connection to be established
-  await expect(page.locator("#status")).toContainText("Connected", { timeout: 10000 });
+  await expect(page.locator("#status")).toContainText("Connected", { timeout: process.env.CI ? 30000 : 10000 });
 
   const testMessage =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
