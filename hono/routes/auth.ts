@@ -12,7 +12,8 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-if (!clientId || !clientSecret || !redirectUri) {
+// テスト環境でない場合のみ環境変数をチェック
+if (process.env.NODE_ENV !== "test" && (!clientId || !clientSecret || !redirectUri)) {
   throw new Error("Google OAuth環境変数が設定されていません");
 }
 
@@ -25,8 +26,8 @@ auth.get("/auth/google", async (c) => {
   session.set("oauth_state", state);
   
   const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
+    client_id: clientId || "",
+    redirect_uri: redirectUri || "",
     response_type: "code",
     scope: "openid email profile",
     state: state,
@@ -71,11 +72,11 @@ auth.get("/auth/google/callback", async (c) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: clientId || "",
+        client_secret: clientSecret || "",
         code: code,
         grant_type: "authorization_code",
-        redirect_uri: redirectUri,
+        redirect_uri: redirectUri || "",
       }),
     });
 
