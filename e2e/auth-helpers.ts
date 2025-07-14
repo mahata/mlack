@@ -27,7 +27,7 @@ export async function loginWithGoogle(page: Page) {
   await page.locator("#passwordNext").click();
 
   // ログイン後、アプリケーションにリダイレクトされることを確認
-  await page.waitForURL("http://127.0.0.1:3000/", { timeout: 30000 });
+  await page.waitForURL("http://localhost:3000/", { timeout: 30000 });
 
   // ユーザー情報が表示されることを確認
   await expect(page.locator(".user-email")).toContainText(gmailAccount, { timeout: 10000 });
