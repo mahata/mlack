@@ -50,5 +50,9 @@ export default defineConfig({
     timeout: 120 * 1000, // timing out in 2 mins
     stderr: "pipe",
     stdout: "pipe",
+    env: {
+      NODE_ENV: "development",
+      E2E_GMAIL_ACCOUNT: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
+    },
   },
 });

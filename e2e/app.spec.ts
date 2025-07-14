@@ -1,13 +1,25 @@
 import { expect, test } from "@playwright/test";
+import { loginWithMock } from "./auth-helpers";
 
 test.beforeEach(async ({ page }) => {
   // Wait for a server to be ready before running tests
   await page.goto("/health");
   await expect(page.locator("body")).toContainText("ok");
+  
+  // E2Eテスト用にモックログインを実行
+  await loginWithMock(page);
+});
+
+test.afterEach(async ({ page }) => {
+  // テスト終了後にログアウト
+  await page.request.post("/test/logout");
 });
 
 test("App renders Hello, world! text", async ({ page }) => {
   await page.goto("/");
+
+  // ユーザー情報が表示されていることを確認
+  await expect(page.locator(".user-email")).toContainText(process.env.E2E_GMAIL_ACCOUNT || "test@example.com");
 
   // Verify that the page contains "Hello, world!" heading
   await expect(page.locator("h1")).toContainText("Hello, world!");
@@ -52,4 +64,18 @@ test("Send message and verify it appears in messages div", async ({ page }) => {
 
   // Verify that the input field is cleared after sending
   await expect(page.locator("#messageInput")).toHaveValue("");
+});
+
+test("Logout functionality works correctly", async ({ page }) => {
+  // 既にbeforeEachでログインされているので、ページに移動
+  await page.goto("/");
+
+  // ユーザー情報が表示されていることを確認
+  await expect(page.locator(".user-email")).toBeVisible();
+
+  // ログアウトボタンをクリック
+  await page.locator(".logout-button").click();
+
+  // ログアウト後はGoogleログインページにリダイレクトされることを確認
+  await expect(page).toHaveURL(/accounts\.google\.com/);
 });
