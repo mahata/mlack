@@ -14,6 +14,9 @@ importers:
       '@hono/node-ws':
         specifier: ^1.2.0
         version: 1.2.0(@hono/node-server@1.15.0(hono@4.8.4))(hono@4.8.4)
+      '@hono/oauth-providers':
+        specifier: ^0.8.2
+        version: 0.8.2(hono@4.8.4)
       dotenv:
         specifier: ^17.2.0
         version: 17.2.0
@@ -272,6 +275,12 @@ packages:
     peerDependencies:
       '@hono/node-server': ^1.11.1
       hono: ^4.6.0
+
+  '@hono/oauth-providers@0.8.2':
+    resolution: {integrity: sha512-xQa9bt6Z/xAMvT+MTHHhXX28nyzqSDZl8LzszM071dIzoEcBx/NwZLnZjPm+7ZiRZb/2E9tiP5GMbBimtYrEHg==}
+    engines: {node: '>=18.4.0'}
+    peerDependencies:
+      hono: '>=3.*'
 
   '@jridgewell/sourcemap-codec@1.5.4':
     resolution: {integrity: sha512-VT2+G1VQs/9oz078bLrYbecdZKs912zQlkelYpuf+SXF+QvZDYJlbx/LSx+meSAwdDFnF8FVXW92AVjjkVmgFw==}
@@ -828,6 +837,10 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@hono/oauth-providers@0.8.2(hono@4.8.4)':
+    dependencies:
+      hono: 4.8.4
 
   '@jridgewell/sourcemap-codec@1.5.4': {}
 
