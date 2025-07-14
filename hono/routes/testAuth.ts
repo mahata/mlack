@@ -14,7 +14,7 @@ testAuth.post("/test/login", async (c) => {
   }
 
   const session = c.get("session");
-  
+
   // E2E用のテストユーザー情報
   const testUser = {
     email: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
@@ -24,7 +24,7 @@ testAuth.post("/test/login", async (c) => {
 
   console.log("Test login - saving user to session:", testUser);
   session.set("user", testUser);
-  
+
   return c.json({ success: true, user: testUser });
 });
 
@@ -36,7 +36,7 @@ testAuth.post("/test/logout", async (c) => {
 
   const session = c.get("session");
   session.deleteSession();
-  
+
   return c.json({ success: true });
 });
 

@@ -6,7 +6,7 @@ describe("App integration", () => {
     const { createTestApp } = await import("./testApp.js");
     const { app } = createTestApp();
     const response = await app.request("/non-existent");
-    
+
     expect(response.status).toBe(404);
   });
 });

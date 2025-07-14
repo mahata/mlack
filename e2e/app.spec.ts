@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
   // Wait for a server to be ready before running tests
   await page.goto("/health");
   await expect(page.locator("body")).toContainText("ok");
-  
+
   // E2Eテスト用にモックログインを実行
   await loginWithMock(page);
 });

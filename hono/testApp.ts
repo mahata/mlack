@@ -1,21 +1,21 @@
-import { Hono } from "hono";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createNodeWebSocket } from "@hono/node-ws";
+import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
 import type { Session } from "hono-sessions";
 import { vi } from "vitest";
+import { auth } from "./routes/auth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
-import { createWsRoute } from "./routes/ws.js";
-import { auth } from "./routes/auth.js";
 import { testAuth } from "./routes/testAuth.js";
+import { createWsRoute } from "./routes/ws.js";
 
 type Variables = {
   session: Session;
 };
 
-export function createTestApp(options?: { 
-  authenticatedUser?: { email: string; name: string; picture: string } | null 
+export function createTestApp(options?: {
+  authenticatedUser?: { email: string; name: string; picture: string } | null;
 }) {
   const app = new Hono<{ Variables: Variables }>();
 

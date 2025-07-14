@@ -27,7 +27,9 @@ export async function ChatPage(wsUrl?: string, user?: User) {
               {user.picture && <img src={user.picture} alt="Profile" className="profile-picture" />}
               <span className="user-email">{user.email}</span>
               <form method="post" action="/auth/logout" style={{ display: "inline" }}>
-                <button type="submit" className="logout-button">ログアウト</button>
+                <button type="submit" className="logout-button">
+                  ログアウト
+                </button>
               </form>
             </div>
           )}

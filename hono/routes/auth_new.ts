@@ -1,5 +1,5 @@
-import { Hono } from "hono";
 import { googleAuth } from "@hono/oauth-providers/google";
+import { Hono } from "hono";
 import type { Session } from "hono-sessions";
 
 type Variables = {
@@ -28,7 +28,7 @@ auth.get(
   }),
   async (c) => {
     console.log("OAuth callback received");
-    
+
     const token = c.get("token");
     const user = c.get("user-google");
 
@@ -47,16 +47,16 @@ auth.get(
       name: user.name,
       picture: user.picture,
     };
-    
+
     console.log("Saving user to session:", userInfo);
     session.set("user", userInfo);
-    
+
     // セッションが正しく保存されているか確認
     const savedUser = session.get("user");
     console.log("Verified saved user:", savedUser);
 
     return c.redirect("/");
-  }
+  },
 );
 
 // ログアウト

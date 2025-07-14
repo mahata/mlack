@@ -10,7 +10,7 @@ const index = new Hono<{ Variables: Variables }>();
 
 index.get("/", async (c) => {
   console.log("Index route accessed");
-  
+
   const session = c.get("session");
   const user = session.get("user") as { email?: string; name?: string; picture?: string } | undefined;
 

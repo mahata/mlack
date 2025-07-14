@@ -20,11 +20,11 @@ if (process.env.NODE_ENV !== "test" && (!clientId || !clientSecret || !redirectU
 // Google OAuth を開始
 auth.get("/auth/google", async (c) => {
   console.log("Starting Google OAuth flow");
-  
+
   const state = Math.random().toString(36).substring(2, 15);
   const session = c.get("session");
   session.set("oauth_state", state);
-  
+
   const params = new URLSearchParams({
     client_id: clientId || "",
     redirect_uri: redirectUri || "",
@@ -35,17 +35,17 @@ auth.get("/auth/google", async (c) => {
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   console.log("Redirecting to:", authUrl);
-  
+
   return c.redirect(authUrl);
 });
 
 // Google OAuth コールバック
 auth.get("/auth/google/callback", async (c) => {
   console.log("Google OAuth callback received");
-  
+
   const code = c.req.query("code");
   const state = c.req.query("state");
-  
+
   console.log("Received code:", code ? "exists" : "missing");
   console.log("Received state:", state);
 
@@ -56,9 +56,9 @@ auth.get("/auth/google/callback", async (c) => {
 
   const session = c.get("session");
   const savedState = session.get("oauth_state");
-  
+
   console.log("Saved state:", savedState);
-  
+
   if (state !== savedState) {
     console.log("State mismatch");
     return c.redirect("/?error=state_mismatch");
@@ -109,11 +109,11 @@ auth.get("/auth/google/callback", async (c) => {
       name: userData.name,
       picture: userData.picture,
     };
-    
+
     console.log("Saving user to session:", userInfo);
     session.set("user", userInfo);
     session.set("oauth_state", null); // stateをクリア
-    
+
     // セッションが正しく保存されているか確認
     const savedUser = session.get("user");
     console.log("Verified saved user:", savedUser);

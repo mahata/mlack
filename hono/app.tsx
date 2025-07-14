@@ -2,12 +2,12 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
-import { sessionMiddleware, CookieStore } from "hono-sessions";
+import { CookieStore, sessionMiddleware } from "hono-sessions";
+import { auth } from "./routes/auth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
-import { createWsRoute } from "./routes/ws.js";
-import { auth } from "./routes/auth.js";
 import { testAuth } from "./routes/testAuth.js";
+import { createWsRoute } from "./routes/ws.js";
 
 const app = new Hono();
 
@@ -25,7 +25,7 @@ app.use(
       sameSite: "lax",
       path: "/",
     },
-  })
+  }),
 );
 
 // Create WebSocket helper

@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { createTestApp } from "../testApp.js";
 import type { Hono } from "hono";
 import type { Session } from "hono-sessions";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createTestApp } from "../testApp.js";
 
 type Variables = {
   session: Session;
@@ -15,12 +15,12 @@ describe("Root page", () => {
     const { app } = createTestApp({
       authenticatedUser: {
         email: "test@example.com",
-        name: "Test User", 
-        picture: "https://via.placeholder.com/32"
-      }
+        name: "Test User",
+        picture: "https://via.placeholder.com/32",
+      },
     });
     testApp = app;
-    
+
     // インデックスルートをインポートして追加
     const { index } = await import("./index.js");
     testApp.route("/", index);
@@ -79,9 +79,9 @@ describe("Root page", () => {
     // インデックスルートを追加
     const { index } = await import("./index.js");
     testAppNoAuth.route("/", index);
-    
+
     const response = await testAppNoAuth.request("/");
-    
+
     // Google認証にリダイレクトされることを確認
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/auth/google");
