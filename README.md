@@ -27,6 +27,24 @@ It's an experiment to create a slack-like app just by vibe coding with GitHub Co
 pnpm install
 ```
 
+### Environment Configuration
+
+The application uses environment variables for configuration. Create a `.env` file in the project root for local development:
+
+```bash
+# Copy the sample environment file
+cp .env.sample .env
+
+# Edit .env with your desired values
+# Example:
+# PORT=3001
+```
+
+Available environment variables:
+- `PORT`: Server port (default: 3000)
+
+If no `.env` file exists, the application will use system environment variables or fall back to defaults.
+
 ### Development
 
 ```bash
@@ -102,6 +120,7 @@ mlack/
 │   ├── app.ts      # Main application setup
 │   ├── app.test.ts # Application tests
 │   └── index.ts    # Server entry point
+├── .env.sample     # Sample environment configuration
 ├── package.json    # Project dependencies and scripts
 ├── playwright.config.ts # Playwright configuration
 ├── tsconfig.json   # TypeScript configuration
@@ -115,6 +134,7 @@ mlack/
 - **WebSocket**: [@hono/node-ws](https://github.com/honojs/middleware/tree/main/packages/node-ws) - WebSocket support for Node.js
 - **Runtime**: Node.js with [@hono/node-server](https://github.com/honojs/node-server)
 - **Language**: TypeScript
+- **Environment**: [dotenv](https://github.com/motdotla/dotenv) - Environment variable management
 - **Testing**: Vitest for unit tests, Playwright for E2E tests
 - **Linting**: Biome for code quality and formatting
 - **Package Manager**: pnpm
