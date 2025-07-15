@@ -28,7 +28,7 @@ export async function ChatPage(wsUrl?: string, user?: User) {
               <span className="user-email">{user.email}</span>
               <form method="post" action="/auth/logout" style={{ display: "inline" }}>
                 <button type="submit" className="logout-button">
-                  ログアウト
+                  Logout
                 </button>
               </form>
             </div>

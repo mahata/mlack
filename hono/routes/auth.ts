@@ -7,17 +7,16 @@ type Variables = {
 
 const auth = new Hono<{ Variables: Variables }>();
 
-// Google OAuth設定
+// Google OAuth Settings
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-// テスト環境でない場合のみ環境変数をチェック
 if (process.env.NODE_ENV !== "test" && (!clientId || !clientSecret || !redirectUri)) {
-  throw new Error("Google OAuth環境変数が設定されていません");
+  throw new Error("Env vars for Google OAuth are not set");
 }
 
-// Google OAuth を開始
+// Start Google OAuth flow
 auth.get("/auth/google", async (c) => {
   console.log("Starting Google OAuth flow");
 
@@ -39,7 +38,7 @@ auth.get("/auth/google", async (c) => {
   return c.redirect(authUrl);
 });
 
-// Google OAuth コールバック
+// Google OAuth callback
 auth.get("/auth/google/callback", async (c) => {
   console.log("Google OAuth callback received");
 
@@ -65,7 +64,7 @@ auth.get("/auth/google/callback", async (c) => {
   }
 
   try {
-    // アクセストークンを取得
+    // Exchange code for access token
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
@@ -88,7 +87,7 @@ auth.get("/auth/google/callback", async (c) => {
       return c.redirect("/?error=token_failed");
     }
 
-    // ユーザー情報を取得
+    // Fetch user info
     const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -103,7 +102,7 @@ auth.get("/auth/google/callback", async (c) => {
       return c.redirect("/?error=user_failed");
     }
 
-    // セッションにユーザー情報を保存
+    // Save user info to session
     const userInfo = {
       email: userData.email,
       name: userData.name,
@@ -112,9 +111,9 @@ auth.get("/auth/google/callback", async (c) => {
 
     console.log("Saving user to session:", userInfo);
     session.set("user", userInfo);
-    session.set("oauth_state", null); // stateをクリア
+    session.set("oauth_state", null); // Clear state
 
-    // セッションが正しく保存されているか確認
+    // Verify that the session is saved correctly
     const savedUser = session.get("user");
     console.log("Verified saved user:", savedUser);
 
@@ -125,7 +124,7 @@ auth.get("/auth/google/callback", async (c) => {
   }
 });
 
-// デバッグ用のルート
+// Debugging route
 auth.get("/debug/session", async (c) => {
   const session = c.get("session");
   const user = session.get("user");
@@ -135,7 +134,7 @@ auth.get("/debug/session", async (c) => {
   });
 });
 
-// ログアウト
+// Logout
 auth.post("/auth/logout", async (c) => {
   const session = c.get("session");
   session.deleteSession();

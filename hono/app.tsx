@@ -21,7 +21,7 @@ type AppOptions = {
 export function createApp(options?: AppOptions) {
   const app = new Hono<{ Variables: Variables }>();
 
-  // セッション設定（テスト時は options.sessionMiddleware で上書き可能）
+  // Set up session middleware
   if (options?.sessionMiddleware) {
     app.use("*", options.sessionMiddleware);
   } else {
@@ -31,7 +31,7 @@ export function createApp(options?: AppOptions) {
       sessionMiddleware({
         store,
         encryptionKey: process.env.SESSION_SECRET || "your-super-secret-key-change-in-production",
-        expireAfterSeconds: 3600, // 1時間に延長
+        expireAfterSeconds: 3600,
         cookieOptions: {
           httpOnly: true,
           secure: false, // 開発環境ではfalseに設定
@@ -64,7 +64,6 @@ export function createApp(options?: AppOptions) {
   return { app, injectWebSocket };
 }
 
-// プロダクション用のアプリケーションインスタンス
 const { app, injectWebSocket } = createApp();
 
 export { app, injectWebSocket };
