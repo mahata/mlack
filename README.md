@@ -1,5 +1,7 @@
 # mlack
 
+![CI](https://github.com/mahata/mlack/workflows/CI/badge.svg)
+
 It's an experiment to create a slack-like app just by vibe coding with GitHub Copilot.
 
 ## Features
