@@ -1,11 +1,7 @@
 import type { Hono } from "hono";
-import type { Session } from "hono-sessions";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createTestApp } from "../testApp.js";
-
-type Variables = {
-  session: Session;
-};
+import type { Variables } from "../types.js";
 
 describe("Root page", () => {
   let testApp: Hono<{ Variables: Variables }>;

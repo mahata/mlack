@@ -1,10 +1,6 @@
 import { Hono } from "hono";
-import type { Session } from "hono-sessions";
 import { ChatPage } from "../components/ChatPage.js";
-
-type Variables = {
-  session: Session;
-};
+import type { Variables } from "../types.js";
 
 const index = new Hono<{ Variables: Variables }>();
 

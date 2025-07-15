@@ -3,16 +3,12 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
-import type { Session } from "hono-sessions";
 import { auth } from "./routes/auth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
 import { testAuth } from "./routes/testAuth.js";
 import { createWsRoute } from "./routes/ws.js";
-
-type Variables = {
-  session: Session;
-};
+import type { Variables } from "./types.js";
 
 type AppOptions = {
   sessionMiddleware?: (c: any, next: () => Promise<void>) => Promise<void>;

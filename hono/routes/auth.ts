@@ -1,10 +1,6 @@
 import { googleAuth } from "@hono/oauth-providers/google";
 import { Hono } from "hono";
-import type { Session } from "hono-sessions";
-
-type Variables = {
-  session: Session;
-};
+import type { Variables } from "../types.js";
 
 const auth = new Hono<{ Variables: Variables }>();
 
@@ -14,7 +10,7 @@ const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
 if (process.env.NODE_ENV !== "test" && process.env.NODE_ENV !== "development" && (!clientId || !clientSecret || !redirectUri)) {
-  throw new Error("Google OAuth環境変数が設定されていません");
+  throw new Error("Google OAuth Environmental Variables are not set");
 }
 
 // Google OAuth route setup

@@ -1,9 +1,5 @@
 import { Hono } from "hono";
-import type { Session } from "hono-sessions";
-
-type Variables = {
-  session: Session;
-};
+import type { Variables } from "../types.js";
 
 const testAuth = new Hono<{ Variables: Variables }>();
 
