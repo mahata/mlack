@@ -7,7 +7,7 @@ describe("Root page", () => {
   let testApp: Hono<{ Variables: Variables }>;
 
   beforeEach(async () => {
-    // 認証済みユーザーでテストアプリを作成
+    // Create a test app with an authenticated user
     const { app } = createTestApp({
       authenticatedUser: {
         email: "test@example.com",
@@ -17,7 +17,7 @@ describe("Root page", () => {
     });
     testApp = app;
 
-    // インデックスルートをインポートして追加
+    // Add the index route to the test app
     const { index } = await import("./index.js");
     testApp.route("/", index);
   });
@@ -33,7 +33,7 @@ describe("Root page", () => {
     expect(html).toContain("MLack - Real-time Chat");
     expect(html).toContain("Type your message...");
     expect(html).toContain('src="/static/ChatPage.js"');
-    expect(html).toContain("test@example.com"); // ユーザー情報が表示される
+    expect(html).toContain("test@example.com");
   });
 
   it("should have proper HTML5 structure with unescaped DOCTYPE", async () => {
@@ -69,16 +69,16 @@ describe("Root page", () => {
   });
 
   it("should redirect to Google auth when user is not logged in", async () => {
-    // 未認証ユーザーのテスト用アプリを作成
+    // Create a test app with an unauthenticated user
     const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
 
-    // インデックスルートを追加
+    // Add the index route to the test app
     const { index } = await import("./index.js");
     testAppNoAuth.route("/", index);
 
     const response = await testAppNoAuth.request("/");
 
-    // Google認証にリダイレクトされることを確認
+    // Expect a redirect to Google auth
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/auth/google");
   });

@@ -3,7 +3,7 @@ import type { Variables } from "../types.js";
 
 const testAuth = new Hono<{ Variables: Variables }>();
 
-// E2Eテスト用のモックログイン
+// Mock login for E2E testing
 testAuth.post("/test/login", async (c) => {
   if (process.env.NODE_ENV !== "development") {
     return c.json({ error: "Test login only available in development" }, 403);
@@ -11,7 +11,7 @@ testAuth.post("/test/login", async (c) => {
 
   const session = c.get("session");
 
-  // E2E用のテストユーザー情報
+  // Test user information for E2E
   const testUser = {
     email: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
     name: "Test User",
@@ -24,7 +24,7 @@ testAuth.post("/test/login", async (c) => {
   return c.json({ success: true, user: testUser });
 });
 
-// E2Eテスト用のログアウト
+// Logout for E2E testing
 testAuth.post("/test/logout", async (c) => {
   if (process.env.NODE_ENV !== "development") {
     return c.json({ error: "Test logout only available in development" }, 403);

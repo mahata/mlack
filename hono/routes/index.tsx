@@ -12,7 +12,7 @@ index.get("/", async (c) => {
 
   console.log("Session user:", user);
 
-  // ユーザーがログインしていない場合、Googleログインにリダイレクト
+  // Redirect to Google login if user is not authenticated
   if (!user) {
     console.log("No user found in session, redirecting to Google auth");
     return c.redirect("/auth/google");

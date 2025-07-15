@@ -5,7 +5,7 @@ import { createApp } from "./app.js";
 export function createTestApp(options?: {
   authenticatedUser?: { email: string; name: string; picture: string } | null;
 }) {
-  // テスト用のセッションミドルウェアを作成
+  // Create test session middleware
   const testSessionMiddleware = async (c: any, next: () => Promise<void>) => {
     const mockSession = {
       get: vi.fn().mockReturnValue(options?.authenticatedUser || null),
@@ -16,7 +16,7 @@ export function createTestApp(options?: {
     await next();
   };
 
-  // app.tsx の createApp 関数を使用し、テスト用のセッションミドルウェアを注入
+  // Use createApp function from app.tsx and inject test session middleware
   return createApp({
     sessionMiddleware: testSessionMiddleware,
   });
