@@ -30,7 +30,7 @@ export function createApp(options?: AppOptions) {
         expireAfterSeconds: 3600,
         cookieOptions: {
           httpOnly: true,
-          secure: false, // 開発環境ではfalseに設定
+          secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
           path: "/",
         },
