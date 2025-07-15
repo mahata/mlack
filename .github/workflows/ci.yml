@@ -62,6 +62,13 @@ jobs:
     - name: Build JavaScript files
       run: pnpm build
     - name: Run Playwright tests
+      env:
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        GOOGLE_REDIRECT_URI: ${{ secrets.GOOGLE_REDIRECT_URI }}
+        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        E2E_GMAIL_ACCOUNT: ${{ secrets.E2E_GMAIL_ACCOUNT }}
+        E2E_GMAIL_PASSWORD: ${{ secrets.E2E_GMAIL_PASSWORD }}
       run: pnpm test:e2e
       
     - name: Upload test artifacts

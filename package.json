@@ -15,8 +15,8 @@
     "test": "vitest",
     "test:run": "vitest run --logHeapUsage",
     "test:e2e": "playwright test",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write ."
+    "lint": "biome check --verbose .",
+    "lint:fix": "biome check --verbose --write ."
   },
   "keywords": [
     "hono",
@@ -29,8 +29,10 @@
   "dependencies": {
     "@hono/node-server": "^1.15.0",
     "@hono/node-ws": "^1.2.0",
+    "@hono/oauth-providers": "^0.8.2",
     "dotenv": "^17.2.0",
     "hono": "^4.8.4",
+    "hono-sessions": "^0.8.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {
