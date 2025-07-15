@@ -1,0 +1,53 @@
+version: 2
+updates:
+  # Monitor npm dependencies with pnpm package manager
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "UTC"
+    # Group production dependencies together
+    groups:
+      production-dependencies:
+        patterns:
+          - "@hono/*"
+          - "hono"
+          - "hono-sessions"
+          - "dotenv"
+          - "ws"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group development dependencies together
+      development-dependencies:
+        patterns:
+          - "@biomejs/*"
+          - "@playwright/*"
+          - "@types/*"
+          - "tsx"
+          - "typescript"
+          - "vitest"
+        update-types:
+          - "minor"
+          - "patch"
+    # Configure commit messages and PR labels
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated-pr"
+    # Limit the number of open PRs
+    open-pull-requests-limit: 5
+    # Reviewer assignment (optional - can be configured later)
+    # reviewers:
+    #   - "maintainer-username"
+    # Allow security updates to be applied automatically
+    allow:
+      - dependency-type: "all"
+    # Ignore major version updates for stability
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
