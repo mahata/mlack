@@ -37,8 +37,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
-    "@playwright/test": "^1.53.2",
-    "@types/node": "^24.0.10",
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^24.0.14",
     "@types/ws": "^8.18.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
