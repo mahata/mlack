@@ -6,6 +6,7 @@ import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { auth } from "./routes/auth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
+import { messagesRoute } from "./routes/messages.js";
 import { testAuth } from "./routes/testAuth.js";
 import { createWsRoute } from "./routes/ws.js";
 import type { Variables } from "./types.js";
@@ -54,6 +55,7 @@ export function createApp(options?: AppOptions) {
   app.route("/", health);
   app.route("/", auth);
   app.route("/", testAuth);
+  app.route("/", messagesRoute);
   app.route("/", index);
   app.route("/", createWsRoute(upgradeWebSocket, clients));
 

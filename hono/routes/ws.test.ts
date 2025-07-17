@@ -3,12 +3,34 @@ import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { describe, expect, it, vi } from "vitest";
 import { createWsRoute } from "./ws.js";
 
+// Mock the database module
+vi.mock("../db/index.js", () => ({
+  db: {
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockResolvedValue({}),
+    }),
+  },
+  messages: {},
+}));
+
 describe("WebSocket endpoint", () => {
   it("should create WebSocket route with proper handlers", () => {
     // Mock the upgradeWebSocket function
     const mockUpgradeWebSocket = vi.fn((handler) => {
+      // Create a mock context
+      const mockContext = {
+        get: vi.fn((key: string) => {
+          if (key === "session") {
+            return {
+              get: vi.fn().mockReturnValue({ email: "test@example.com", name: "Test User" }),
+            };
+          }
+          return undefined;
+        }),
+      } as unknown as Context;
+      
       // Return a mock handler that can be called
-      return () => handler();
+      return () => handler(mockContext);
     }) as unknown as UpgradeWebSocket;
 
     const clients = new Set<WSContext>();
