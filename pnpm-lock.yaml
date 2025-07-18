@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@hono/node-server':
-        specifier: ^1.15.0
-        version: 1.15.0(hono@4.8.4)
+        specifier: ^1.16.0
+        version: 1.16.0(hono@4.8.5)
       '@hono/node-ws':
         specifier: ^1.2.0
-        version: 1.2.0(@hono/node-server@1.15.0(hono@4.8.4))(hono@4.8.4)
+        version: 1.2.0(@hono/node-server@1.16.0(hono@4.8.5))(hono@4.8.5)
       '@hono/oauth-providers':
         specifier: ^0.8.2
-        version: 0.8.2(hono@4.8.4)
+        version: 0.8.2(hono@4.8.5)
       dotenv:
         specifier: ^17.2.0
         version: 17.2.0
@@ -24,8 +24,8 @@ importers:
         specifier: ^0.35.3
         version: 0.35.3(@libsql/client-wasm@0.15.10)(@types/pg@8.15.4)(pg@8.16.3)
       hono:
-        specifier: ^4.8.4
-        version: 4.8.4
+        specifier: ^4.8.5
+        version: 4.8.5
       hono-sessions:
         specifier: ^0.8.0
         version: 0.8.0
@@ -418,8 +418,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@hono/node-server@1.15.0':
-    resolution: {integrity: sha512-MjmK4l5N4dQpZ9OSWN0tCj7ejuc7WvuWMzSKtc89bnknJykAeHxzRigXBTYZk85H6Awrii6RM59iUiUluApu2A==}
+  '@hono/node-server@1.16.0':
+    resolution: {integrity: sha512-9LwRb5XOrTFapOABiQjGC50wRVlzUvWZsDHINCnkBniP+Q+LQf4waN0nzk9t+2kqcTsnGnieSmqpHsr6kH2bdw==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -779,8 +779,8 @@ packages:
   hono-sessions@0.8.0:
     resolution: {integrity: sha512-44nDuxcGTlk1hKE+7vH8KnNleKYnr8p3i/vkT8640jU8V0F1Tm873F5NdfXpctZax3CtnQ4cUKyEF1axXdkZrw==}
 
-  hono@4.8.4:
-    resolution: {integrity: sha512-KOIBp1+iUs0HrKztM4EHiB2UtzZDTBihDtOF5K6+WaJjCPeaW4Q92R8j63jOhvJI5+tZSMuKD9REVEXXY9illg==}
+  hono@4.8.5:
+    resolution: {integrity: sha512-Up2cQbtNz1s111qpnnECdTGqSIUIhZJMLikdKkshebQSEBcoUKq6XJayLGqSZWidiH0zfHRCJqFu062Mz5UuRA==}
     engines: {node: '>=16.9.0'}
 
   iron-webcrypto@1.2.1:
@@ -1244,22 +1244,22 @@ snapshots:
   '@esbuild/win32-x64@0.25.6':
     optional: true
 
-  '@hono/node-server@1.15.0(hono@4.8.4)':
+  '@hono/node-server@1.16.0(hono@4.8.5)':
     dependencies:
-      hono: 4.8.4
+      hono: 4.8.5
 
-  '@hono/node-ws@1.2.0(@hono/node-server@1.15.0(hono@4.8.4))(hono@4.8.4)':
+  '@hono/node-ws@1.2.0(@hono/node-server@1.16.0(hono@4.8.5))(hono@4.8.5)':
     dependencies:
-      '@hono/node-server': 1.15.0(hono@4.8.4)
-      hono: 4.8.4
+      '@hono/node-server': 1.16.0(hono@4.8.5)
+      hono: 4.8.5
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@hono/oauth-providers@0.8.2(hono@4.8.4)':
+  '@hono/oauth-providers@0.8.2(hono@4.8.5)':
     dependencies:
-      hono: 4.8.4
+      hono: 4.8.5
 
   '@jridgewell/sourcemap-codec@1.5.4': {}
 
@@ -1525,11 +1525,11 @@ snapshots:
 
   hono-sessions@0.8.0:
     dependencies:
-      hono: 4.8.4
+      hono: 4.8.5
       iron-webcrypto: 1.2.1
       ohash: 2.0.11
 
-  hono@4.8.4: {}
+  hono@4.8.5: {}
 
   iron-webcrypto@1.2.1: {}
 
