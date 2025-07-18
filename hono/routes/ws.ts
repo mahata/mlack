@@ -1,19 +1,21 @@
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
 import { WebSocket } from "ws";
+import { db, messages } from "../db/index.js";
+import type { Variables } from "../types.js";
 
 export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<WSContext>) {
-  const ws = new Hono();
+  const ws = new Hono<{ Variables: Variables }>();
 
   ws.get(
     "/ws",
-    upgradeWebSocket(() => {
+    upgradeWebSocket((c) => {
       return {
         onOpen: (_evt: Event, ws: WSContext) => {
           console.log("WebSocket client connected");
           clients.add(ws);
         },
-        onMessage: (evt: MessageEvent<WSMessageReceive>) => {
+        onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
           const message = evt.data;
           console.log("Received message:", message);
 
@@ -29,10 +31,31 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
             messageStr = String(message);
           }
 
+          // Get user info from session
+          const session = c.get("session");
+          const user = session.get("user") as { email?: string; name?: string; picture?: string } | undefined;
+
+          if (user && messageStr.trim()) {
+            try {
+              // Save message to database
+              await db.insert(messages).values({
+                content: messageStr,
+                userEmail: user.email || "unknown",
+                userName: user.name || null,
+              });
+              console.log("Message saved to database");
+            } catch (error) {
+              console.error("Error saving message to database:", error);
+            }
+          }
+
+          // Create formatted message for broadcasting
+          const formattedMessage = user ? `${user.name || user.email}: ${messageStr}` : messageStr;
+
           // Broadcast message to all connected clients
           clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
-              client.send(messageStr);
+              client.send(formattedMessage);
             }
           });
         },

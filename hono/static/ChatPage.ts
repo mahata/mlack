@@ -11,6 +11,35 @@ const disconnectedClass = container.getAttribute("data-disconnected-class") as s
 const messageClass = container.getAttribute("data-message-class") as string;
 const wsUrl = container.getAttribute("data-ws-url") as string;
 
+// Function to display a message
+function displayMessage(messageText: string): void {
+  const messageElement = document.createElement("div");
+  messageElement.className = messageClass;
+  messageElement.textContent = messageText;
+  messagesDiv.appendChild(messageElement);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// Load existing messages from API
+async function loadExistingMessages(): Promise<void> {
+  try {
+    const response = await fetch("/api/messages");
+    if (response.ok) {
+      const data = await response.json();
+      if (data.messages) {
+        data.messages.forEach((msg: { content: string; userEmail: string; userName?: string }) => {
+          const formattedMessage = `${msg.userName || msg.userEmail}: ${msg.content}`;
+          displayMessage(formattedMessage);
+        });
+      }
+    } else {
+      console.error("Failed to load existing messages:", response.status);
+    }
+  } catch (error) {
+    console.error("Error loading existing messages:", error);
+  }
+}
+
 // WebSocket connection
 const ws = new WebSocket(wsUrl);
 
@@ -24,11 +53,7 @@ ws.onopen = (_event: Event) => {
 
 ws.onmessage = (event: MessageEvent) => {
   const message = event.data as string;
-  const messageElement = document.createElement("div");
-  messageElement.className = messageClass;
-  messageElement.textContent = message;
-  messagesDiv.appendChild(messageElement);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  displayMessage(message);
 };
 
 ws.onclose = (_event: CloseEvent) => {
@@ -62,7 +87,8 @@ messageInput.addEventListener("keypress", (e: KeyboardEvent) => {
   }
 });
 
-// Focus on input when page loads
+// Focus on input when page loads and load existing messages
 window.addEventListener("load", () => {
   messageInput.focus();
+  loadExistingMessages();
 });
