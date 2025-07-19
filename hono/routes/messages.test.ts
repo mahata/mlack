@@ -6,27 +6,31 @@ vi.mock("../db/index.js", () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([
-            {
-              id: 1,
-              content: "Test message",
-              userEmail: "test@example.com",
-              userName: "Test User",
-              createdAt: new Date(),
-            },
-          ]),
+        innerJoin: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: 1,
+                content: "Test message",
+                userId: 1,
+                userEmail: "test@example.com",
+                userName: "Test User",
+                createdAt: new Date(),
+              },
+            ]),
+          }),
         }),
       }),
     }),
   },
   messages: {},
+  users: {},
 }));
 
 describe("Messages API endpoint", () => {
   it("should return messages for authenticated user", async () => {
     const { app } = createTestApp({
-      authenticatedUser: { email: "test@example.com", name: "Test User", picture: "test.jpg" },
+      authenticatedUser: { id: 1, email: "test@example.com", name: "Test User", picture: "test.jpg" },
     });
 
     const response = await app.request("/api/messages");
