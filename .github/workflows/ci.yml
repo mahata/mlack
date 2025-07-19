@@ -39,6 +39,21 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword
+          POSTGRES_DB: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -61,6 +76,16 @@ jobs:
       
     - name: Build JavaScript files
       run: pnpm build
+      
+    - name: Run database migrations
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: mysecretpassword
+        POSTGRES_DB: test
+      run: pnpm db:migrate
+      
     - name: Run Playwright tests
       env:
         GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -69,6 +94,11 @@ jobs:
         SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
         E2E_GMAIL_ACCOUNT: ${{ secrets.E2E_GMAIL_ACCOUNT }}
         E2E_GMAIL_PASSWORD: ${{ secrets.E2E_GMAIL_PASSWORD }}
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: mysecretpassword
+        POSTGRES_DB: test
       run: pnpm test:e2e
       
     - name: Upload test artifacts

@@ -21,10 +21,10 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on",
+    trace: "off",
 
     /* Enable video recording for all tests. See https://playwright.dev/docs/test-reporters#video */
-    video: "on",
+    video: "off",
 
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
@@ -38,7 +38,9 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+      },
     },
   ],
 
@@ -53,6 +55,12 @@ export default defineConfig({
     env: {
       NODE_ENV: "development",
       E2E_GMAIL_ACCOUNT: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
+      // Database configuration for E2E tests
+      POSTGRES_HOST: "localhost",
+      POSTGRES_PORT: "5432",
+      POSTGRES_USER: "postgres",
+      POSTGRES_PASSWORD: "mysecretpassword",
+      POSTGRES_DB: "test",
     },
   },
 });

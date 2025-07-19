@@ -235,5 +235,6 @@ The E2E tests verify:
 - "Hello, world!" message is displayed
 - Chat interface elements are present and functional
 - Real-time WebSocket connectivity
+- Message persistence in database across page refreshes
 
 Test artifacts (screenshots, traces) are automatically saved on failure for debugging.
