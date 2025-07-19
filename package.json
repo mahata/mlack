@@ -41,9 +41,9 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.6",
-    "@playwright/test": "^1.53.2",
-    "@types/node": "^24.0.10",
+    "@biomejs/biome": "^2.1.2",
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^24.0.14",
     "@types/pg": "^8.15.4",
     "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.4",
