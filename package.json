@@ -34,7 +34,6 @@
     "@hono/node-ws": "^1.2.0",
     "@hono/oauth-providers": "^0.8.2",
     "dotenv": "^17.2.0",
-    "drizzle-orm": "^0.35.3",
     "hono": "^4.8.4",
     "hono-sessions": "^0.8.0",
     "pg": "^8.13.1",
@@ -46,7 +45,9 @@
     "@types/node": "^24.0.10",
     "@types/pg": "^8.15.4",
     "@types/ws": "^8.18.1",
-    "drizzle-kit": "^0.31.4",
+    "add": "^2.0.6",
+    "drizzle-kit": "^0.31.0",
+    "drizzle-orm": "^0.36.0pnpm",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
