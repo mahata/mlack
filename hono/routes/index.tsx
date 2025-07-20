@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { AboutPage } from "../components/AboutPage.js";
 import { ChatPage } from "../components/ChatPage.js";
 import type { Variables } from "../types.js";
 
@@ -27,6 +28,10 @@ index.get("/", async (c) => {
   const wsUrl = `${protocol}//${url.host}/ws`;
 
   return c.html(`<!DOCTYPE html>${await ChatPage(wsUrl, user)}`);
+});
+
+index.get("/about", async (c) => {
+  return c.html(`<!DOCTYPE html>${await AboutPage()}`);
 });
 
 export { index };
