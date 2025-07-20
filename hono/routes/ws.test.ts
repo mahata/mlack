@@ -22,7 +22,7 @@ describe("WebSocket endpoint", () => {
         get: vi.fn((key: string) => {
           if (key === "session") {
             return {
-              get: vi.fn().mockReturnValue({ email: "test@example.com", name: "Test User" }),
+              get: vi.fn().mockReturnValue({ id: 1, email: "test@example.com", name: "Test User" }),
             };
           }
           return undefined;

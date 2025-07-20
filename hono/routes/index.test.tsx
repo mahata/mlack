@@ -10,6 +10,7 @@ describe("Root page", () => {
     // Create a test app with an authenticated user
     const { app } = createTestApp({
       authenticatedUser: {
+        id: 1,
         email: "test@example.com",
         name: "Test User",
         picture: "https://via.placeholder.com/32",

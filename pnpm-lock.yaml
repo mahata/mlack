@@ -55,7 +55,7 @@ importers:
         specifier: ^0.31.0
         version: 0.31.4
       drizzle-orm:
-        specifier: ^0.36.0pnpm
+        specifier: ^0.36.0
         version: 0.36.4(@libsql/client-wasm@0.15.10)(@types/pg@8.15.4)(pg@8.16.3)
       tsx:
         specifier: ^4.20.3
