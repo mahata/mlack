@@ -99,8 +99,8 @@ describe("Root page", () => {
     const html = await response.text();
 
     // Check for About page specific content
-    expect(html).toContain("<title>About - MLack</title>");
-    expect(html).toContain("About MLack");
+    expect(html).toContain("<title>About - Mlack</title>");
+    expect(html).toContain("About Mlack");
     expect(html).toContain("Slack-like application that&#39;s fully open source");
     expect(html).toContain("@mahata/mlack");
     expect(html).toContain("GitHub Copilot Coding Agent");

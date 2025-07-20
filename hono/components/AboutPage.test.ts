@@ -15,7 +15,7 @@ describe("AboutPage component", () => {
     const html = jsxElement.toString();
     
     // Check for all required content elements
-    expect(html).toContain("About MLack");
+    expect(html).toContain("About Mlack");
     expect(html).toContain("Slack-like application that&#39;s fully open source");
     expect(html).toContain("@mahata/mlack");
     expect(html).toContain("experimental project");
@@ -37,7 +37,7 @@ describe("AboutPage component", () => {
 
     const html = jsxElement.toString();
     expect(html).toContain('<html lang="en">');
-    expect(html).toContain("<title>About - MLack</title>");
+    expect(html).toContain("<title>About - Mlack</title>");
     expect(html).toContain('class="about-container"');
     expect(html).toContain('class="page-title"');
     expect(html).toContain('class="content"');

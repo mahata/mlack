@@ -4,16 +4,16 @@ export async function AboutPage() {
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>About - MLack</title>
+        <title>About - Mlack</title>
         <link rel="stylesheet" href="/components/AboutPage.css" />
       </head>
       <body>
         <div className="about-container">
-          <h1 className="page-title">About MLack</h1>
+          <h1 className="page-title">About Mlack</h1>
           
           <div className="content">
             <p>
-              MLack is a Slack-like application that's fully open source. 
+              Mlack is a Slack-like application that's fully open source. 
               The source code is available at <a href="https://github.com/mahata/mlack" target="_blank" rel="noopener noreferrer">@mahata/mlack</a>.
             </p>
             
