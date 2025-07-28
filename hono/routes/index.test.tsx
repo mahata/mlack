@@ -82,4 +82,30 @@ describe("Root page", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/auth/google");
   });
+
+  it("should return the About page without authentication", async () => {
+    // Create a test app with an unauthenticated user
+    const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
+
+    // Add the index route to the test app
+    const { index } = await import("./index.js");
+    testAppNoAuth.route("/", index);
+
+    const response = await testAppNoAuth.request("/about");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+
+    const html = await response.text();
+
+    // Check for About page specific content
+    expect(html).toContain("<title>About - Mlack</title>");
+    expect(html).toContain("About Mlack");
+    expect(html).toContain("Slack-like application that&#39;s fully open source");
+    expect(html).toContain("@mahata/mlack");
+    expect(html).toContain("GitHub Copilot Coding Agent");
+    expect(html).toContain("Vibe Coding");
+    expect(html).toContain("← Back to Chat");
+    expect(html).toContain('href="/components/AboutPage.css"');
+  });
 });

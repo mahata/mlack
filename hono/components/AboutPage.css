@@ -1,0 +1,66 @@
+/* Base styles for the about page - consistent with ChatPage */
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+/* Container styles */
+.about-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.page-title {
+  color: #333;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Content styles */
+.content {
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.content p {
+  margin-bottom: 16px;
+}
+
+.content a {
+  color: #2196f3;
+  text-decoration: none;
+}
+
+.content a:hover {
+  color: #1976d2;
+  text-decoration: underline;
+}
+
+/* Navigation styles */
+.navigation {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.back-link {
+  color: #2196f3;
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid #2196f3;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.back-link:hover {
+  background-color: #2196f3;
+  color: white;
+  text-decoration: none;
+}
