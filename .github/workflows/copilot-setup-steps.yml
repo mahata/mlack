@@ -1,0 +1,29 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check this conf is respected
+        run: |
+          if [ ! -f .github/workflows/copilot-setup-steps.yml ]; then
+            echo "Copilot setup steps file not found."
+            exit 1
+          fi
+          echo "Copilot setup steps file exists."
