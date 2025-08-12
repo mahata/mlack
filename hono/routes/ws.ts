@@ -33,15 +33,14 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
 
           // Get user info from session
           const session = c.get("session");
-          const user = session.get("user") as { email?: string; name?: string; picture?: string } | undefined;
+          const user = session.get("user") as { id?: number; email?: string; name?: string; picture?: string } | undefined;
 
-          if (user && messageStr.trim()) {
+          if (user && user.id && messageStr.trim()) {
             try {
               // Save message to database
               await db.insert(messages).values({
                 content: messageStr,
-                userEmail: user.email || "unknown",
-                userName: user.name || null,
+                userId: user.id,
               });
               console.log("Message saved to database");
             } catch (error) {

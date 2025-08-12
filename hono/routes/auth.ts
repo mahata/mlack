@@ -1,5 +1,7 @@
 import { googleAuth } from "@hono/oauth-providers/google";
 import { Hono } from "hono";
+import { eq } from "drizzle-orm";
+import { db, users } from "../db/index.js";
 import type { Variables } from "../types.js";
 
 const auth = new Hono<{ Variables: Variables }>();
@@ -37,9 +39,35 @@ auth.get(
     }
 
     try {
-      // Save user info to session
+      // Ensure we have the required user email
+      if (!user.email) {
+        console.log("Authentication failed - missing user email");
+        return c.redirect("/?error=missing_email");
+      }
+
+      // Find or create user in database
+      let dbUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, user.email))
+        .limit(1);
+
+      if (dbUser.length === 0) {
+        // Create new user
+        const newUser = await db
+          .insert(users)
+          .values({
+            email: user.email,
+            name: user.name || null,
+          })
+          .returning();
+        dbUser = newUser;
+      }
+
+      // Save user info to session (including database user ID)
       const session = c.get("session");
       const userInfo = {
+        id: dbUser[0].id,
         email: user.email,
         name: user.name,
         picture: user.picture,
