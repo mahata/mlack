@@ -34,7 +34,7 @@
     "@hono/node-ws": "^1.2.0",
     "@hono/oauth-providers": "^0.8.2",
     "dotenv": "^17.2.0",
-    "hono": "^4.8.4",
+    "hono": "^4.9.6",
     "hono-sessions": "^0.8.0",
     "pg": "^8.13.1",
     "ws": "^8.18.3"
