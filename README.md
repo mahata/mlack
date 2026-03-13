@@ -63,6 +63,8 @@ Start a PostgreSQL container using Docker Compose:
 docker compose up -d
 ```
 
+When started via Docker Compose, PostgreSQL is exposed on the host as `localhost:5437`. Configure your database client (or set `POSTGRES_PORT=5437` in your environment) to connect using that port instead of the default `5432`.
+
 Stop the container:
 
 ```bash
