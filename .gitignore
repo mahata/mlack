@@ -446,3 +446,5 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+.github/prompts/*.md

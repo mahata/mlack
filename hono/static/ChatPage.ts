@@ -11,6 +11,16 @@ const disconnectedClass = container.getAttribute("data-disconnected-class") as s
 const messageClass = container.getAttribute("data-message-class") as string;
 const wsUrl = container.getAttribute("data-ws-url") as string;
 
+// Configurable timeout (milliseconds) for loading existing messages.
+// Read from data-messages-timeout-ms; fall back to a safer default if unset/invalid.
+const messagesTimeoutAttr = container.getAttribute("data-messages-timeout-ms");
+const DEFAULT_MESSAGES_TIMEOUT_MS = 15000;
+const messagesTimeoutMsRaw = messagesTimeoutAttr !== null ? Number(messagesTimeoutAttr) : NaN;
+const messagesTimeoutMs =
+  Number.isFinite(messagesTimeoutMsRaw) && messagesTimeoutMsRaw >= 0
+    ? messagesTimeoutMsRaw
+    : DEFAULT_MESSAGES_TIMEOUT_MS;
+
 // Function to display a message
 function displayMessage(messageText: string): void {
   const messageElement = document.createElement("div");
@@ -22,8 +32,11 @@ function displayMessage(messageText: string): void {
 
 // Load existing messages from API
 async function loadExistingMessages(): Promise<void> {
+  const controller = new AbortController();
+  const timeoutId =
+    messagesTimeoutMs > 0 ? setTimeout(() => controller.abort(), messagesTimeoutMs) : undefined;
   try {
-    const response = await fetch("/api/messages");
+    const response = await fetch("/api/messages", { signal: controller.signal });
     if (response.ok) {
       const data = await response.json();
       if (data.messages) {
@@ -35,8 +48,17 @@ async function loadExistingMessages(): Promise<void> {
     } else {
       console.error("Failed to load existing messages:", response.status);
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    // Ignore or de‑emphasize expected aborts due to the timeout.
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.info("Loading existing messages was aborted (timeout).");
+      return;
+    }
     console.error("Error loading existing messages:", error);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

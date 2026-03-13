@@ -2,43 +2,43 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-24.04
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'pnpm'
-        cache-dependency-path: 'pnpm-lock.yaml'
-        
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-      
-    - name: Run tests
-      run: pnpm test:run
-      
-    - name: Run linter (without build artifacts)
-      run: rm -rf dist && rm -f hono/static/*.js hono/static/*.js.map && pnpm lint
-      
-    - name: Run build
-      run: pnpm build
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test:run
+
+      - name: Run linter (without build artifacts)
+        run: rm -rf dist && rm -f hono/static/*.js hono/static/*.js.map && pnpm lint
+
+      - name: Run build
+        run: pnpm build
 
   e2e:
     runs-on: ubuntu-24.04
-    
+
     services:
       postgres:
         image: postgres:15
@@ -53,58 +53,58 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'pnpm'
-        cache-dependency-path: 'pnpm-lock.yaml'
-        
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-      
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
-      
-    - name: Build JavaScript files
-      run: pnpm build
-      
-    - name: Run database migrations
-      env:
-        POSTGRES_HOST: localhost
-        POSTGRES_PORT: 5432
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: mysecretpassword
-        POSTGRES_DB: test
-      run: pnpm db:migrate
-      
-    - name: Run Playwright tests
-      env:
-        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-        GOOGLE_REDIRECT_URI: ${{ secrets.GOOGLE_REDIRECT_URI }}
-        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-        E2E_GMAIL_ACCOUNT: ${{ secrets.E2E_GMAIL_ACCOUNT }}
-        E2E_GMAIL_PASSWORD: ${{ secrets.E2E_GMAIL_PASSWORD }}
-        POSTGRES_HOST: localhost
-        POSTGRES_PORT: 5432
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: mysecretpassword
-        POSTGRES_DB: test
-      run: pnpm test:e2e
-      
-    - name: Upload test artifacts
-      uses: actions/upload-artifact@v4
-      if: failure()
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build JavaScript files
+        run: pnpm build
+
+      - name: Run database migrations
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword
+          POSTGRES_DB: test
+        run: pnpm db:migrate
+
+      - name: Run Playwright tests
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REDIRECT_URI: ${{ secrets.GOOGLE_REDIRECT_URI }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          E2E_GMAIL_ACCOUNT: ${{ secrets.E2E_GMAIL_ACCOUNT }}
+          E2E_GMAIL_PASSWORD: ${{ secrets.E2E_GMAIL_PASSWORD }}
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword
+          POSTGRES_DB: test
+        run: pnpm test:e2e
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

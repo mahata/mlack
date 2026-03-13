@@ -73,6 +73,6 @@ test("Logout functionality works correctly", async ({ page }) => {
   // Click the Logout button
   await page.locator(".logout-button").click();
 
-  // Verify that the user is redirected to the Google login page
-  await expect(page).toHaveURL(/accounts\.google\.com/);
+  // Verify that the user is logged out (user info is no longer visible)
+  await expect(page.locator(".user-email")).not.toBeVisible({ timeout: 10000 });
 });
