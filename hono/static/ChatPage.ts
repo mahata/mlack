@@ -37,7 +37,12 @@ async function loadExistingMessages(): Promise<void> {
     } else {
       console.error("Failed to load existing messages:", response.status);
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    // Ignore or de‑emphasize expected aborts due to the timeout.
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.info("Loading existing messages was aborted (timeout).");
+      return;
+    }
     console.error("Error loading existing messages:", error);
   } finally {
     clearTimeout(timeoutId);
