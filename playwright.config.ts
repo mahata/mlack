@@ -59,7 +59,7 @@ export default defineConfig({
       E2E_GMAIL_ACCOUNT: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
       // Database configuration for E2E tests
       POSTGRES_HOST: "localhost",
-      POSTGRES_PORT: "5432",
+      POSTGRES_PORT: "5437",
       POSTGRES_USER: "postgres",
       POSTGRES_PASSWORD: "mysecretpassword",
       POSTGRES_DB: "test",

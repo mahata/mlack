@@ -55,15 +55,24 @@ If no `.env` file exists, the application will use system environment variables 
 
 ### Database Setup
 
-#### Option 1: Using Docker (Recommended for Development)
+#### Option 1: Using Docker Compose (Recommended for Development)
 
-Start a PostgreSQL container:
+Start a PostgreSQL container using Docker Compose:
 
 ```bash
-docker run --name mlack-postgres \
-  -e POSTGRES_PASSWORD=mysecretpassword \
-  -p 5432:5432 \
-  --rm postgres:17.5-bullseye
+docker compose up -d
+```
+
+Stop the container:
+
+```bash
+docker compose down
+```
+
+To stop and delete all data:
+
+```bash
+docker compose down -v
 ```
 
 #### Option 2: Using Local PostgreSQL
