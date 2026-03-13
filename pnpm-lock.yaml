@@ -10,19 +10,19 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^1.15.0
-        version: 1.17.0(hono@4.8.5)
+        version: 1.17.0(hono@4.12.7)
       '@hono/node-ws':
         specifier: ^1.2.0
-        version: 1.2.0(@hono/node-server@1.17.0(hono@4.8.5))(hono@4.8.5)
+        version: 1.2.0(@hono/node-server@1.17.0(hono@4.12.7))(hono@4.12.7)
       '@hono/oauth-providers':
         specifier: ^0.8.2
-        version: 0.8.2(hono@4.8.5)
+        version: 0.8.2(hono@4.12.7)
       dotenv:
         specifier: ^17.2.0
         version: 17.2.0
       hono:
-        specifier: ^4.8.4
-        version: 4.8.5
+        specifier: ^4.12.7
+        version: 4.12.7
       hono-sessions:
         specifier: ^0.8.0
         version: 0.8.0
@@ -787,8 +787,8 @@ packages:
   hono-sessions@0.8.0:
     resolution: {integrity: sha512-44nDuxcGTlk1hKE+7vH8KnNleKYnr8p3i/vkT8640jU8V0F1Tm873F5NdfXpctZax3CtnQ4cUKyEF1axXdkZrw==}
 
-  hono@4.8.5:
-    resolution: {integrity: sha512-Up2cQbtNz1s111qpnnECdTGqSIUIhZJMLikdKkshebQSEBcoUKq6XJayLGqSZWidiH0zfHRCJqFu062Mz5UuRA==}
+  hono@4.12.7:
+    resolution: {integrity: sha512-jq9l1DM0zVIvsm3lv9Nw9nlJnMNPOcAtsbsgiUhWcFzPE99Gvo6yRTlszSLLYacMeQ6quHD6hMfId8crVHvexw==}
     engines: {node: '>=16.9.0'}
 
   iron-webcrypto@1.2.1:
@@ -1252,22 +1252,22 @@ snapshots:
   '@esbuild/win32-x64@0.25.7':
     optional: true
 
-  '@hono/node-server@1.17.0(hono@4.8.5)':
+  '@hono/node-server@1.17.0(hono@4.12.7)':
     dependencies:
-      hono: 4.8.5
+      hono: 4.12.7
 
-  '@hono/node-ws@1.2.0(@hono/node-server@1.17.0(hono@4.8.5))(hono@4.8.5)':
+  '@hono/node-ws@1.2.0(@hono/node-server@1.17.0(hono@4.12.7))(hono@4.12.7)':
     dependencies:
-      '@hono/node-server': 1.17.0(hono@4.8.5)
-      hono: 4.8.5
+      '@hono/node-server': 1.17.0(hono@4.12.7)
+      hono: 4.12.7
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@hono/oauth-providers@0.8.2(hono@4.8.5)':
+  '@hono/oauth-providers@0.8.2(hono@4.12.7)':
     dependencies:
-      hono: 4.8.5
+      hono: 4.12.7
 
   '@jridgewell/sourcemap-codec@1.5.4': {}
 
@@ -1536,11 +1536,11 @@ snapshots:
 
   hono-sessions@0.8.0:
     dependencies:
-      hono: 4.8.5
+      hono: 4.12.7
       iron-webcrypto: 1.2.1
       ohash: 2.0.11
 
-  hono@4.8.5: {}
+  hono@4.12.7: {}
 
   iron-webcrypto@1.2.1: {}
 
