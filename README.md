@@ -21,7 +21,7 @@ It's an experiment to create a slack-like app just by vibe coding with GitHub Co
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (v22 or higher)
 - pnpm (package manager)
 - PostgreSQL database (local or remote)
 
@@ -46,6 +46,7 @@ cp .env.sample .env
 ```
 
 Available environment variables:
+
 - `PORT`: Server port (default: 3000)
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Your Google OAuth credentials
 - `SESSION_SECRET`: A secure secret for session encryption
@@ -126,6 +127,7 @@ pnpm lint:fix
 #### GET /
 
 Root page that displays the chat interface with:
+
 - "Hello, world!" message
 - Real-time chat functionality
 - Message input and send button
@@ -136,6 +138,7 @@ Root page that displays the chat interface with:
 Health check endpoint that returns the service status.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -144,6 +147,7 @@ Health check endpoint that returns the service status.
 ```
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/health
 ```
@@ -153,6 +157,7 @@ curl http://localhost:3000/health
 API endpoint for retrieving chat message history (requires authentication):
 
 **Response:**
+
 ```json
 {
   "messages": [
@@ -168,6 +173,7 @@ API endpoint for retrieving chat message history (requires authentication):
 ```
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/api/messages \
   -H "Cookie: session=your_session_cookie"
@@ -176,12 +182,14 @@ curl http://localhost:3000/api/messages \
 #### WebSocket /ws
 
 WebSocket endpoint for real-time messaging:
+
 - Accepts WebSocket connections
 - Broadcasts messages to all connected clients
 - Supports text message communication
 - Messages are automatically saved to database
 
 **Example:**
+
 ```javascript
 const ws = new WebSocket('ws://localhost:3000/ws');
 ws.onmessage = (event) => console.log('Received:', event.data);
@@ -223,6 +231,7 @@ mlack/
 The project includes both unit tests and end-to-end (E2E) tests:
 
 ### Unit Tests
+
 Unit tests are powered by [Vitest](https://vitest.dev/) and test individual components and functions:
 
 ```bash
@@ -234,6 +243,7 @@ pnpm test:run
 ```
 
 ### E2E Tests
+
 E2E tests use [Playwright](https://playwright.dev/) to test the complete application flow:
 
 ```bash
@@ -242,6 +252,7 @@ pnpm test:e2e
 ```
 
 The E2E tests verify:
+
 - The application renders correctly
 - "Hello, world!" message is displayed
 - Chat interface elements are present and functional
