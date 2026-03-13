@@ -5,7 +5,7 @@ import * as schema from "./schema.js";
 // Create PostgreSQL connection pool
 const pool = new Pool({
   host: process.env.POSTGRES_HOST || "localhost",
-  port: Number(process.env.POSTGRES_PORT) || 5432,
+  port: Number(process.env.POSTGRES_PORT) || 5437,
   user: process.env.POSTGRES_USER || "postgres",
   password: process.env.POSTGRES_PASSWORD || "mysecretpassword",
   database: process.env.POSTGRES_DB || "postgres",
