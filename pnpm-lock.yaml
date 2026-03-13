@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@hono/node-server':
-        specifier: ^1.15.0
-        version: 1.17.0(hono@4.12.7)
+        specifier: ^1.19.10
+        version: 1.19.10(hono@4.12.7)
       '@hono/node-ws':
         specifier: ^1.2.0
-        version: 1.2.0(@hono/node-server@1.17.0(hono@4.12.7))(hono@4.12.7)
+        version: 1.2.0(@hono/node-server@1.19.10(hono@4.12.7))(hono@4.12.7)
       '@hono/oauth-providers':
         specifier: ^0.8.2
         version: 0.8.2(hono@4.12.7)
@@ -421,8 +421,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@hono/node-server@1.17.0':
-    resolution: {integrity: sha512-u30lnh86PYua8X1NqsV4O7aeziJq7mN0pDXUvGxIeLWVI+n/xzuSxMb1YZlQ/73LTf6Wxgp5cyhw7r5JSrCgcg==}
+  '@hono/node-server@1.19.10':
+    resolution: {integrity: sha512-hZ7nOssGqRgyV3FVVQdfi+U4q02uB23bpnYpdvNXkYTRRyWx84b7yf1ans+dnJ/7h41sGL3CeQTfO+ZGxuO+Iw==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -1252,13 +1252,13 @@ snapshots:
   '@esbuild/win32-x64@0.25.7':
     optional: true
 
-  '@hono/node-server@1.17.0(hono@4.12.7)':
+  '@hono/node-server@1.19.10(hono@4.12.7)':
     dependencies:
       hono: 4.12.7
 
-  '@hono/node-ws@1.2.0(@hono/node-server@1.17.0(hono@4.12.7))(hono@4.12.7)':
+  '@hono/node-ws@1.2.0(@hono/node-server@1.19.10(hono@4.12.7))(hono@4.12.7)':
     dependencies:
-      '@hono/node-server': 1.17.0(hono@4.12.7)
+      '@hono/node-server': 1.19.10(hono@4.12.7)
       hono: 4.12.7
       ws: 8.18.3
     transitivePeerDependencies:
