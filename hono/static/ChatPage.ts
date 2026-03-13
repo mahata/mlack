@@ -22,8 +22,10 @@ function displayMessage(messageText: string): void {
 
 // Load existing messages from API
 async function loadExistingMessages(): Promise<void> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
-    const response = await fetch("/api/messages");
+    const response = await fetch("/api/messages", { signal: controller.signal });
     if (response.ok) {
       const data = await response.json();
       if (data.messages) {
@@ -37,6 +39,8 @@ async function loadExistingMessages(): Promise<void> {
     }
   } catch (error) {
     console.error("Error loading existing messages:", error);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
