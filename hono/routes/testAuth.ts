@@ -15,7 +15,7 @@ testAuth.post("/test/login", async (c) => {
   const testUser = {
     email: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
     name: "Test User",
-    picture: "https://via.placeholder.com/32",
+    picture: "",
   };
 
   console.log("Test login - saving user to session:", testUser);
