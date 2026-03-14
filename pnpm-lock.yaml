@@ -9,29 +9,29 @@ importers:
   .:
     dependencies:
       '@hono/node-server':
-        specifier: ^1.15.0
-        version: 1.17.0(hono@4.12.7)
+        specifier: ^1.19.11
+        version: 1.19.11(hono@4.12.7)
       '@hono/node-ws':
-        specifier: ^1.2.0
-        version: 1.2.0(@hono/node-server@1.17.0(hono@4.12.7))(hono@4.12.7)
+        specifier: ^1.3.0
+        version: 1.3.0(@hono/node-server@1.19.11(hono@4.12.7))(hono@4.12.7)
       '@hono/oauth-providers':
-        specifier: ^0.8.2
-        version: 0.8.2(hono@4.12.7)
+        specifier: ^0.8.5
+        version: 0.8.5(hono@4.12.7)
       dotenv:
-        specifier: ^17.2.0
-        version: 17.2.0
+        specifier: ^17.3.1
+        version: 17.3.1
       hono:
         specifier: ^4.12.7
         version: 4.12.7
       hono-sessions:
-        specifier: ^0.8.0
-        version: 0.8.0
+        specifier: ^0.8.1
+        version: 0.8.1(hono@4.12.7)
       pg:
         specifier: ^8.13.1
         version: 8.16.3
       ws:
-        specifier: ^8.18.3
-        version: 8.18.3
+        specifier: ^8.19.0
+        version: 8.19.0
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.0.6
@@ -421,24 +421,24 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@hono/node-server@1.17.0':
-    resolution: {integrity: sha512-u30lnh86PYua8X1NqsV4O7aeziJq7mN0pDXUvGxIeLWVI+n/xzuSxMb1YZlQ/73LTf6Wxgp5cyhw7r5JSrCgcg==}
+  '@hono/node-server@1.19.11':
+    resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
 
-  '@hono/node-ws@1.2.0':
-    resolution: {integrity: sha512-OBPQ8OSHBw29mj00wT/xGYtB6HY54j0fNSdVZ7gZM3TUeq0So11GXaWtFf1xWxQNfumKIsj0wRuLKWfVsO5GgQ==}
+  '@hono/node-ws@1.3.0':
+    resolution: {integrity: sha512-ju25YbbvLuXdqBCmLZLqnNYu1nbHIQjoyUqA8ApZOeL1k4skuiTcw5SW77/5SUYo2Xi2NVBJoVlfQurnKEp03Q==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      '@hono/node-server': ^1.11.1
+      '@hono/node-server': ^1.19.2
       hono: ^4.6.0
 
-  '@hono/oauth-providers@0.8.2':
-    resolution: {integrity: sha512-xQa9bt6Z/xAMvT+MTHHhXX28nyzqSDZl8LzszM071dIzoEcBx/NwZLnZjPm+7ZiRZb/2E9tiP5GMbBimtYrEHg==}
+  '@hono/oauth-providers@0.8.5':
+    resolution: {integrity: sha512-hgEDH/gUmB/opman9jvT8dLItZsSC9M9yFiaam0b6InK7WQkdzIcaRAkdda47QpixnK9S1Ah2vjDB2U16LkMnA==}
     engines: {node: '>=18.4.0'}
     peerDependencies:
-      hono: '>=3.*'
+      hono: '>=3.0.0'
 
   '@jridgewell/sourcemap-codec@1.5.4':
     resolution: {integrity: sha512-VT2+G1VQs/9oz078bLrYbecdZKs912zQlkelYpuf+SXF+QvZDYJlbx/LSx+meSAwdDFnF8FVXW92AVjjkVmgFw==}
@@ -638,8 +638,8 @@ packages:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
 
-  dotenv@17.2.0:
-    resolution: {integrity: sha512-Q4sgBT60gzd0BB0lSyYD3xM4YxrXA9y4uBDof1JNYGzOXrQdQ6yX+7XIAqoFOGQFOTK1D3Hts5OllpxMDZFONQ==}
+  dotenv@17.3.1:
+    resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
     engines: {node: '>=12'}
 
   drizzle-kit@0.31.4:
@@ -784,8 +784,10 @@ packages:
   get-tsconfig@4.10.1:
     resolution: {integrity: sha512-auHyJ4AgMz7vgS8Hp3N6HXSmlMdUyhSUrfBF16w153rxtLIEOE+HGqaBppczZvnHLqQJfiHotCYpNhl0lUROFQ==}
 
-  hono-sessions@0.8.0:
-    resolution: {integrity: sha512-44nDuxcGTlk1hKE+7vH8KnNleKYnr8p3i/vkT8640jU8V0F1Tm873F5NdfXpctZax3CtnQ4cUKyEF1axXdkZrw==}
+  hono-sessions@0.8.1:
+    resolution: {integrity: sha512-YLSKuIP13yhXTQe2x3sCc1JWsqt1Z3WZB2DWE+oX+YpOsC3lv8uCHnCoNHcY9DPyflDw4XQJN+MFVvcp5QwWdw==}
+    peerDependencies:
+      hono: ^4.0.0
 
   hono@4.12.7:
     resolution: {integrity: sha512-jq9l1DM0zVIvsm3lv9Nw9nlJnMNPOcAtsbsgiUhWcFzPE99Gvo6yRTlszSLLYacMeQ6quHD6hMfId8crVHvexw==}
@@ -1043,8 +1045,8 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
-  ws@8.18.3:
-    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
+  ws@8.19.0:
+    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -1252,20 +1254,20 @@ snapshots:
   '@esbuild/win32-x64@0.25.7':
     optional: true
 
-  '@hono/node-server@1.17.0(hono@4.12.7)':
+  '@hono/node-server@1.19.11(hono@4.12.7)':
     dependencies:
       hono: 4.12.7
 
-  '@hono/node-ws@1.2.0(@hono/node-server@1.17.0(hono@4.12.7))(hono@4.12.7)':
+  '@hono/node-ws@1.3.0(@hono/node-server@1.19.11(hono@4.12.7))(hono@4.12.7)':
     dependencies:
-      '@hono/node-server': 1.17.0(hono@4.12.7)
+      '@hono/node-server': 1.19.11(hono@4.12.7)
       hono: 4.12.7
-      ws: 8.18.3
+      ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@hono/oauth-providers@0.8.2(hono@4.12.7)':
+  '@hono/oauth-providers@0.8.5(hono@4.12.7)':
     dependencies:
       hono: 4.12.7
 
@@ -1434,7 +1436,7 @@ snapshots:
 
   deep-eql@5.0.2: {}
 
-  dotenv@17.2.0: {}
+  dotenv@17.3.1: {}
 
   drizzle-kit@0.31.4:
     dependencies:
@@ -1534,7 +1536,7 @@ snapshots:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
-  hono-sessions@0.8.0:
+  hono-sessions@0.8.1(hono@4.12.7):
     dependencies:
       hono: 4.12.7
       iron-webcrypto: 1.2.1
@@ -1783,6 +1785,6 @@ snapshots:
       siginfo: 2.0.0
       stackback: 0.0.2
 
-  ws@8.18.3: {}
+  ws@8.19.0: {}
 
   xtend@4.0.2: {}
