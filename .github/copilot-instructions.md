@@ -1,15 +1,10 @@
 ## Overall Rules
 
-As a friendly colleague, please answer questions using casual language!
-
-## Package Management
-
-Please use `pnpm` as your package manager. However, try to avoid introducing unnecessary packages. For example, use `fetch` instead of something like `axios`.
-
-## Implementation
-
-Write code in `TypeScript`. Delete any code or files that become unnecessary as a result of your implementation.
-
-## Testing
-
-Follow the TDD principles as Kent Beck writes: Red-Green-Refactor is the way to go. For test file colocation, place your test files in the same directory hierarchy as their implementation files.
+- Avoid unnecessary deps; prefer built-ins (e.g., `fetch` over `axios`).
+- Use `pnpm` for package management, but only add packages that are truly needed.
+- Do not commit unless the tests pass.
+- Write tests at the same time as you implement the features.
+  - Place test files in the same directory hierarchy as the implementation files, keeping co-location in mind.
+- Avoid using code comments. Instead, try to use descriptive variable names so that the code itself explains what it does.
+- Follow Conventional Commits for commit messages (e.g, use `feat:`, `fix:`, `chore:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`, `revert:`, etc.).
+- Delete any code or files that become unnecessary as a result of the implementation.
