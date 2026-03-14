@@ -1,7 +1,7 @@
-import { Hono } from "hono";
 import { desc } from "drizzle-orm";
+import { Hono } from "hono";
 import { db, messages } from "../db/index.js";
-import type { Variables } from "../types.js";
+import type { User, Variables } from "../types.js";
 
 const messagesRoute = new Hono<{ Variables: Variables }>();
 
@@ -9,7 +9,7 @@ messagesRoute.get("/api/messages", async (c) => {
   try {
     // Check if user is authenticated
     const session = c.get("session");
-    const user = session.get("user") as { email?: string; name?: string; picture?: string } | undefined;
+    const user = session.get("user") as User | undefined;
 
     if (!user) {
       return c.json({ error: "Unauthorized" }, 401);

@@ -1,8 +1,4 @@
-interface User {
-  email?: string;
-  name?: string;
-  picture?: string;
-}
+import type { User } from "../types.js";
 
 export async function ChatPage(wsUrl?: string, user?: User) {
   return (
@@ -16,10 +12,6 @@ export async function ChatPage(wsUrl?: string, user?: User) {
       <body>
         <div
           className="chat-container"
-          data-status-class="status"
-          data-connected-class="connected"
-          data-disconnected-class="disconnected"
-          data-message-class="message"
           data-ws-url={wsUrl || "ws://localhost:3000/ws"}
         >
           {user && (
