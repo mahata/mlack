@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
 import { WebSocket } from "ws";
 import { db, messages } from "../db/index.js";
-import type { Variables } from "../types.js";
+import type { User, Variables } from "../types.js";
 
 export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<WSContext>) {
   const ws = new Hono<{ Variables: Variables }>();
@@ -12,28 +12,21 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
     upgradeWebSocket((c) => {
       return {
         onOpen: (_evt: Event, ws: WSContext) => {
-          console.log("WebSocket client connected");
           clients.add(ws);
         },
         onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
           const message = evt.data;
-          console.log("Received message:", message);
 
-          // Convert message to string if it's not already
-          let messageStr: string;
-          if (typeof message === "string") {
-            messageStr = message;
-          } else if (message instanceof ArrayBuffer) {
-            messageStr = new TextDecoder().decode(message);
-          } else if (message instanceof Uint8Array) {
-            messageStr = new TextDecoder().decode(message);
-          } else {
-            messageStr = String(message);
-          }
+          const messageStr =
+            typeof message === "string"
+              ? message
+              : message instanceof Blob
+                ? await message.text()
+                : new TextDecoder().decode(message);
 
           // Get user info from session
           const session = c.get("session");
-          const user = session.get("user") as { email?: string; name?: string; picture?: string } | undefined;
+          const user = session.get("user") as User | undefined;
 
           if (user && messageStr.trim()) {
             try {
@@ -43,7 +36,6 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
                 userEmail: user.email || "unknown",
                 userName: user.name || null,
               });
-              console.log("Message saved to database");
             } catch (error) {
               console.error("Error saving message to database:", error);
             }
@@ -60,7 +52,6 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
           });
         },
         onClose: (_evt: CloseEvent, ws: WSContext) => {
-          console.log("WebSocket client disconnected");
           clients.delete(ws);
         },
         onError: (evt: Event, ws: WSContext) => {

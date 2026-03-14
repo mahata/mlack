@@ -23,16 +23,10 @@ auth.get(
     scope: ["openid", "email", "profile"],
   }),
   async (c) => {
-    console.log("OAuth callback received");
-
     const token = c.get("token");
     const user = c.get("user-google");
 
-    console.log("Token:", token ? "exists" : "missing");
-    console.log("User:", user);
-
     if (!token || !user) {
-      console.log("Authentication failed - missing token or user");
       return c.redirect("/?error=auth_failed");
     }
 
@@ -45,12 +39,7 @@ auth.get(
         picture: user.picture,
       };
 
-      console.log("Saving user to session:", userInfo);
       session.set("user", userInfo);
-
-      // Check if session is saved correctly
-      const savedUser = session.get("user");
-      console.log("Verified saved user:", savedUser);
 
       return c.redirect("/");
     } catch (error) {
