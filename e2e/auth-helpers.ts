@@ -1,9 +1,13 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+export const TEST_ORIGIN = "http://localhost:3000";
+
 export async function loginWithMock(page: Page) {
   // Mock login request to the test endpoint
-  const response = await page.request.post("/test/login");
+  const response = await page.request.post("/test/login", {
+    headers: { Origin: TEST_ORIGIN },
+  });
   expect(response.ok()).toBeTruthy();
 
   await page.goto("/");
