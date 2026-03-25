@@ -3,7 +3,9 @@ import { expect } from "@playwright/test";
 
 export async function loginWithMock(page: Page) {
   // Mock login request to the test endpoint
-  const response = await page.request.post("/test/login");
+  const response = await page.request.post("/test/login", {
+    headers: { Origin: "http://localhost:3000" },
+  });
   expect(response.ok()).toBeTruthy();
 
   await page.goto("/");

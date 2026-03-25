@@ -10,7 +10,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async ({ page }) => {
-  await page.request.post("/test/logout");
+  await page.request.post("/test/logout", {
+    headers: { Origin: "http://localhost:3000" },
+  });
 });
 
 test("App renders Hello, world! text", async ({ page }) => {
