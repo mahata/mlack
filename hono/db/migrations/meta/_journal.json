@@ -8,6 +8,13 @@
       "when": 1752746337184,
       "tag": "0000_oval_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774143588769,
+      "tag": "0001_nosy_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }

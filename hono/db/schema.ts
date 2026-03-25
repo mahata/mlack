@@ -7,3 +7,11 @@ export const messages = pgTable("messages", {
   userName: varchar("user_name", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});

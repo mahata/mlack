@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { auth } from "./routes/auth.js";
+import { emailAuth } from "./routes/emailAuth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
 import { messagesRoute } from "./routes/messages.js";
@@ -54,6 +55,7 @@ export function createApp(options?: AppOptions) {
   // Register route handlers
   app.route("/", health);
   app.route("/", auth);
+  app.route("/", emailAuth);
   app.route("/", testAuth);
   app.route("/", messagesRoute);
   app.route("/", index);
