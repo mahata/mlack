@@ -73,6 +73,22 @@ describe("Email Auth routes", () => {
   });
 
   describe("POST /auth/login", () => {
+    it("should return 403 for cross-origin form submissions", async () => {
+      const { app } = createTestApp({ authenticatedUser: null });
+
+      const formData = new FormData();
+      formData.append("email", "test@example.com");
+      formData.append("password", "somepassword");
+
+      const response = await app.request("/auth/login", {
+        method: "POST",
+        body: formData,
+        headers: { Origin: "http://evil.example.com" },
+      });
+
+      expect(response.status).toBe(403);
+    });
+
     it("should return 400 when email or password is missing", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
 
@@ -83,6 +99,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/login", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(400);
@@ -100,6 +117,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/login", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(401);
@@ -109,6 +127,23 @@ describe("Email Auth routes", () => {
   });
 
   describe("POST /auth/register", () => {
+    it("should return 403 for cross-origin form submissions", async () => {
+      const { app } = createTestApp({ authenticatedUser: null });
+
+      const formData = new FormData();
+      formData.append("name", "Evil User");
+      formData.append("email", "evil@example.com");
+      formData.append("password", "password123");
+
+      const response = await app.request("/auth/register", {
+        method: "POST",
+        body: formData,
+        headers: { Origin: "http://evil.example.com" },
+      });
+
+      expect(response.status).toBe(403);
+    });
+
     it("should return 400 when fields are missing", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
 
@@ -119,6 +154,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/register", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(400);
@@ -137,6 +173,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/register", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(400);
