@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { loginWithMock } from "./auth-helpers";
+import { TEST_ORIGIN, loginWithMock } from "./auth-helpers";
 
 test.describe("Database Message Persistence", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,7 +11,9 @@ test.describe("Database Message Persistence", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await page.request.post("/test/logout");
+    await page.request.post("/test/logout", {
+      headers: { Origin: TEST_ORIGIN },
+    });
   });
 
   test("Message persists in database after page refresh", async ({ page }) => {

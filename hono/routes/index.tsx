@@ -10,7 +10,7 @@ index.get("/", async (c) => {
   const user = session.get("user") as User | undefined;
 
   if (!user) {
-    return c.redirect("/auth/google");
+    return c.redirect("/auth/login");
   }
 
   // Prefer X-Forwarded-Proto header if available

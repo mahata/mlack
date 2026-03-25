@@ -68,7 +68,7 @@ describe("Root page", () => {
     expect(html).toContain('data-ws-url="wss://example.com/ws"');
   });
 
-  it("should redirect to Google auth when user is not logged in", async () => {
+  it("should redirect to login page when user is not logged in", async () => {
     // Create a test app with an unauthenticated user
     const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
 
@@ -78,9 +78,9 @@ describe("Root page", () => {
 
     const response = await testAppNoAuth.request("/");
 
-    // Expect a redirect to Google auth
+    // Expect a redirect to login page
     expect(response.status).toBe(302);
-    expect(response.headers.get("Location")).toBe("/auth/google");
+    expect(response.headers.get("Location")).toBe("/auth/login");
   });
 
   it("should return the About page without authentication", async () => {
