@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { loginWithMock } from "./auth-helpers";
+import { TEST_ORIGIN, loginWithMock } from "./auth-helpers";
 
 test.beforeEach(async ({ page }) => {
   // Wait for a server to be ready before running tests
@@ -10,7 +10,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async ({ page }) => {
-  await page.request.post("/test/logout");
+  await page.request.post("/test/logout", {
+    headers: { Origin: TEST_ORIGIN },
+  });
 });
 
 test("App renders Hello, world! text", async ({ page }) => {
