@@ -1,27 +1,31 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testApp.js";
 
-// Mock the database module
+const { mockLimit, mockVerifyPassword, mockInsertValues } = vi.hoisted(() => ({
+  mockLimit: vi.fn().mockResolvedValue([]),
+  mockVerifyPassword: vi.fn().mockResolvedValue(false),
+  mockInsertValues: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("../db/index.js", () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
+          limit: mockLimit,
         }),
       }),
     }),
     insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
+      values: mockInsertValues,
     }),
   },
   users: {},
 }));
 
-// Mock the password module
 vi.mock("../auth/password.js", () => ({
   hashPassword: vi.fn().mockResolvedValue("salt:hash"),
-  verifyPassword: vi.fn().mockResolvedValue(false),
+  verifyPassword: mockVerifyPassword,
 }));
 
 describe("Email Auth routes", () => {
@@ -106,6 +110,43 @@ describe("Email Auth routes", () => {
       const html = await response.text();
       expect(html).toContain("Invalid email or password.");
     });
+
+    it("should return 401 when password is incorrect", async () => {
+      mockLimit.mockResolvedValueOnce([{ email: "user@example.com", name: "Test User", passwordHash: "salt:hash" }]);
+      mockVerifyPassword.mockResolvedValueOnce(false);
+      const { app } = createTestApp({ authenticatedUser: null });
+
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "wrongpassword");
+
+      const response = await app.request("/auth/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      expect(response.status).toBe(401);
+      const html = await response.text();
+      expect(html).toContain("Invalid email or password.");
+    });
+
+    it("should redirect to / on successful login", async () => {
+      mockLimit.mockResolvedValueOnce([{ email: "user@example.com", name: "Test User", passwordHash: "salt:hash" }]);
+      mockVerifyPassword.mockResolvedValueOnce(true);
+      const { app } = createTestApp({ authenticatedUser: null });
+
+      const formData = new FormData();
+      formData.append("email", "user@example.com");
+      formData.append("password", "correctpassword");
+
+      const response = await app.request("/auth/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get("Location")).toBe("/");
+    });
   });
 
   describe("POST /auth/register", () => {
@@ -142,6 +183,43 @@ describe("Email Auth routes", () => {
       expect(response.status).toBe(400);
       const html = await response.text();
       expect(html).toContain("Password must be at least 8 characters.");
+    });
+
+    it("should return 409 when email already exists", async () => {
+      mockLimit.mockResolvedValueOnce([{ email: "existing@example.com", name: "Existing User", passwordHash: "salt:hash" }]);
+      const { app } = createTestApp({ authenticatedUser: null });
+
+      const formData = new FormData();
+      formData.append("name", "New User");
+      formData.append("email", "existing@example.com");
+      formData.append("password", "password123");
+
+      const response = await app.request("/auth/register", {
+        method: "POST",
+        body: formData,
+      });
+
+      expect(response.status).toBe(409);
+      const html = await response.text();
+      expect(html).toContain("An account with this email already exists.");
+    });
+
+    it("should redirect to / on successful registration", async () => {
+      const { app } = createTestApp({ authenticatedUser: null });
+
+      const formData = new FormData();
+      formData.append("name", "New User");
+      formData.append("email", "new@example.com");
+      formData.append("password", "password123");
+
+      const response = await app.request("/auth/register", {
+        method: "POST",
+        body: formData,
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get("Location")).toBe("/");
+      expect(mockInsertValues).toHaveBeenCalledOnce();
     });
   });
 });
