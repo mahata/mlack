@@ -141,6 +141,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/login", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(401);
@@ -160,6 +161,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/login", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(302);
@@ -234,6 +236,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/register", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(409);
@@ -252,6 +255,7 @@ describe("Email Auth routes", () => {
       const response = await app.request("/auth/register", {
         method: "POST",
         body: formData,
+        headers: { Origin: "http://localhost" },
       });
 
       expect(response.status).toBe(302);
