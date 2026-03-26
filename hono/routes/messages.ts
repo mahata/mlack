@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { asc, desc } from "drizzle-orm";
 import { Hono } from "hono";
 import { db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
@@ -16,16 +16,16 @@ messagesRoute.get("/api/messages", async (c) => {
     }
 
     // Fetch messages from database, ordered by creation time (newest first)
-    const allMessages = await db
+    const latestMessages = db
       .select()
       .from(messages)
       .orderBy(desc(messages.createdAt))
-      .limit(100); // Limit to last 100 messages
+      .limit(100)
+      .as("latest_messages");
 
-    // Return messages in chronological order (oldest first) for display
-    const sortedMessages = allMessages.reverse();
+    const allMessages = await db.select().from(latestMessages).orderBy(asc(latestMessages.createdAt));
 
-    return c.json({ messages: sortedMessages });
+    return c.json({ messages: allMessages });
   } catch (error) {
     console.error("Error fetching messages:", error);
     return c.json({ error: "Failed to fetch messages" }, 500);

@@ -10,8 +10,15 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
   ws.get(
     "/ws",
     upgradeWebSocket((c) => {
+      const session = c.get("session");
+      const user = session.get("user") as User | undefined;
+
       return {
         onOpen: (_evt: Event, ws: WSContext) => {
+          if (!user) {
+            ws.close(1008, "Unauthorized");
+            return;
+          }
           clients.add(ws);
         },
         onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
@@ -23,28 +30,24 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
               : message instanceof Blob
                 ? await message.text()
                 : new TextDecoder().decode(message);
+          const trimmedMessage = messageStr.trim();
 
-          // Get user info from session
-          const session = c.get("session");
-          const user = session.get("user") as User | undefined;
-
-          if (user && messageStr.trim()) {
-            try {
-              // Save message to database
-              await db.insert(messages).values({
-                content: messageStr,
-                userEmail: user.email || "unknown",
-                userName: user.name || null,
-              });
-            } catch (error) {
-              console.error("Error saving message to database:", error);
-            }
+          if (!user || !trimmedMessage) {
+            return;
           }
 
-          // Create formatted message for broadcasting
-          const formattedMessage = user ? `${user.name || user.email}: ${messageStr}` : messageStr;
+          try {
+            await db.insert(messages).values({
+              content: trimmedMessage,
+              userEmail: user.email || "unknown",
+              userName: user.name || null,
+            });
+          } catch (error) {
+            console.error("Error saving message to database:", error);
+          }
 
-          // Broadcast message to all connected clients
+          const formattedMessage = `${user.name || user.email}: ${trimmedMessage}`;
+
           clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
               client.send(formattedMessage);

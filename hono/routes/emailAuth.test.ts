@@ -225,7 +225,9 @@ describe("Email Auth routes", () => {
     });
 
     it("should return 409 when email already exists", async () => {
-      mockLimit.mockResolvedValueOnce([{ email: "existing@example.com", name: "Existing User", passwordHash: "salt:hash" }]);
+      mockLimit.mockResolvedValueOnce([
+        { email: "existing@example.com", name: "Existing User", passwordHash: "salt:hash" },
+      ]);
       const { app } = createTestApp({ authenticatedUser: null });
 
       const formData = new FormData();

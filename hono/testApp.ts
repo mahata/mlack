@@ -1,12 +1,14 @@
+import type { MiddlewareHandler } from "hono/types";
 import type { Session } from "hono-sessions";
 import { vi } from "vitest";
 import { createApp } from "./app.js";
+import type { Variables } from "./types.js";
 
 export function createTestApp(options?: {
   authenticatedUser?: { email: string; name: string; picture: string } | null;
 }) {
   // Create test session middleware
-  const testSessionMiddleware = async (c: any, next: () => Promise<void>) => {
+  const testSessionMiddleware: MiddlewareHandler<{ Variables: Variables }> = async (c, next) => {
     const mockSession = {
       get: vi.fn().mockReturnValue(options?.authenticatedUser || null),
       set: vi.fn(),

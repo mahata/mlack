@@ -16,23 +16,11 @@ export async function RegisterPage(error?: string) {
           <form method="post" action="/auth/register" className="auth-form">
             <div className="form-group">
               <label htmlFor="name">Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                placeholder="Your name"
-                required
-              />
+              <input type="text" id="name" name="name" placeholder="Your name" required />
             </div>
             <div className="form-group">
               <label htmlFor="email">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="you@example.com"
-                required
-              />
+              <input type="email" id="email" name="email" placeholder="you@example.com" required />
             </div>
             <div className="form-group">
               <label htmlFor="password">Password</label>
@@ -45,14 +33,18 @@ export async function RegisterPage(error?: string) {
                 minLength={8}
               />
             </div>
-            <button type="submit" className="auth-button">Register</button>
+            <button type="submit" className="auth-button">
+              Register
+            </button>
           </form>
 
           <div className="auth-divider">
             <span>or</span>
           </div>
 
-          <a href="/auth/google" className="google-button">Sign up with Google</a>
+          <a href="/auth/google" className="google-button">
+            Sign up with Google
+          </a>
 
           <p className="auth-link">
             Already have an account? <a href="/auth/login">Login</a>

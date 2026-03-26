@@ -24,8 +24,7 @@ function displayMessage(messageText: string): void {
 // Load existing messages from API
 async function loadExistingMessages(): Promise<void> {
   const controller = new AbortController();
-  const timeoutId =
-    MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
+  const timeoutId = MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
   try {
     const response = await fetch("/api/messages", { signal: controller.signal });
     if (response.ok) {
