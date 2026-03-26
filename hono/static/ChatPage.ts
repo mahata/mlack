@@ -14,8 +14,14 @@ const confirmCreateChannel = document.getElementById("confirmCreateChannel") as 
 const STATUS_CLASS = "status";
 const CONNECTED_CLASS = "connected";
 const DISCONNECTED_CLASS = "disconnected";
+const RECONNECTING_CLASS = "reconnecting";
 const MESSAGE_CLASS = "message";
 const MESSAGES_TIMEOUT_MS = 15000;
+
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+const BACKOFF_MULTIPLIER = 2;
+const UNAUTHORIZED_CLOSE_CODE = 1008;
 
 const container = document.querySelector("[data-ws-url]") as HTMLElement;
 const wsUrl = container.getAttribute("data-ws-url") as string;
@@ -29,6 +35,10 @@ type Channel = {
 let activeChannelId: number | null = null;
 const myChannelIds: Set<number> = new Set();
 let allChannels: Channel[] = [];
+
+let ws: WebSocket;
+let reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
+let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
 function displayMessage(messageText: string): void {
   const messageElement = document.createElement("div");
@@ -258,42 +268,77 @@ newChannelNameInput.addEventListener("keypress", (e: KeyboardEvent) => {
   }
 });
 
-// WebSocket connection
-const ws = new WebSocket(wsUrl);
-
-ws.onopen = (_event: Event) => {
-  console.log("Connected to WebSocket");
-  statusDiv.textContent = "Connected";
-  statusDiv.className = `${STATUS_CLASS} ${CONNECTED_CLASS}`;
-  messageInput.disabled = false;
-  sendButton.disabled = false;
-};
-
-ws.onmessage = (event: MessageEvent) => {
-  try {
-    const data = JSON.parse(event.data as string);
-    if (data.type === "message" && data.channelId === activeChannelId) {
-      const formattedMessage = `${data.userName || data.userEmail}: ${data.content}`;
-      displayMessage(formattedMessage);
-    }
-  } catch {
-    // Ignore non-JSON messages
+function cancelScheduledReconnect(): void {
+  if (reconnectTimer !== undefined) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = undefined;
   }
-};
+}
 
-ws.onclose = (_event: CloseEvent) => {
-  console.log("Disconnected from WebSocket");
-  statusDiv.textContent = "Disconnected";
-  statusDiv.className = `${STATUS_CLASS} ${DISCONNECTED_CLASS}`;
-  messageInput.disabled = true;
-  sendButton.disabled = true;
-};
+function scheduleReconnect(): void {
+  cancelScheduledReconnect();
+  statusDiv.textContent = `Reconnecting in ${reconnectDelay / 1000}s...`;
+  statusDiv.className = `${STATUS_CLASS} ${RECONNECTING_CLASS}`;
 
-ws.onerror = (error: Event) => {
-  console.error("WebSocket error:", error);
-  statusDiv.textContent = "Connection Error";
-  statusDiv.className = `${STATUS_CLASS} ${DISCONNECTED_CLASS}`;
-};
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = undefined;
+    connect();
+  }, reconnectDelay);
+
+  reconnectDelay = Math.min(reconnectDelay * BACKOFF_MULTIPLIER, MAX_RECONNECT_DELAY_MS);
+}
+
+function reconnectNow(): void {
+  if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+    return;
+  }
+  cancelScheduledReconnect();
+  reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
+  connect();
+}
+
+function connect(): void {
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = (_event: Event) => {
+    console.log("Connected to WebSocket");
+    reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
+    statusDiv.textContent = "Connected";
+    statusDiv.className = `${STATUS_CLASS} ${CONNECTED_CLASS}`;
+    messageInput.disabled = false;
+    sendButton.disabled = false;
+  };
+
+  ws.onmessage = (event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data as string);
+      if (data.type === "message" && data.channelId === activeChannelId) {
+        const formattedMessage = `${data.userName || data.userEmail}: ${data.content}`;
+        displayMessage(formattedMessage);
+      }
+    } catch {
+      // Ignore non-JSON messages
+    }
+  };
+
+  ws.onclose = (event: CloseEvent) => {
+    console.log("Disconnected from WebSocket");
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+
+    if (event.code === UNAUTHORIZED_CLOSE_CODE) {
+      statusDiv.textContent = "Disconnected (unauthorized)";
+      statusDiv.className = `${STATUS_CLASS} ${DISCONNECTED_CLASS}`;
+      return;
+    }
+
+    scheduleReconnect();
+  };
+
+  ws.onerror = (error: Event) => {
+    console.error("WebSocket error:", error);
+  };
+}
 
 function sendMessage(): void {
   const message = messageInput.value.trim();
@@ -309,6 +354,18 @@ messageInput.addEventListener("keypress", (e: KeyboardEvent) => {
     sendMessage();
   }
 });
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    reconnectNow();
+  }
+});
+
+window.addEventListener("online", () => {
+  reconnectNow();
+});
+
+connect();
 
 window.addEventListener("load", () => {
   messageInput.focus();
