@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
@@ -7,7 +7,6 @@ const messagesRoute = new Hono<{ Variables: Variables }>();
 
 messagesRoute.get("/api/messages", async (c) => {
   try {
-    // Check if user is authenticated
     const session = c.get("session");
     const user = session.get("user") as User | undefined;
 
@@ -15,14 +14,23 @@ messagesRoute.get("/api/messages", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    // Fetch messages from database, ordered by creation time (newest first)
+    const channelIdParam = c.req.query("channelId");
+    if (!channelIdParam) {
+      return c.json({ error: "channelId query parameter is required" }, 400);
+    }
+
+    const channelId = Number(channelIdParam);
+    if (Number.isNaN(channelId)) {
+      return c.json({ error: "Invalid channelId" }, 400);
+    }
+
     const allMessages = await db
       .select()
       .from(messages)
+      .where(eq(messages.channelId, channelId))
       .orderBy(desc(messages.createdAt))
-      .limit(100); // Limit to last 100 messages
+      .limit(100);
 
-    // Return messages in chronological order (oldest first) for display
     const sortedMessages = allMessages.reverse();
 
     return c.json({ messages: sortedMessages });

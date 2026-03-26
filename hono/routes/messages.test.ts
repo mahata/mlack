@@ -1,40 +1,66 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testApp.js";
 
-// Mock the database module
 vi.mock("../db/index.js", () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([
-            {
-              id: 1,
-              content: "Test message",
-              userEmail: "test@example.com",
-              userName: "Test User",
-              createdAt: new Date(),
-            },
-          ]),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: 1,
+                content: "Test message",
+                userEmail: "test@example.com",
+                userName: "Test User",
+                channelId: 1,
+                createdAt: new Date(),
+              },
+            ]),
+          }),
         }),
       }),
     }),
   },
-  messages: {},
+  messages: { channelId: "channel_id", createdAt: "created_at" },
 }));
 
 describe("Messages API endpoint", () => {
-  it("should return messages for authenticated user", async () => {
+  it("should return messages for authenticated user with channelId", async () => {
+    const { app } = createTestApp({
+      authenticatedUser: { email: "test@example.com", name: "Test User", picture: "test.jpg" },
+    });
+
+    const response = await app.request("/api/messages?channelId=1");
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body).toHaveProperty("messages");
+    expect(Array.isArray(body.messages)).toBe(true);
+  });
+
+  it("should return 400 when channelId is missing", async () => {
     const { app } = createTestApp({
       authenticatedUser: { email: "test@example.com", name: "Test User", picture: "test.jpg" },
     });
 
     const response = await app.request("/api/messages");
-    expect(response.status).toBe(200);
-    
+    expect(response.status).toBe(400);
+
     const body = await response.json();
-    expect(body).toHaveProperty("messages");
-    expect(Array.isArray(body.messages)).toBe(true);
+    expect(body).toHaveProperty("error", "channelId query parameter is required");
+  });
+
+  it("should return 400 when channelId is invalid", async () => {
+    const { app } = createTestApp({
+      authenticatedUser: { email: "test@example.com", name: "Test User", picture: "test.jpg" },
+    });
+
+    const response = await app.request("/api/messages?channelId=abc");
+    expect(response.status).toBe(400);
+
+    const body = await response.json();
+    expect(body).toHaveProperty("error", "Invalid channelId");
   });
 
   it("should return 401 for unauthenticated user", async () => {
@@ -42,9 +68,9 @@ describe("Messages API endpoint", () => {
       authenticatedUser: null,
     });
 
-    const response = await app.request("/api/messages");
+    const response = await app.request("/api/messages?channelId=1");
     expect(response.status).toBe(401);
-    
+
     const body = await response.json();
     expect(body).toHaveProperty("error", "Unauthorized");
   });

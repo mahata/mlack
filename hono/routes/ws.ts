@@ -1,55 +1,89 @@
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
 import { WebSocket } from "ws";
-import { db, messages } from "../db/index.js";
+import { channelMembers, db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
 
-export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<WSContext>) {
+type WsClientInfo = { userEmail: string };
+
+export function createWsRoute(
+  upgradeWebSocket: UpgradeWebSocket,
+  clients: Map<WSContext, WsClientInfo>,
+) {
   const ws = new Hono<{ Variables: Variables }>();
 
   ws.get(
     "/ws",
     upgradeWebSocket((c) => {
+      const session = c.get("session");
+      const user = session.get("user") as User | undefined;
+
       return {
         onOpen: (_evt: Event, ws: WSContext) => {
-          clients.add(ws);
+          clients.set(ws, { userEmail: user?.email || "unknown" });
         },
         onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
-          const message = evt.data;
+          const raw = evt.data;
 
-          const messageStr =
-            typeof message === "string"
-              ? message
-              : message instanceof Blob
-                ? await message.text()
-                : new TextDecoder().decode(message);
+          const rawStr =
+            typeof raw === "string"
+              ? raw
+              : raw instanceof Blob
+                ? await raw.text()
+                : new TextDecoder().decode(raw);
 
-          // Get user info from session
-          const session = c.get("session");
-          const user = session.get("user") as User | undefined;
+          let parsed: { type: string; channelId: number; content: string };
+          try {
+            parsed = JSON.parse(rawStr);
+          } catch {
+            return;
+          }
 
-          if (user && messageStr.trim()) {
+          if (parsed.type !== "message" || !parsed.channelId || !parsed.content?.trim()) {
+            return;
+          }
+
+          const channelId = parsed.channelId;
+          const content = parsed.content.trim();
+
+          if (user && content) {
             try {
-              // Save message to database
               await db.insert(messages).values({
-                content: messageStr,
+                content,
                 userEmail: user.email || "unknown",
                 userName: user.name || null,
+                channelId,
               });
             } catch (error) {
               console.error("Error saving message to database:", error);
             }
           }
 
-          // Create formatted message for broadcasting
-          const formattedMessage = user ? `${user.name || user.email}: ${messageStr}` : messageStr;
-
-          // Broadcast message to all connected clients
-          clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(formattedMessage);
-            }
+          const outgoing = JSON.stringify({
+            type: "message",
+            channelId,
+            content,
+            userName: user?.name || null,
+            userEmail: user?.email || "unknown",
           });
+
+          try {
+            const members = await db
+              .select()
+              .from(channelMembers)
+              .where(eq(channelMembers.channelId, channelId));
+
+            const memberEmails = new Set(members.map((m) => m.userEmail));
+
+            clients.forEach((info, client) => {
+              if (client.readyState === WebSocket.OPEN && memberEmails.has(info.userEmail)) {
+                client.send(outgoing);
+              }
+            });
+          } catch (error) {
+            console.error("Error broadcasting message:", error);
+          }
         },
         onClose: (_evt: CloseEvent, ws: WSContext) => {
           clients.delete(ws);

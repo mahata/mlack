@@ -6,6 +6,13 @@ export type User = {
   picture?: string;
 };
 
+export type Channel = {
+  id: number;
+  name: string;
+  createdByEmail: string;
+  createdAt: Date | null;
+};
+
 export type Variables = {
   session: Session;
 };

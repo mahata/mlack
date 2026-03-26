@@ -24,8 +24,8 @@ describe("ChatPage component", () => {
 
     // Convert JSX to string to test content
     const html = jsxElement.toString();
-    // Should contain the new CSS class names
-    expect(html).toContain('class="chat-container"');
+    // Should contain the CSS class names
+    expect(html).toContain('class="app-layout"');
     expect(html).toContain('class="status disconnected"');
     expect(html).toContain('class="input-container"');
     // Should not contain generated CSS class names (they start with 'css-')

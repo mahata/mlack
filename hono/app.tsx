@@ -5,6 +5,7 @@ import { csrf } from "hono/csrf";
 import type { WSContext } from "hono/ws";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { auth } from "./routes/auth.js";
+import { channelsRoute } from "./routes/channels.js";
 import { emailAuth } from "./routes/emailAuth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
@@ -44,8 +45,8 @@ export function createApp(options?: AppOptions) {
   // Create WebSocket helper
   const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-  // Store connected WebSocket clients
-  const clients = new Set<WSContext>();
+  // Store connected WebSocket clients mapped to their user info
+  const clients = new Map<WSContext, { userEmail: string }>();
 
   // Serve static files from components directory
   app.use("/components/*", serveStatic({ root: "./hono" }));
@@ -60,6 +61,7 @@ export function createApp(options?: AppOptions) {
   app.route("/", auth);
   app.route("/", emailAuth);
   app.route("/", testAuth);
+  app.route("/", channelsRoute);
   app.route("/", messagesRoute);
   app.route("/", index);
   app.route("/", createWsRoute(upgradeWebSocket, clients));
