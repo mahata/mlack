@@ -6,11 +6,11 @@ const mockInsert = vi.fn();
 const mockDelete = vi.fn();
 
 vi.mock("../db/index.js", () => ({
-  db: {
+  getDb: () => ({
     select: (...args: unknown[]) => mockSelect(...args),
     insert: (...args: unknown[]) => mockInsert(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
-  },
+  }),
   channels: { id: "id", name: "name" },
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
 }));
@@ -22,8 +22,8 @@ describe("Channels API", () => {
   describe("GET /api/channels", () => {
     it("should return channels for authenticated user", async () => {
       const mockChannels = [
-        { id: 1, name: "general", createdByEmail: "system", createdAt: new Date() },
-        { id: 2, name: "random", createdByEmail: "test@example.com", createdAt: new Date() },
+        { id: 1, name: "general", createdByEmail: "system", createdAt: "2025-01-01T00:00:00.000Z" },
+        { id: 2, name: "random", createdByEmail: "test@example.com", createdAt: "2025-01-01T00:00:00.000Z" },
       ];
       mockSelect.mockReturnValue({
         from: vi.fn().mockResolvedValue(mockChannels),
@@ -33,7 +33,7 @@ describe("Channels API", () => {
       const response = await app.request("/api/channels");
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as { channels: unknown[] };
       expect(body).toHaveProperty("channels");
       expect(body.channels).toHaveLength(2);
     });
@@ -50,7 +50,12 @@ describe("Channels API", () => {
 
   describe("POST /api/channels", () => {
     it("should create a channel", async () => {
-      const created = { id: 3, name: "new-channel", createdByEmail: "test@example.com", createdAt: new Date() };
+      const created = {
+        id: 3,
+        name: "new-channel",
+        createdByEmail: "test@example.com",
+        createdAt: "2025-01-01T00:00:00.000Z",
+      };
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -73,7 +78,7 @@ describe("Channels API", () => {
       });
 
       expect(response.status).toBe(201);
-      const body = await response.json();
+      const body = (await response.json()) as { channel: { name: string } };
       expect(body.channel.name).toBe("new-channel");
     });
 
@@ -140,7 +145,7 @@ describe("Channels API", () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as { message: string };
       expect(body.message).toBe("Joined channel");
     });
 
@@ -163,7 +168,7 @@ describe("Channels API", () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as { message: string };
       expect(body.message).toBe("Already a member");
     });
 
@@ -212,7 +217,7 @@ describe("Channels API", () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json();
+      const body = (await response.json()) as { message: string };
       expect(body.message).toBe("Left channel");
     });
 
@@ -230,7 +235,7 @@ describe("Channels API", () => {
       });
 
       expect(response.status).toBe(403);
-      const body = await response.json();
+      const body = (await response.json()) as { error: string };
       expect(body.error).toBe("Cannot leave #general");
     });
 

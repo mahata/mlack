@@ -1,6 +1,5 @@
-import { serveStatic } from "@hono/node-server/serve-static";
-import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
+import { upgradeWebSocket } from "hono/cloudflare-workers";
 import { csrf } from "hono/csrf";
 import type { MiddlewareHandler } from "hono/types";
 import type { WSContext } from "hono/ws";
@@ -13,51 +12,47 @@ import { index } from "./routes/index.js";
 import { messagesRoute } from "./routes/messages.js";
 import { testAuth } from "./routes/testAuth.js";
 import { createWsRoute } from "./routes/ws.js";
-import type { Variables } from "./types.js";
+import type { Bindings, Variables } from "./types.js";
 
 type AppOptions = {
-  sessionMiddleware?: MiddlewareHandler<{ Variables: Variables }>;
+  sessionMiddleware?: MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }>;
 };
 
-export function createApp(options?: AppOptions) {
-  const app = new Hono<{ Variables: Variables }>();
-
-  // Set up session middleware
-  if (options?.sessionMiddleware) {
-    app.use("*", options.sessionMiddleware);
-  } else {
-    const store = new CookieStore();
-    app.use(
-      "*",
-      sessionMiddleware({
+function createLazySessionMiddleware(): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
+  let cached: MiddlewareHandler | null = null;
+  return async (c, next) => {
+    if (!cached) {
+      const store = new CookieStore();
+      cached = sessionMiddleware({
         store,
-        encryptionKey: process.env.SESSION_SECRET || "your-super-secret-key-change-in-production",
+        encryptionKey: c.env.SESSION_SECRET || "your-super-secret-key-change-in-production",
         expireAfterSeconds: 3600,
         cookieOptions: {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: c.env.NODE_ENV === "production",
           sameSite: "lax",
           path: "/",
         },
-      }),
-    );
+      });
+    }
+    const mw = cached as MiddlewareHandler;
+    return mw(c, next);
+  };
+}
+
+export function createApp(options?: AppOptions) {
+  const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+  if (options?.sessionMiddleware) {
+    app.use("*", options.sessionMiddleware);
+  } else {
+    app.use("*", createLazySessionMiddleware());
   }
 
-  // Create WebSocket helper
-  const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
-
-  // Store connected WebSocket clients mapped to their user info
   const clients = new Map<WSContext, { userEmail: string }>();
-
-  // Serve static files from components directory
-  app.use("/components/*", serveStatic({ root: "./hono" }));
-
-  // Serve static files from static directory
-  app.use("/static/*", serveStatic({ root: "./hono" }));
 
   app.use("*", csrf());
 
-  // Register route handlers
   app.route("/", health);
   app.route("/", auth);
   app.route("/", emailAuth);
@@ -65,14 +60,11 @@ export function createApp(options?: AppOptions) {
   app.route("/", messagesRoute);
   app.route("/", index);
   app.route("/", createWsRoute(upgradeWebSocket, clients));
+  app.route("/", testAuth);
 
-  if (process.env.NODE_ENV === "development") {
-    app.route("/", testAuth);
-  }
-
-  return { app, injectWebSocket };
+  return { app };
 }
 
-const { app, injectWebSocket } = createApp();
+const { app } = createApp();
 
-export { app, injectWebSocket };
+export { app };

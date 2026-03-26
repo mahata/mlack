@@ -1,69 +1,59 @@
 import { googleAuth } from "@hono/oauth-providers/google";
 import { Hono } from "hono";
-import type { Variables } from "../types.js";
+import { createMiddleware } from "hono/factory";
+import type { Bindings, Variables } from "../types.js";
 
-const auth = new Hono<{ Variables: Variables }>();
+type Env = { Bindings: Bindings; Variables: Variables };
 
-// Google OAuth Settings
-const clientId = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+const auth = new Hono<Env>();
 
-if (
-  process.env.NODE_ENV !== "test" &&
-  process.env.NODE_ENV !== "development" &&
-  (!clientId || !clientSecret || !redirectUri)
-) {
-  throw new Error("Google OAuth Environmental Variables are not set");
-}
-
-// Google OAuth route setup
-auth.get(
-  "/auth/google",
-  googleAuth({
-    client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: redirectUri,
+const googleOAuthMiddleware = createMiddleware<Env>(async (c, next) => {
+  const handler = googleAuth({
+    client_id: c.env.GOOGLE_ID,
+    client_secret: c.env.GOOGLE_SECRET,
+    redirect_uri: c.env.GOOGLE_REDIRECT_URI,
     scope: ["openid", "email", "profile"],
-  }),
-  async (c) => {
-    const token = c.get("token");
-    const user = c.get("user-google");
-
-    if (!token || !user) {
-      return c.redirect("/?error=auth_failed");
-    }
-
-    try {
-      const session = c.get("session");
-      const userInfo = {
-        email: user.email ?? "",
-        name: user.name ?? "",
-        picture: user.picture,
-      };
-
-      session.set("user", userInfo);
-
-      return c.redirect("/");
-    } catch (error) {
-      console.error("OAuth callback error:", error);
-      return c.redirect("/?error=callback_error");
-    }
-  },
-);
-
-if (process.env.NODE_ENV === "development") {
-  auth.get("/debug/session", async (c) => {
-    const session = c.get("session");
-    const user = session.get("user");
-    return c.json({
-      user,
-      hasSession: !!session,
-    });
   });
-}
+  return handler(c, next);
+});
 
-// Logout
+auth.get("/auth/google", googleOAuthMiddleware, async (c) => {
+  const token = c.get("token");
+  const user = c.get("user-google");
+
+  if (!token || !user) {
+    return c.redirect("/?error=auth_failed");
+  }
+
+  try {
+    const session = c.get("session");
+    const userInfo = {
+      email: user.email ?? "",
+      name: user.name ?? "",
+      picture: user.picture,
+    };
+
+    session.set("user", userInfo);
+
+    return c.redirect("/");
+  } catch (error) {
+    console.error("OAuth callback error:", error);
+    return c.redirect("/?error=callback_error");
+  }
+});
+
+auth.get("/debug/session", async (c) => {
+  if (c.env.NODE_ENV !== "development") {
+    return c.json({ error: "Debug endpoint only available in development" }, 403);
+  }
+  const session = c.get("session");
+  const user = session.get("user");
+  return c.json({
+    user,
+    hasSession: !!session,
+  });
+});
+
 auth.post("/auth/logout", async (c) => {
   const session = c.get("session");
   session.deleteSession();

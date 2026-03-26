@@ -1,10 +1,10 @@
 import type { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createTestApp } from "../testApp.js";
-import type { Variables } from "../types.js";
+import type { Bindings, Variables } from "../types.js";
 
 describe("Root page", () => {
-  let testApp: Hono<{ Variables: Variables }>;
+  let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
 
   beforeEach(async () => {
     // Create a test app with an authenticated user

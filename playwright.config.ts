@@ -48,22 +48,15 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "pnpm build:client && pnpm start",
+    command: "pnpm build:client && pnpm run build:assets && wrangler dev --port 3015",
     url: "http://localhost:3015",
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000, // timing out in 2 mins
+    timeout: 120 * 1000,
     stderr: "pipe",
     stdout: "pipe",
     env: {
-      PORT: "3015",
       NODE_ENV: "development",
       E2E_GMAIL_ACCOUNT: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
-      // Database configuration for E2E tests
-      POSTGRES_HOST: "localhost",
-      POSTGRES_PORT: process.env.POSTGRES_PORT ?? "5437",
-      POSTGRES_USER: "postgres",
-      POSTGRES_PASSWORD: "mysecretpassword",
-      POSTGRES_DB: "test",
     },
   },
 });

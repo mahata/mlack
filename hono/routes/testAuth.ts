@@ -1,19 +1,17 @@
 import { Hono } from "hono";
-import type { Variables } from "../types.js";
+import type { Bindings, Variables } from "../types.js";
 
-const testAuth = new Hono<{ Variables: Variables }>();
+const testAuth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Mock login for E2E testing
 testAuth.post("/test/login", async (c) => {
-  if (process.env.NODE_ENV !== "development") {
+  if (c.env.NODE_ENV !== "development") {
     return c.json({ error: "Test login only available in development" }, 403);
   }
 
   const session = c.get("session");
 
-  // Test user information for E2E
   const testUser = {
-    email: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
+    email: c.env.E2E_GMAIL_ACCOUNT || "test@example.com",
     name: "Test User",
     picture: "",
   };
@@ -24,9 +22,8 @@ testAuth.post("/test/login", async (c) => {
   return c.json({ success: true, user: testUser });
 });
 
-// Logout for E2E testing
 testAuth.post("/test/logout", async (c) => {
-  if (process.env.NODE_ENV !== "development") {
+  if (c.env.NODE_ENV !== "development") {
     return c.json({ error: "Test logout only available in development" }, 403);
   }
 

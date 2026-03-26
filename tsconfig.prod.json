@@ -9,7 +9,7 @@
     "sourceMap": true,
     "allowImportingTsExtensions": false,
     "moduleResolution": "node",
-    "types": ["node"],
+    "types": ["node", "@cloudflare/workers-types"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
   },

@@ -2,10 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { AboutPage } from "../components/AboutPage.js";
 import { ChatPage } from "../components/ChatPage.js";
-import { channelMembers, channels, db } from "../db/index.js";
-import type { User, Variables } from "../types.js";
+import { channelMembers, channels, getDb } from "../db/index.js";
+import type { Bindings, User, Variables } from "../types.js";
 
-const index = new Hono<{ Variables: Variables }>();
+const index = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 index.get("/", async (c) => {
   const session = c.get("session");
@@ -21,6 +21,7 @@ index.get("/", async (c) => {
   const wsUrl = `${protocol}//${url.host}/ws`;
 
   try {
+    const db = getDb(c.env.DB);
     const [generalChannel] = await db.select().from(channels).where(eq(channels.name, "general"));
 
     if (generalChannel) {
