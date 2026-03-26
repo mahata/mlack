@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
 
 export const channels = pgTable("channels", {
   id: serial("id").primaryKey(),
@@ -20,16 +20,20 @@ export const channelMembers = pgTable(
   (table) => [unique("channel_members_channel_id_user_email_unique").on(table.channelId, table.userEmail)],
 );
 
-export const messages = pgTable("messages", {
-  id: serial("id").primaryKey(),
-  content: text("content").notNull(),
-  userEmail: varchar("user_email", { length: 255 }).notNull(),
-  userName: varchar("user_name", { length: 255 }),
-  channelId: integer("channel_id")
-    .notNull()
-    .references(() => channels.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const messages = pgTable(
+  "messages",
+  {
+    id: serial("id").primaryKey(),
+    content: text("content").notNull(),
+    userEmail: varchar("user_email", { length: 255 }).notNull(),
+    userName: varchar("user_name", { length: 255 }),
+    channelId: integer("channel_id")
+      .notNull()
+      .references(() => channels.id),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [index("messages_channel_id_created_at_idx").on(table.channelId, table.createdAt)],
+);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
