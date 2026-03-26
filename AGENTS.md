@@ -155,5 +155,5 @@ routeHandler.get("/path", async (c) => {
 ## Git Conventions
 
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, etc.
-- Do not commit unless tests pass. Write tests alongside implementation.
+- Do not commit unless tests pass (both unit and E2E). Write tests alongside implementation.
 - Delete code and files that become unnecessary after changes.
