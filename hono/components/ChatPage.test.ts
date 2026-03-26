@@ -40,6 +40,13 @@ describe("ChatPage component", () => {
     expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
   });
 
+  it("should include Hello, world! heading", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain("<h1>Hello, world!</h1>");
+  });
+
   it("should include custom WebSocket URL when provided", async () => {
     const customWsUrl = "wss://example.com/ws";
     const jsxElement = await ChatPage(customWsUrl);
