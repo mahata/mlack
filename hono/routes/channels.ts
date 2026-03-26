@@ -1,19 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
+import { requireUser } from "../auth/requireUser.js";
 import { channelMembers, channels, db } from "../db/index.js";
-import type { User, Variables } from "../types.js";
+import type { Variables } from "../types.js";
 
 const channelsRoute = new Hono<{ Variables: Variables }>();
 
-channelsRoute.get("/api/channels", async (c) => {
+channelsRoute.get("/api/channels", requireUser, async (c) => {
   try {
-    const session = c.get("session");
-    const user = session.get("user") as User | undefined;
-
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
     const allChannels = await db.select().from(channels);
 
     return c.json({ channels: allChannels });
@@ -23,14 +17,9 @@ channelsRoute.get("/api/channels", async (c) => {
   }
 });
 
-channelsRoute.post("/api/channels", async (c) => {
+channelsRoute.post("/api/channels", requireUser, async (c) => {
   try {
-    const session = c.get("session");
-    const user = session.get("user") as User | undefined;
-
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const user = c.get("user");
 
     const body = await c.req.json();
     const name = body.name?.trim();
@@ -44,12 +33,9 @@ channelsRoute.post("/api/channels", async (c) => {
       return c.json({ error: "Channel name already exists" }, 409);
     }
 
-    const [created] = await db
-      .insert(channels)
-      .values({ name, createdByEmail: user.email || "unknown" })
-      .returning();
+    const [created] = await db.insert(channels).values({ name, createdByEmail: user.email }).returning();
 
-    await db.insert(channelMembers).values({ channelId: created.id, userEmail: user.email || "unknown" });
+    await db.insert(channelMembers).values({ channelId: created.id, userEmail: user.email });
 
     return c.json({ channel: created }, 201);
   } catch (error) {
@@ -58,14 +44,9 @@ channelsRoute.post("/api/channels", async (c) => {
   }
 });
 
-channelsRoute.post("/api/channels/:id/join", async (c) => {
+channelsRoute.post("/api/channels/:id/join", requireUser, async (c) => {
   try {
-    const session = c.get("session");
-    const user = session.get("user") as User | undefined;
-
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const user = c.get("user");
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
@@ -77,16 +58,16 @@ channelsRoute.post("/api/channels/:id/join", async (c) => {
       return c.json({ error: "Channel not found" }, 404);
     }
 
-    const existing = await db
+    const existingMember = await db
       .select()
       .from(channelMembers)
-      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email || "unknown")));
+      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email)));
 
-    if (existing.length > 0) {
+    if (existingMember.length > 0) {
       return c.json({ message: "Already a member" }, 200);
     }
 
-    await db.insert(channelMembers).values({ channelId, userEmail: user.email || "unknown" });
+    await db.insert(channelMembers).values({ channelId, userEmail: user.email });
 
     return c.json({ message: "Joined channel" }, 200);
   } catch (error) {
@@ -95,14 +76,9 @@ channelsRoute.post("/api/channels/:id/join", async (c) => {
   }
 });
 
-channelsRoute.post("/api/channels/:id/leave", async (c) => {
+channelsRoute.post("/api/channels/:id/leave", requireUser, async (c) => {
   try {
-    const session = c.get("session");
-    const user = session.get("user") as User | undefined;
-
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const user = c.get("user");
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
@@ -120,7 +96,7 @@ channelsRoute.post("/api/channels/:id/leave", async (c) => {
 
     await db
       .delete(channelMembers)
-      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email || "unknown")));
+      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email)));
 
     return c.json({ message: "Left channel" }, 200);
   } catch (error) {

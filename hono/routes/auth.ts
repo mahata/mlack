@@ -35,11 +35,10 @@ auth.get(
     }
 
     try {
-      // Save user info to session
       const session = c.get("session");
       const userInfo = {
-        email: user.email,
-        name: user.name,
+        email: user.email ?? "",
+        name: user.name ?? "",
         picture: user.picture,
       };
 
