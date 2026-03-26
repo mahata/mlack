@@ -86,6 +86,9 @@ jobs:
           POSTGRES_DB: test
         run: pnpm db:migrate
 
+      - name: Seed database
+        run: pnpm db:seed
+
       - name: Run Playwright tests
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
