@@ -13,5 +13,13 @@ database_name = "mlack-db"
 database_id = "local"
 migrations_dir = "hono/db/migrations"
 
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]
+
 [vars]
-NODE_ENV = "development"
+NODE_ENV = "production"

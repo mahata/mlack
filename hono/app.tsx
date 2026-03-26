@@ -1,8 +1,6 @@
 import { Hono } from "hono";
-import { upgradeWebSocket } from "hono/cloudflare-workers";
 import { csrf } from "hono/csrf";
 import type { MiddlewareHandler } from "hono/types";
-import type { WSContext } from "hono/ws";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { auth } from "./routes/auth.js";
 import { channelsRoute } from "./routes/channels.js";
@@ -49,8 +47,6 @@ export function createApp(options?: AppOptions) {
     app.use("*", createLazySessionMiddleware());
   }
 
-  const clients = new Map<WSContext, { userEmail: string }>();
-
   app.use("*", csrf());
 
   app.route("/", health);
@@ -59,7 +55,7 @@ export function createApp(options?: AppOptions) {
   app.route("/", channelsRoute);
   app.route("/", messagesRoute);
   app.route("/", index);
-  app.route("/", createWsRoute(upgradeWebSocket, clients));
+  app.route("/", createWsRoute());
   app.route("/", testAuth);
 
   return { app };
