@@ -48,7 +48,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "pnpm build:client && pnpm run build:assets && wrangler dev --port 3015",
+    command: `pnpm build:client && pnpm run build:assets && wrangler dev --port 3015 --var E2E_GMAIL_ACCOUNT:${process.env.E2E_GMAIL_ACCOUNT ?? "test@example.com"}`,
     url: "http://localhost:3015",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
@@ -56,7 +56,6 @@ export default defineConfig({
     stdout: "pipe",
     env: {
       NODE_ENV: "development",
-      E2E_GMAIL_ACCOUNT: process.env.E2E_GMAIL_ACCOUNT || "test@example.com",
     },
   },
 });
