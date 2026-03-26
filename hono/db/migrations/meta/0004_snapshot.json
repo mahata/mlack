@@ -1,6 +1,6 @@
 {
-  "id": "d41fa905-47b3-4419-ac2d-b16b72a30e3b",
-  "prevId": "b633c858-0b79-4027-a94b-19c234126e79",
+  "id": "a7e2c501-9f3a-4b8d-b1c6-3e5f7d9a2b4c",
+  "prevId": "d41fa905-47b3-4419-ac2d-b16b72a30e3b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -157,6 +157,27 @@
         "messages_created_at_idx": {
           "name": "messages_created_at_idx",
           "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "messages_channel_id_created_at_idx": {
+          "name": "messages_channel_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "channel_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
             {
               "expression": "created_at",
               "isExpression": false,

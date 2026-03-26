@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-export const TEST_ORIGIN = "http://localhost:3000";
+export const TEST_ORIGIN = "http://localhost:3015";
 
 export async function loginWithMock(page: Page) {
   // Mock login request to the test endpoint

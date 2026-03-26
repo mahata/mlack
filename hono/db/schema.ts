@@ -32,7 +32,10 @@ export const messages = pgTable(
       .references(() => channels.id),
     createdAt: timestamp("created_at").defaultNow(),
   },
-  (table) => [index("messages_channel_id_created_at_idx").on(table.channelId, table.createdAt)],
+  (table) => [
+    index("messages_created_at_idx").on(table.createdAt),
+    index("messages_channel_id_created_at_idx").on(table.channelId, table.createdAt),
+  ],
 );
 
 export const users = pgTable("users", {

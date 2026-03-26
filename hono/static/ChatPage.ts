@@ -27,7 +27,7 @@ type Channel = {
 };
 
 let activeChannelId: number | null = null;
-let myChannelIds: Set<number> = new Set();
+const myChannelIds: Set<number> = new Set();
 let allChannels: Channel[] = [];
 
 function displayMessage(messageText: string): void {
@@ -45,8 +45,7 @@ function clearMessages(): void {
 async function loadMessagesForChannel(channelId: number): Promise<void> {
   clearMessages();
   const controller = new AbortController();
-  const timeoutId =
-    MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
+  const timeoutId = MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
   try {
     const response = await fetch(`/api/messages?channelId=${channelId}`, { signal: controller.signal });
     if (response.ok) {

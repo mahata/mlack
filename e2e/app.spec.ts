@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { TEST_ORIGIN, loginWithMock } from "./auth-helpers";
+import { loginWithMock, TEST_ORIGIN } from "./auth-helpers";
 
 test.beforeEach(async ({ page }) => {
   // Wait for a server to be ready before running tests

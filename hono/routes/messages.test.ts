@@ -3,24 +3,33 @@ import { createTestApp } from "../testApp.js";
 
 vi.mock("../db/index.js", () => ({
   db: {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: 1,
-                content: "Test message",
-                userEmail: "test@example.com",
-                userName: "Test User",
-                channelId: 1,
-                createdAt: new Date(),
-              },
-            ]),
+    select: vi
+      .fn()
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                as: vi.fn().mockReturnValue({ createdAt: Symbol("createdAt") }),
+              }),
+            }),
           }),
         }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([
+            {
+              id: 1,
+              content: "Test message",
+              userEmail: "test@example.com",
+              userName: "Test User",
+              channelId: 1,
+              createdAt: new Date(),
+            },
+          ]),
+        }),
       }),
-    }),
   },
   messages: { channelId: "channel_id", createdAt: "created_at" },
 }));

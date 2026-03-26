@@ -7,10 +7,7 @@ import type { User, Variables } from "../types.js";
 
 type WsClientInfo = { userEmail: string };
 
-export function createWsRoute(
-  upgradeWebSocket: UpgradeWebSocket,
-  clients: Map<WSContext, WsClientInfo>,
-) {
+export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<WSContext, WsClientInfo>) {
   const ws = new Hono<{ Variables: Variables }>();
 
   ws.get(
@@ -21,17 +18,17 @@ export function createWsRoute(
 
       return {
         onOpen: (_evt: Event, ws: WSContext) => {
-          clients.set(ws, { userEmail: user?.email || "unknown" });
+          if (!user) {
+            ws.close(1008, "Unauthorized");
+            return;
+          }
+          clients.set(ws, { userEmail: user.email || "unknown" });
         },
         onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
           const raw = evt.data;
 
           const rawStr =
-            typeof raw === "string"
-              ? raw
-              : raw instanceof Blob
-                ? await raw.text()
-                : new TextDecoder().decode(raw);
+            typeof raw === "string" ? raw : raw instanceof Blob ? await raw.text() : new TextDecoder().decode(raw);
 
           let parsed: { type: string; channelId: number; content: string };
           try {
@@ -45,34 +42,33 @@ export function createWsRoute(
           }
 
           const channelId = parsed.channelId;
-          const content = parsed.content.trim();
+          const trimmedMessage = parsed.content.trim();
 
-          if (user && content) {
-            try {
-              await db.insert(messages).values({
-                content,
-                userEmail: user.email || "unknown",
-                userName: user.name || null,
-                channelId,
-              });
-            } catch (error) {
-              console.error("Error saving message to database:", error);
-            }
+          if (!user || !trimmedMessage) {
+            return;
+          }
+
+          try {
+            await db.insert(messages).values({
+              content: trimmedMessage,
+              userEmail: user.email || "unknown",
+              userName: user.name || null,
+              channelId,
+            });
+          } catch (error) {
+            console.error("Error saving message to database:", error);
           }
 
           const outgoing = JSON.stringify({
             type: "message",
             channelId,
-            content,
-            userName: user?.name || null,
-            userEmail: user?.email || "unknown",
+            content: trimmedMessage,
+            userName: user.name || null,
+            userEmail: user.email || "unknown",
           });
 
           try {
-            const members = await db
-              .select()
-              .from(channelMembers)
-              .where(eq(channelMembers.channelId, channelId));
+            const members = await db.select().from(channelMembers).where(eq(channelMembers.channelId, channelId));
 
             const memberEmails = new Set(members.map((m) => m.userEmail));
 

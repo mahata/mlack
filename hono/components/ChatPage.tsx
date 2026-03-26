@@ -61,8 +61,12 @@ export async function ChatPage(wsUrl?: string, user?: User) {
             <h3>Create Channel</h3>
             <input type="text" id="newChannelName" placeholder="channel-name" />
             <div className="modal-actions">
-              <button type="button" id="cancelCreateChannel">Cancel</button>
-              <button type="button" id="confirmCreateChannel">Create</button>
+              <button type="button" id="cancelCreateChannel">
+                Cancel
+              </button>
+              <button type="button" id="confirmCreateChannel">
+                Create
+              </button>
             </div>
           </div>
         </div>

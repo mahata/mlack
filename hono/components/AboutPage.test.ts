@@ -13,7 +13,7 @@ describe("AboutPage component", () => {
     const jsxElement = await AboutPage();
 
     const html = jsxElement.toString();
-    
+
     // Check for all required content elements
     expect(html).toContain("About Mlack");
     expect(html).toContain("Slack-like application that&#39;s fully open source");
@@ -48,14 +48,14 @@ describe("AboutPage component", () => {
     const jsxElement = await AboutPage();
 
     const html = jsxElement.toString();
-    
+
     // Check that external links have proper security attributes
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
-    
+
     // Check for the GitHub link
     expect(html).toContain('href="https://github.com/mahata/mlack"');
-    
+
     // Check for the Copilot documentation link
     expect(html).toContain('href="https://docs.github.com/en/copilot/concepts/about-copilot-coding-agent"');
   });

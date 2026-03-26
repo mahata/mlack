@@ -2,6 +2,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import { csrf } from "hono/csrf";
+import type { MiddlewareHandler } from "hono/types";
 import type { WSContext } from "hono/ws";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { auth } from "./routes/auth.js";
@@ -15,7 +16,7 @@ import { createWsRoute } from "./routes/ws.js";
 import type { Variables } from "./types.js";
 
 type AppOptions = {
-  sessionMiddleware?: (c: any, next: () => Promise<void>) => Promise<void>;
+  sessionMiddleware?: MiddlewareHandler<{ Variables: Variables }>;
 };
 
 export function createApp(options?: AppOptions) {
@@ -60,11 +61,14 @@ export function createApp(options?: AppOptions) {
   app.route("/", health);
   app.route("/", auth);
   app.route("/", emailAuth);
-  app.route("/", testAuth);
   app.route("/", channelsRoute);
   app.route("/", messagesRoute);
   app.route("/", index);
   app.route("/", createWsRoute(upgradeWebSocket, clients));
+
+  if (process.env.NODE_ENV === "development") {
+    app.route("/", testAuth);
+  }
 
   return { app, injectWebSocket };
 }

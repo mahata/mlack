@@ -9,7 +9,11 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-if (process.env.NODE_ENV !== "test" && process.env.NODE_ENV !== "development" && (!clientId || !clientSecret || !redirectUri)) {
+if (
+  process.env.NODE_ENV !== "test" &&
+  process.env.NODE_ENV !== "development" &&
+  (!clientId || !clientSecret || !redirectUri)
+) {
   throw new Error("Google OAuth Environmental Variables are not set");
 }
 
@@ -49,15 +53,16 @@ auth.get(
   },
 );
 
-// Debug endpoint
-auth.get("/debug/session", async (c) => {
-  const session = c.get("session");
-  const user = session.get("user");
-  return c.json({
-    user,
-    hasSession: !!session,
+if (process.env.NODE_ENV === "development") {
+  auth.get("/debug/session", async (c) => {
+    const session = c.get("session");
+    const user = session.get("user");
+    return c.json({
+      user,
+      hasSession: !!session,
+    });
   });
-});
+}
 
 // Logout
 auth.post("/auth/logout", async (c) => {

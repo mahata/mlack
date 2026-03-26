@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
@@ -24,16 +24,17 @@ messagesRoute.get("/api/messages", async (c) => {
       return c.json({ error: "Invalid channelId" }, 400);
     }
 
-    const allMessages = await db
+    const latestMessages = db
       .select()
       .from(messages)
       .where(eq(messages.channelId, channelId))
       .orderBy(desc(messages.createdAt))
-      .limit(100);
+      .limit(100)
+      .as("latest_messages");
 
-    const sortedMessages = allMessages.reverse();
+    const allMessages = await db.select().from(latestMessages).orderBy(asc(latestMessages.createdAt));
 
-    return c.json({ messages: sortedMessages });
+    return c.json({ messages: allMessages });
   } catch (error) {
     console.error("Error fetching messages:", error);
     return c.json({ error: "Failed to fetch messages" }, 500);
