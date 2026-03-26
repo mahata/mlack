@@ -135,23 +135,6 @@ function renderChannelLists(): void {
   }
 }
 
-async function detectMyChannels(): Promise<void> {
-  myChannelIds = new Set();
-  for (const ch of allChannels) {
-    try {
-      const response = await fetch(`/api/channels/${ch.id}/join`, { method: "POST" });
-      if (response.ok) {
-        const body = await response.json();
-        if (body.message === "Already a member" || body.message === "Joined channel") {
-          myChannelIds.add(ch.id);
-        }
-      }
-    } catch {
-      // skip
-    }
-  }
-}
-
 async function initChannels(): Promise<void> {
   await fetchChannels();
 
