@@ -101,12 +101,8 @@ export class ChatRoom extends DurableObject<Bindings> {
     }
   }
 
-  async webSocketClose(ws: WebSocket, code: number, reason: string, _wasClean: boolean): Promise<void> {
-    try {
-      ws.close(code, reason);
-    } catch {
-      // Ignore errors if the socket is already closed
-    }
+  async webSocketClose(_ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {
+    // No action needed — the runtime has already closed the WebSocket.
   }
 
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {

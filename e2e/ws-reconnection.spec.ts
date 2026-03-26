@@ -1,5 +1,29 @@
+import type { WebSocketRoute } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { loginWithMock, TEST_ORIGIN } from "./auth-helpers";
+
+function proxyWebSocket(ws: WebSocketRoute): WebSocketRoute {
+  const server = ws.connectToServer();
+
+  ws.onMessage((message) => {
+    server.send(message);
+  });
+
+  server.onMessage((message) => {
+    ws.send(message);
+  });
+
+  server.onClose((code, reason) => {
+    ws.close({ code, reason });
+  });
+
+  return ws;
+}
+
+function closeWebSocketRoute(route: WebSocketRoute | null): void {
+  expect(route).not.toBeNull();
+  (route as WebSocketRoute).close({ code: 1000, reason: "test disconnect" });
+}
 
 test.describe("WebSocket Reconnection", () => {
   test.beforeEach(async ({ page }) => {
@@ -16,26 +40,10 @@ test.describe("WebSocket Reconnection", () => {
   });
 
   test("reconnects automatically after WebSocket is closed", async ({ page }) => {
-    // Patch WebSocket before the page loads so we can track all instances
-    await page.addInitScript(() => {
-      const sockets: WebSocket[] = [];
-      const OriginalWebSocket = window.WebSocket;
+    let activeWsRoute: WebSocketRoute | null = null;
 
-      window.WebSocket = new Proxy(OriginalWebSocket, {
-        construct(target, args) {
-          const instance = new target(...(args as [string, string?]));
-          sockets.push(instance);
-          return instance;
-        },
-      });
-
-      (window as unknown as { __testCloseAllWebSockets: () => void }).__testCloseAllWebSockets = () => {
-        for (const s of sockets) {
-          if (s.readyState === WebSocket.OPEN || s.readyState === WebSocket.CONNECTING) {
-            s.close();
-          }
-        }
-      };
+    await page.routeWebSocket(/\/ws/, (ws) => {
+      activeWsRoute = proxyWebSocket(ws);
     });
 
     await page.goto("/");
@@ -44,10 +52,8 @@ test.describe("WebSocket Reconnection", () => {
     await expect(page.locator("#status")).toContainText("Connected", { timeout: 10000 });
     await expect(page.locator("#messageInput")).toBeEnabled();
 
-    // Force close all WebSocket connections
-    await page.evaluate(() => {
-      (window as unknown as { __testCloseAllWebSockets: () => void }).__testCloseAllWebSockets();
-    });
+    // Force close the WebSocket connection via Playwright's network layer
+    closeWebSocketRoute(activeWsRoute);
 
     // Verify the UI shows a reconnecting state
     await expect(page.locator("#status")).toContainText("Reconnecting", { timeout: 5000 });
@@ -61,34 +67,17 @@ test.describe("WebSocket Reconnection", () => {
   });
 
   test("can send messages after reconnection", async ({ page }) => {
-    await page.addInitScript(() => {
-      const sockets: WebSocket[] = [];
-      const OriginalWebSocket = window.WebSocket;
+    let activeWsRoute: WebSocketRoute | null = null;
 
-      window.WebSocket = new Proxy(OriginalWebSocket, {
-        construct(target, args) {
-          const instance = new target(...(args as [string, string?]));
-          sockets.push(instance);
-          return instance;
-        },
-      });
-
-      (window as unknown as { __testCloseAllWebSockets: () => void }).__testCloseAllWebSockets = () => {
-        for (const s of sockets) {
-          if (s.readyState === WebSocket.OPEN || s.readyState === WebSocket.CONNECTING) {
-            s.close();
-          }
-        }
-      };
+    await page.routeWebSocket(/\/ws/, (ws) => {
+      activeWsRoute = proxyWebSocket(ws);
     });
 
     await page.goto("/");
     await expect(page.locator("#status")).toContainText("Connected", { timeout: 10000 });
 
     // Close WebSocket and wait for reconnection
-    await page.evaluate(() => {
-      (window as unknown as { __testCloseAllWebSockets: () => void }).__testCloseAllWebSockets();
-    });
+    closeWebSocketRoute(activeWsRoute);
     await expect(page.locator("#status")).toContainText("Connected", { timeout: 15000 });
 
     // Send a message after reconnection
