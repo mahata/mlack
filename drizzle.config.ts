@@ -1,5 +1,5 @@
 import { defineConfig } from "drizzle-kit";
-import { dbCredentials } from "./hono/db/config.js";
+import { dbCredentials } from "./hono/db/config.ts";
 
 export default defineConfig({
   schema: "./hono/db/schema.ts",
