@@ -40,15 +40,15 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.6",
-    "@playwright/test": "^1.53.2",
-    "@types/node": "^24.0.10",
+    "@biomejs/biome": "^2.4.9",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.12.0",
     "@types/pg": "^8.15.4",
     "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.0",
-    "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
 }
