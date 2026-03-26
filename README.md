@@ -2,19 +2,18 @@
 
 ![CI](https://github.com/mahata/mlack/workflows/CI/badge.svg)
 
-It's an experiment to create a slack-like app just by vibe coding with GitHub Copilot.
+A real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare Workers.
 
 ## Features
 
-- **Real-time Chat**: WebSocket-powered chat interface with instant messaging
-- **Persistent Message Storage**: Messages are stored in PostgreSQL database and persist across sessions
-- **Root Page**: Interactive web interface with "Hello, world!" message and chat functionality
-- **WebSocket Support**: `/ws` endpoint using `@hono/node-ws` for real-time communication
-- **Message Broadcasting**: Messages are broadcasted to all connected clients in real-time
-- **Message History**: Previous messages are loaded automatically when joining the chat
-- **Health Check Endpoint**: A `/health` endpoint built with Hono framework that returns service status
-- **TypeScript**: Full TypeScript support with strict type checking
-- **Testing**: Comprehensive test suite using Vitest
+- **Real-time Chat**: WebSocket-powered chat with instant messaging via Cloudflare Durable Objects
+- **Channels**: Create, join, and leave channels. Messages are scoped to channels
+- **Persistent Storage**: Messages stored in Cloudflare D1 (SQLite) and persist across sessions
+- **Authentication**: Google OAuth and email/password registration
+- **WebSocket Hibernation**: Cost-efficient WebSocket management that hibernates idle connections
+- **Health Check Endpoint**: `/health` endpoint for monitoring
+- **TypeScript**: Full TypeScript with strict type checking
+- **Testing**: Unit tests (Vitest) and E2E tests (Playwright)
 - **Linting**: Biome for code quality and formatting
 
 ## Getting Started
@@ -22,94 +21,64 @@ It's an experiment to create a slack-like app just by vibe coding with GitHub Co
 ### Prerequisites
 
 - Node.js (v22 or higher)
-- pnpm (package manager)
-- PostgreSQL database (local or remote)
+- pnpm (v10.12.4)
 
 ### Installation
 
 ```bash
-# Install dependencies
 pnpm install
 ```
 
 ### Environment Configuration
 
-The application uses environment variables for configuration. Create a `.env` file in the project root for local development:
+Wrangler dev reads secrets from `.dev.vars`. Copy the sample file and fill in your values:
 
 ```bash
-# Copy the sample environment file
-cp .env.sample .env
-
-# Edit .env with your desired values
-# Example:
-# PORT=3001
+cp .env.sample .dev.vars
 ```
 
-Available environment variables:
+Required variables in `.dev.vars`:
 
-- `PORT`: Server port (default: 3000)
-- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Your Google OAuth credentials
 - `SESSION_SECRET`: A secure secret for session encryption
-- Database settings: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
-
-If no `.env` file exists, the application will use system environment variables or fall back to defaults.
+- `GOOGLE_ID`: Google OAuth client ID
+- `GOOGLE_SECRET`: Google OAuth client secret
+- `GOOGLE_REDIRECT_URI`: Google OAuth redirect URI (e.g. `http://localhost:8787/auth/google`)
+- `E2E_GMAIL_ACCOUNT`: Gmail account for E2E testing
 
 ### Database Setup
 
-#### Option 1: Using Docker Compose (Recommended for Development)
-
-Start a PostgreSQL container using Docker Compose:
+mlack uses Cloudflare D1 (SQLite) via Drizzle ORM. For local development, wrangler manages a local D1 instance automatically.
 
 ```bash
-docker compose up -d
-```
-
-When started via Docker Compose, PostgreSQL is exposed on the host as `localhost:5437`. Configure your database client (or set `POSTGRES_PORT=5437` in your environment) to connect using that port instead of the default `5432`.
-
-Stop the container:
-
-```bash
-docker compose down
-```
-
-To stop and delete all data:
-
-```bash
-docker compose down -v
-```
-
-#### Option 2: Using Local PostgreSQL
-
-Install PostgreSQL locally and create a database. Update your `.env` file with the appropriate connection details.
-
-#### Running Database Migrations
-
-After setting up PostgreSQL, run the database migrations:
-
-```bash
-# Generate migration files (if schema changes)
-pnpm db:generate
-
-# Apply migrations to database
+# Apply migrations to local D1
 pnpm db:migrate
 
-# Optional: Open Drizzle Studio to view/edit data
+# Seed the #general channel
+pnpm db:seed
+
+# Generate new migration files after schema changes
+pnpm db:generate
+
+# Open Drizzle Studio to view/edit data
 pnpm db:studio
 ```
 
 ### Development
 
 ```bash
-# Start development server
+# Start development server (wrangler dev)
 pnpm dev
 
 # Build the project
 pnpm build
 
-# Run tests
+# Type-check only (no emit)
+pnpm build:check
+
+# Run unit tests in watch mode
 pnpm test
 
-# Run tests once
+# Run unit tests once
 pnpm test:run
 
 # Run E2E tests
@@ -118,145 +87,165 @@ pnpm test:e2e
 # Lint code
 pnpm lint
 
-# Lint and fix code
+# Lint and auto-fix
 pnpm lint:fix
 ```
 
-### API Endpoints
+## Deploying to Cloudflare
 
-#### GET /
+### First-time Setup
 
-Root page that displays the chat interface with:
+1. **Authenticate with Cloudflare**:
 
-- "Hello, world!" message
-- Real-time chat functionality
-- Message input and send button
-- WebSocket connection status
+   ```bash
+   npx wrangler login
+   ```
 
-#### GET /health
+2. **Create the D1 database**:
 
-Health check endpoint that returns the service status.
+   ```bash
+   npx wrangler d1 create mlack-db
+   ```
 
-**Response:**
+   Copy the `database_id` from the output and update `wrangler.toml`:
 
-```json
-{
-  "status": "ok",
-  "message": "Service is running"
-}
-```
+   ```toml
+   [[d1_databases]]
+   binding = "DB"
+   database_name = "mlack-db"
+   database_id = "<YOUR_DATABASE_ID>"
+   ```
 
-**Example:**
+3. **Apply migrations to the remote database**:
+
+   ```bash
+   pnpm db:migrate:prod
+   ```
+
+4. **Seed the remote database**:
+
+   ```bash
+   pnpm db:seed:prod
+   ```
+
+5. **Set production secrets**:
+
+   ```bash
+   npx wrangler secret put SESSION_SECRET
+   npx wrangler secret put GOOGLE_ID
+   npx wrangler secret put GOOGLE_SECRET
+   npx wrangler secret put GOOGLE_REDIRECT_URI
+   ```
+
+   For `GOOGLE_REDIRECT_URI`, use your production URL (e.g. `https://mlack.<your-subdomain>.workers.dev/auth/google`). Make sure this URL is also registered in the Google Cloud Console.
+
+6. **Deploy**:
+
+   ```bash
+   pnpm deploy
+   ```
+
+### Subsequent Deployments
+
+After the initial setup, deploy with:
 
 ```bash
-curl http://localhost:3000/health
+pnpm deploy
 ```
 
-#### GET /api/messages
-
-API endpoint for retrieving chat message history (requires authentication):
-
-**Response:**
-
-```json
-{
-  "messages": [
-    {
-      "id": 1,
-      "content": "Hello, world!",
-      "userEmail": "user@example.com",
-      "userName": "John Doe",
-      "createdAt": "2023-12-01T10:00:00Z"
-    }
-  ]
-}
-```
-
-**Example:**
+If you've added new database migrations, apply them before deploying:
 
 ```bash
-curl http://localhost:3000/api/messages \
-  -H "Cookie: session=your_session_cookie"
-```
-
-#### WebSocket /ws
-
-WebSocket endpoint for real-time messaging:
-
-- Accepts WebSocket connections
-- Broadcasts messages to all connected clients
-- Supports text message communication
-- Messages are automatically saved to database
-
-**Example:**
-
-```javascript
-const ws = new WebSocket('ws://localhost:3000/ws');
-ws.onmessage = (event) => console.log('Received:', event.data);
-ws.send('Hello, world!');
+pnpm db:migrate:prod
 ```
 
 ## Project Structure
 
 ```
 mlack/
-├── e2e/            # Playwright E2E tests
-├── hono/           # Hono application
-│   ├── app.ts      # Main application setup
-│   ├── app.test.ts # Application tests
-│   └── index.ts    # Server entry point
-├── .env.sample     # Sample environment configuration
-├── package.json    # Project dependencies and scripts
-├── playwright.config.ts # Playwright configuration
-├── tsconfig.json   # TypeScript configuration
-├── vitest.config.ts # Vitest configuration
-└── biome.json      # Biome configuration
+├── e2e/                    # Playwright E2E tests
+├── hono/                   # Application source
+│   ├── auth/               # Password hashing utilities
+│   ├── components/         # Server-rendered JSX pages + CSS
+│   ├── db/                 # Drizzle schema, connection, migrations
+│   ├── durableObjects/     # Cloudflare Durable Objects
+│   │   └── ChatRoom.ts     # WebSocket server with hibernation
+│   ├── routes/             # Route handlers
+│   ├── static/             # Client-side TypeScript
+│   ├── app.tsx             # App factory, middleware, route registration
+│   ├── index.ts            # Entry point (exports app + Durable Objects)
+│   ├── testApp.ts          # Test helper with mock session
+│   └── types.ts            # Shared types (User, Bindings, Variables)
+├── wrangler.toml           # Cloudflare Workers configuration
+├── package.json            # Dependencies and scripts
+├── playwright.config.ts    # Playwright configuration
+├── tsconfig.json           # TypeScript configuration
+├── vitest.config.ts        # Vitest configuration
+└── biome.json              # Biome linter/formatter configuration
 ```
 
 ## Technology Stack
 
-- **Framework**: [Hono](https://hono.dev/) - Ultra-fast web framework
-- **WebSocket**: [@hono/node-ws](https://github.com/honojs/middleware/tree/main/packages/node-ws) - WebSocket support for Node.js
-- **Database**: PostgreSQL with [Drizzle ORM](https://orm.drizzle.team/) - Type-safe SQL database toolkit
-- **Migration**: [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview) - Database schema management and migrations
-- **Runtime**: Node.js with [@hono/node-server](https://github.com/honojs/node-server)
+- **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- **Framework**: [Hono](https://hono.dev/)
+- **WebSocket**: [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/) with WebSocket Hibernation API
+- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) with [Drizzle ORM](https://orm.drizzle.team/)
 - **Language**: TypeScript
-- **Environment**: [dotenv](https://github.com/motdotla/dotenv) - Environment variable management
-- **Testing**: Vitest for unit tests, Playwright for E2E tests
-- **Linting**: Biome for code quality and formatting
+- **Testing**: [Vitest](https://vitest.dev/) for unit tests, [Playwright](https://playwright.dev/) for E2E tests
+- **Linting**: [Biome](https://biomejs.dev/)
 - **Package Manager**: pnpm
+
+## API Endpoints
+
+### GET /
+
+Chat interface. Redirects to `/auth/login` if not authenticated.
+
+### GET /health
+
+Health check endpoint.
+
+```json
+{ "status": "ok", "message": "Service is running" }
+```
+
+### GET /api/messages?channelId=1
+
+Retrieve message history for a channel (requires authentication).
+
+### GET /api/channels
+
+List all channels (requires authentication).
+
+### POST /api/channels
+
+Create a new channel (requires authentication).
+
+### POST /api/channels/:id/join
+
+Join a channel (requires authentication).
+
+### POST /api/channels/:id/leave
+
+Leave a channel (requires authentication).
+
+### WebSocket /ws
+
+Real-time messaging endpoint. Requires an authenticated session. Messages are routed through a Cloudflare Durable Object for reliable broadcasting across all connected clients.
 
 ## Testing
 
-The project includes both unit tests and end-to-end (E2E) tests:
-
 ### Unit Tests
 
-Unit tests are powered by [Vitest](https://vitest.dev/) and test individual components and functions:
-
 ```bash
-# Run unit tests in watch mode
-pnpm test
-
-# Run unit tests once
-pnpm test:run
+pnpm test        # Watch mode
+pnpm test:run    # Single run
 ```
 
 ### E2E Tests
 
-E2E tests use [Playwright](https://playwright.dev/) to test the complete application flow:
-
 ```bash
-# Run E2E tests
 pnpm test:e2e
 ```
 
-The E2E tests verify:
-
-- The application renders correctly
-- "Hello, world!" message is displayed
-- Chat interface elements are present and functional
-- Real-time WebSocket connectivity
-- Message persistence in database across page refreshes
-
-Test artifacts (screenshots, traces) are automatically saved on failure for debugging.
+E2E tests verify the full application flow including authentication, chat interface rendering, real-time WebSocket messaging, and message persistence.

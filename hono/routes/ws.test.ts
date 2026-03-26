@@ -1,60 +1,68 @@
-import type { Context } from "hono";
-import type { UpgradeWebSocket, WSContext } from "hono/ws";
+import { Hono } from "hono";
+import type { Session } from "hono-sessions";
 import { describe, expect, it, vi } from "vitest";
+import type { Bindings, User, Variables } from "../types.js";
 import { createWsRoute } from "./ws.js";
 
-vi.mock("../db/index.js", () => ({
-  getDb: () => ({
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockResolvedValue({}),
-    }),
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    }),
-  }),
-  messages: {},
-  channelMembers: { channelId: "channel_id" },
-}));
+const WS_UPGRADE_HEADERS = { Upgrade: "websocket", Connection: "Upgrade" };
+
+function createWsApp(options?: { user?: User | null }) {
+  const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+  const mockGetByName = vi.fn().mockReturnValue({ fetch: mockFetch });
+  const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+  app.use("*", async (c, next) => {
+    const mockSession = {
+      get: vi.fn().mockReturnValue(options?.user ?? null),
+      set: vi.fn(),
+      deleteSession: vi.fn(),
+    } as unknown as Session;
+    c.set("session", mockSession);
+    if (!c.env) {
+      // biome-ignore lint/suspicious/noExplicitAny: test mock for Workers bindings
+      (c as any).env = {};
+    }
+    c.env.CHAT_ROOM = { getByName: mockGetByName } as unknown as DurableObjectNamespace;
+    await next();
+  });
+
+  app.route("/", createWsRoute());
+  return { app, mockGetByName, mockFetch };
+}
 
 describe("WebSocket endpoint", () => {
-  it("should create WebSocket route with proper handlers", () => {
-    const mockUpgradeWebSocket = vi.fn((handler) => {
-      const mockContext = {
-        get: vi.fn((key: string) => {
-          if (key === "session") {
-            return {
-              get: vi.fn().mockReturnValue({ email: "test@example.com", name: "Test User" }),
-            };
-          }
-          return undefined;
-        }),
-        env: { DB: {} },
-      } as unknown as Context;
-
-      return () => handler(mockContext);
-    }) as unknown as UpgradeWebSocket;
-
-    const clients = new Map<WSContext, { userEmail: string }>();
-
-    const wsRoute = createWsRoute(mockUpgradeWebSocket, clients);
+  it("should create WebSocket route", () => {
+    const wsRoute = createWsRoute();
 
     expect(wsRoute).toBeDefined();
     expect(typeof wsRoute.request).toBe("function");
   });
 
-  it("should provide WebSocket endpoint route", async () => {
-    const mockUpgradeWebSocket = vi.fn(() => {
-      return (_c: Context) => {
-        return new Response("Upgrade Required", { status: 426 });
-      };
-    }) as unknown as UpgradeWebSocket;
+  it("should return 426 for non-WebSocket requests", async () => {
+    const { app } = createWsApp();
 
-    const clients = new Map<WSContext, { userEmail: string }>();
-    const wsRoute = createWsRoute(mockUpgradeWebSocket, clients);
+    const response = await app.request("/ws");
+    expect(response.status).toBe(426);
+  });
 
-    const response = await wsRoute.request("/ws");
-    expect(response.status).toBeGreaterThanOrEqual(400);
+  it("should return 401 for unauthenticated WebSocket upgrade requests", async () => {
+    const { app } = createWsApp({ user: null });
+
+    const response = await app.request("/ws", { headers: WS_UPGRADE_HEADERS });
+    expect(response.status).toBe(401);
+  });
+
+  it("should forward authenticated WebSocket upgrades to CHAT_ROOM with user identity", async () => {
+    const user: User = { email: "test@example.com", name: "Test User", picture: "pic.jpg" };
+    const { app, mockGetByName, mockFetch } = createWsApp({ user });
+
+    const response = await app.request("/ws", { headers: WS_UPGRADE_HEADERS });
+
+    expect(response.status).toBe(200);
+    expect(mockGetByName).toHaveBeenCalledWith("main");
+    const forwardedRequest = mockFetch.mock.calls[0][0] as Request;
+    const forwardedUrl = new URL(forwardedRequest.url);
+    expect(forwardedUrl.searchParams.get("userEmail")).toBe("test@example.com");
+    expect(forwardedUrl.searchParams.get("userName")).toBe("Test User");
   });
 });

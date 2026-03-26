@@ -21,6 +21,9 @@ export function createTestApp(options?: {
     if (!c.env.DB) {
       c.env.DB = {} as D1Database;
     }
+    if (!c.env.CHAT_ROOM) {
+      c.env.CHAT_ROOM = {} as DurableObjectNamespace;
+    }
     if (!c.env.NODE_ENV) {
       c.env.NODE_ENV = "test";
     }
