@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
