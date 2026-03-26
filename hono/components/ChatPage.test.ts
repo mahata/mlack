@@ -24,8 +24,8 @@ describe("ChatPage component", () => {
 
     // Convert JSX to string to test content
     const html = jsxElement.toString();
-    // Should contain the new CSS class names
-    expect(html).toContain('class="chat-container"');
+    // Should contain the CSS class names
+    expect(html).toContain('class="app-layout"');
     expect(html).toContain('class="status disconnected"');
     expect(html).toContain('class="input-container"');
     // Should not contain generated CSS class names (they start with 'css-')
@@ -38,6 +38,13 @@ describe("ChatPage component", () => {
     // Convert JSX to string to test content
     const html = jsxElement.toString();
     expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
+  });
+
+  it("should include Hello, world! heading", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain("<h1>Hello, world!</h1>");
   });
 
   it("should include custom WebSocket URL when provided", async () => {

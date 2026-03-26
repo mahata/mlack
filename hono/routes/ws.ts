@@ -1,10 +1,13 @@
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
 import { WebSocket } from "ws";
-import { db, messages } from "../db/index.js";
+import { channelMembers, db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
 
-export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<WSContext>) {
+type WsClientInfo = { userEmail: string };
+
+export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<WSContext, WsClientInfo>) {
   const ws = new Hono<{ Variables: Variables }>();
 
   ws.get(
@@ -19,18 +22,27 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
             ws.close(1008, "Unauthorized");
             return;
           }
-          clients.add(ws);
+          clients.set(ws, { userEmail: user.email || "unknown" });
         },
         onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
-          const message = evt.data;
+          const raw = evt.data;
 
-          const messageStr =
-            typeof message === "string"
-              ? message
-              : message instanceof Blob
-                ? await message.text()
-                : new TextDecoder().decode(message);
-          const trimmedMessage = messageStr.trim();
+          const rawStr =
+            typeof raw === "string" ? raw : raw instanceof Blob ? await raw.text() : new TextDecoder().decode(raw);
+
+          let parsed: { type: string; channelId: number; content: string };
+          try {
+            parsed = JSON.parse(rawStr);
+          } catch {
+            return;
+          }
+
+          if (parsed.type !== "message" || !parsed.channelId || !parsed.content?.trim()) {
+            return;
+          }
+
+          const channelId = parsed.channelId;
+          const trimmedMessage = parsed.content.trim();
 
           if (!user || !trimmedMessage) {
             return;
@@ -41,18 +53,33 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Set<W
               content: trimmedMessage,
               userEmail: user.email || "unknown",
               userName: user.name || null,
+              channelId,
             });
           } catch (error) {
             console.error("Error saving message to database:", error);
           }
 
-          const formattedMessage = `${user.name || user.email}: ${trimmedMessage}`;
-
-          clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(formattedMessage);
-            }
+          const outgoing = JSON.stringify({
+            type: "message",
+            channelId,
+            content: trimmedMessage,
+            userName: user.name || null,
+            userEmail: user.email || "unknown",
           });
+
+          try {
+            const members = await db.select().from(channelMembers).where(eq(channelMembers.channelId, channelId));
+
+            const memberEmails = new Set(members.map((m) => m.userEmail));
+
+            clients.forEach((info, client) => {
+              if (client.readyState === WebSocket.OPEN && memberEmails.has(info.userEmail)) {
+                client.send(outgoing);
+              }
+            });
+          } catch (error) {
+            console.error("Error broadcasting message:", error);
+          }
         },
         onClose: (_evt: CloseEvent, ws: WSContext) => {
           clients.delete(ws);
