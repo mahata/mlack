@@ -1,9 +1,10 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
-import { WebSocket } from "ws";
 import { channelMembers, db, messages } from "../db/index.js";
 import type { User, Variables } from "../types.js";
+
+const WS_OPEN = 1;
 
 type WsClientInfo = { userEmail: string };
 
@@ -22,7 +23,7 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
             ws.close(1008, "Unauthorized");
             return;
           }
-          clients.set(ws, { userEmail: user.email || "unknown" });
+          clients.set(ws, { userEmail: user.email });
         },
         onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
           const raw = evt.data;
@@ -51,8 +52,8 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
           try {
             await db.insert(messages).values({
               content: trimmedMessage,
-              userEmail: user.email || "unknown",
-              userName: user.name || null,
+              userEmail: user.email,
+              userName: user.name,
               channelId,
             });
           } catch (error) {
@@ -63,8 +64,8 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
             type: "message",
             channelId,
             content: trimmedMessage,
-            userName: user.name || null,
-            userEmail: user.email || "unknown",
+            userName: user.name,
+            userEmail: user.email,
           });
 
           try {
@@ -73,7 +74,7 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
             const memberEmails = new Set(members.map((m) => m.userEmail));
 
             clients.forEach((info, client) => {
-              if (client.readyState === WebSocket.OPEN && memberEmails.has(info.userEmail)) {
+              if (client.readyState === WS_OPEN && memberEmails.has(info.userEmail)) {
                 client.send(outgoing);
               }
             });

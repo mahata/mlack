@@ -27,14 +27,12 @@ index.get("/", async (c) => {
       const existingMembership = await db
         .select()
         .from(channelMembers)
-        .where(
-          and(eq(channelMembers.channelId, generalChannel.id), eq(channelMembers.userEmail, user.email || "unknown")),
-        );
+        .where(and(eq(channelMembers.channelId, generalChannel.id), eq(channelMembers.userEmail, user.email)));
 
       if (existingMembership.length === 0) {
         await db.insert(channelMembers).values({
           channelId: generalChannel.id,
-          userEmail: user.email || "unknown",
+          userEmail: user.email,
         });
       }
     }

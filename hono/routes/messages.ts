@@ -1,19 +1,13 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
+import { requireUser } from "../auth/requireUser.js";
 import { db, messages } from "../db/index.js";
-import type { User, Variables } from "../types.js";
+import type { Variables } from "../types.js";
 
 const messagesRoute = new Hono<{ Variables: Variables }>();
 
-messagesRoute.get("/api/messages", async (c) => {
+messagesRoute.get("/api/messages", requireUser, async (c) => {
   try {
-    const session = c.get("session");
-    const user = session.get("user") as User | undefined;
-
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
     const channelIdParam = c.req.query("channelId");
     if (!channelIdParam) {
       return c.json({ error: "channelId query parameter is required" }, 400);
@@ -24,17 +18,14 @@ messagesRoute.get("/api/messages", async (c) => {
       return c.json({ error: "Invalid channelId" }, 400);
     }
 
-    const latestMessages = db
+    const latestMessages = await db
       .select()
       .from(messages)
       .where(eq(messages.channelId, channelId))
       .orderBy(desc(messages.createdAt))
-      .limit(100)
-      .as("latest_messages");
+      .limit(100);
 
-    const allMessages = await db.select().from(latestMessages).orderBy(asc(latestMessages.createdAt));
-
-    return c.json({ messages: allMessages });
+    return c.json({ messages: latestMessages.reverse() });
   } catch (error) {
     console.error("Error fetching messages:", error);
     return c.json({ error: "Failed to fetch messages" }, 500);
