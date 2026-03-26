@@ -10,10 +10,7 @@ export async function ChatPage(wsUrl?: string, user?: User) {
         <link rel="stylesheet" href="/components/ChatPage.css" />
       </head>
       <body>
-        <div
-          className="chat-container"
-          data-ws-url={wsUrl || "ws://localhost:3000/ws"}
-        >
+        <div className="chat-container" data-ws-url={wsUrl || "ws://localhost:3000/ws"}>
           {user && (
             <div className="user-info">
               {user.picture && <img src={user.picture} alt="Profile" className="profile-picture" />}

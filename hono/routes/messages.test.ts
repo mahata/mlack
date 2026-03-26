@@ -4,10 +4,20 @@ import { createTestApp } from "../testApp.js";
 // Mock the database module
 vi.mock("../db/index.js", () => ({
   db: {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([
+    select: vi
+      .fn()
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              as: vi.fn().mockReturnValue({ createdAt: Symbol("createdAt") }),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue([
             {
               id: 1,
               content: "Test message",
@@ -18,7 +28,6 @@ vi.mock("../db/index.js", () => ({
           ]),
         }),
       }),
-    }),
   },
   messages: {},
 }));
@@ -31,7 +40,7 @@ describe("Messages API endpoint", () => {
 
     const response = await app.request("/api/messages");
     expect(response.status).toBe(200);
-    
+
     const body = await response.json();
     expect(body).toHaveProperty("messages");
     expect(Array.isArray(body.messages)).toBe(true);
@@ -44,7 +53,7 @@ describe("Messages API endpoint", () => {
 
     const response = await app.request("/api/messages");
     expect(response.status).toBe(401);
-    
+
     const body = await response.json();
     expect(body).toHaveProperty("error", "Unauthorized");
   });

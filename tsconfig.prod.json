@@ -3,13 +3,16 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "./dist",
+    "rootDir": "./hono",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "allowImportingTsExtensions": false,
     "moduleResolution": "node",
+    "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
   },
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
+  "include": ["hono/**/*.ts", "hono/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "hono/static/**/*.ts", "hono/testApp.ts", "**/*.test.ts", "**/*.test.tsx"]
 }

@@ -28,7 +28,7 @@ describe("WebSocket endpoint", () => {
           return undefined;
         }),
       } as unknown as Context;
-      
+
       // Return a mock handler that can be called
       return () => handler(mockContext);
     }) as unknown as UpgradeWebSocket;
