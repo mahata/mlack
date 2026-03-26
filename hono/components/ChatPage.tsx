@@ -41,6 +41,7 @@ export async function ChatPage(wsUrl?: string, user?: User) {
 
           <main className="chat-main">
             <div className="chat-header">
+              <h1>Hello, world!</h1>
               <h2 id="channelName">#general</h2>
             </div>
             <div id="status" className="status disconnected">
