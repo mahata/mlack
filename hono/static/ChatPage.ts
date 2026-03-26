@@ -289,7 +289,11 @@ function scheduleReconnect(): void {
 }
 
 function reconnectNow(): void {
-  if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+  if (
+    ws.readyState === WebSocket.OPEN ||
+    ws.readyState === WebSocket.CONNECTING ||
+    ws.readyState === WebSocket.CLOSING
+  ) {
     return;
   }
   cancelScheduledReconnect();
@@ -298,9 +302,11 @@ function reconnectNow(): void {
 }
 
 function connect(): void {
-  ws = new WebSocket(wsUrl);
+  const socket = new WebSocket(wsUrl);
+  ws = socket;
 
-  ws.onopen = (_event: Event) => {
+  socket.onopen = (_event: Event) => {
+    if (ws !== socket) return;
     console.log("Connected to WebSocket");
     reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
     statusDiv.textContent = "Connected";
@@ -309,7 +315,8 @@ function connect(): void {
     sendButton.disabled = false;
   };
 
-  ws.onmessage = (event: MessageEvent) => {
+  socket.onmessage = (event: MessageEvent) => {
+    if (ws !== socket) return;
     try {
       const data = JSON.parse(event.data as string);
       if (data.type === "message" && data.channelId === activeChannelId) {
@@ -321,7 +328,8 @@ function connect(): void {
     }
   };
 
-  ws.onclose = (event: CloseEvent) => {
+  socket.onclose = (event: CloseEvent) => {
+    if (ws !== socket) return;
     console.log("Disconnected from WebSocket");
     messageInput.disabled = true;
     sendButton.disabled = true;
@@ -335,7 +343,8 @@ function connect(): void {
     scheduleReconnect();
   };
 
-  ws.onerror = (error: Event) => {
+  socket.onerror = (error: Event) => {
+    if (ws !== socket) return;
     console.error("WebSocket error:", error);
   };
 }
