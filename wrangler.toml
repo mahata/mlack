@@ -22,4 +22,7 @@ tag = "v1"
 new_sqlite_classes = ["ChatRoom"]
 
 [vars]
+NODE_ENV = "development"
+
+[env.production.vars]
 NODE_ENV = "production"
