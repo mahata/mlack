@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createWsRoute } from "./ws.js";
 
 vi.mock("../db/index.js", () => ({
-  db: {
+  getDb: () => ({
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockResolvedValue({}),
     }),
@@ -13,7 +13,7 @@ vi.mock("../db/index.js", () => ({
         where: vi.fn().mockResolvedValue([]),
       }),
     }),
-  },
+  }),
   messages: {},
   channelMembers: { channelId: "channel_id" },
 }));
@@ -30,6 +30,7 @@ describe("WebSocket endpoint", () => {
           }
           return undefined;
         }),
+        env: { DB: {} },
       } as unknown as Context;
 
       return () => handler(mockContext);

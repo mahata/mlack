@@ -1,10 +1,10 @@
 import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
-import { db, messages } from "../db/index.js";
-import type { Variables } from "../types.js";
+import { getDb, messages } from "../db/index.js";
+import type { Bindings, Variables } from "../types.js";
 
-const messagesRoute = new Hono<{ Variables: Variables }>();
+const messagesRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 messagesRoute.get("/api/messages", requireUser, async (c) => {
   try {
@@ -18,6 +18,7 @@ messagesRoute.get("/api/messages", requireUser, async (c) => {
       return c.json({ error: "Invalid channelId" }, 400);
     }
 
+    const db = getDb(c.env.DB);
     const latestMessages = await db
       .select()
       .from(messages)

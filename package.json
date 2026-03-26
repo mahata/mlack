@@ -5,20 +5,20 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "pnpm run build:client:watch & tsx watch hono/index.ts",
-    "build": "rm -rf dist && pnpm run build:client && tsc --project tsconfig.prod.json",
+    "dev": "pnpm run build:assets && wrangler dev",
+    "build": "rm -rf dist public && pnpm run build:client && pnpm run build:assets && tsc --project tsconfig.prod.json",
     "build:client": "tsc --project tsconfig.client.json",
     "build:client:watch": "tsc --project tsconfig.client.json --watch",
+    "build:assets": "mkdir -p public/components public/static && cp hono/components/*.css public/components/ && cp hono/static/*.js hono/static/*.js.map public/static/",
     "build:check": "tsc --noEmit",
-    "start": "tsx hono/index.ts",
-    "start:prod": "node dist/index.js",
     "test": "vitest",
     "test:run": "vitest run --logHeapUsage",
     "test:e2e": "playwright test",
     "lint": "biome check --verbose .",
     "lint:fix": "biome check --verbose --write .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "wrangler d1 migrations apply mlack-db --local",
+    "db:seed": "wrangler d1 execute mlack-db --local --file=hono/db/seed.sql",
     "db:studio": "drizzle-kit studio"
   },
   "keywords": [
@@ -30,25 +30,20 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
   "dependencies": {
-    "@hono/node-server": "^1.19.11",
-    "@hono/node-ws": "^1.3.0",
     "@hono/oauth-providers": "^0.8.5",
-    "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.0",
     "hono": "^4.12.9",
-    "hono-sessions": "^0.8.1",
-    "pg": "^8.20.0",
-    "ws": "^8.20.0"
+    "hono-sessions": "^0.8.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.9",
+    "@cloudflare/workers-types": "^4.20260317.1",
     "@playwright/test": "^1.58.2",
     "@types/node": "^24.12.0",
-    "@types/pg": "^8.20.0",
-    "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.77.0"
   }
 }

@@ -59,9 +59,11 @@ async function loadMessagesForChannel(channelId: number): Promise<void> {
   try {
     const response = await fetch(`/api/messages?channelId=${channelId}`, { signal: controller.signal });
     if (response.ok) {
-      const data = await response.json();
+      const data = (await response.json()) as {
+        messages?: { content: string; userEmail: string; userName?: string }[];
+      };
       if (data.messages) {
-        data.messages.forEach((msg: { content: string; userEmail: string; userName?: string }) => {
+        data.messages.forEach((msg) => {
           const formattedMessage = `${msg.userName || msg.userEmail}: ${msg.content}`;
           displayMessage(formattedMessage);
         });
@@ -86,7 +88,7 @@ async function fetchChannels(): Promise<void> {
   try {
     const response = await fetch("/api/channels");
     if (response.ok) {
-      const data = await response.json();
+      const data = (await response.json()) as { channels?: Channel[] };
       allChannels = data.channels || [];
     }
   } catch (error) {
@@ -224,14 +226,14 @@ async function createChannel(name: string): Promise<void> {
       body: JSON.stringify({ name }),
     });
     if (response.ok) {
-      const data = await response.json();
+      const data = (await response.json()) as { channel: Channel };
       const newChannel: Channel = data.channel;
       allChannels.push(newChannel);
       myChannelIds.add(newChannel.id);
       renderChannelLists();
       await switchChannel(newChannel.id, newChannel.name);
     } else {
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string };
       alert(data.error || "Failed to create channel");
     }
   } catch (error) {
@@ -318,7 +320,13 @@ function connect(): void {
   socket.onmessage = (event: MessageEvent) => {
     if (ws !== socket) return;
     try {
-      const data = JSON.parse(event.data as string);
+      const data = JSON.parse(event.data as string) as {
+        type: string;
+        channelId: number;
+        userName?: string;
+        userEmail: string;
+        content: string;
+      };
       if (data.type === "message" && data.channelId === activeChannelId) {
         const formattedMessage = `${data.userName || data.userEmail}: ${data.content}`;
         displayMessage(formattedMessage);

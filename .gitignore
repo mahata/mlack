@@ -16,6 +16,7 @@ pnpm-debug.log*
 # Build outputs
 dist/
 build/
+public/
 
 # Test artifacts
 test-results/
@@ -27,6 +28,7 @@ playwright/.cache/
 .env.local
 .env.*.local
 .env.production
+.dev.vars
 rcf/
 
 # Windows Store app package directories and files
@@ -43,6 +45,9 @@ _pkginfo.txt
 *.[Cc]ache
 # but keep track of directories ending in .cache
 !?*.[Cc]ache/
+
+# Wrangler / Cloudflare
+.wrangler/
 
 # Others
 ClientBin/

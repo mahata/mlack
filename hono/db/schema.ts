@@ -1,36 +1,37 @@
-import { index, integer, pgTable, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
-export const channels = pgTable("channels", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull().unique(),
-  createdByEmail: varchar("created_by_email", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+export const channels = sqliteTable("channels", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  createdByEmail: text("created_by_email").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
 
-export const channelMembers = pgTable(
+export const channelMembers = sqliteTable(
   "channel_members",
   {
-    id: serial("id").primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     channelId: integer("channel_id")
       .notNull()
       .references(() => channels.id),
-    userEmail: varchar("user_email", { length: 255 }).notNull(),
-    joinedAt: timestamp("joined_at").defaultNow(),
+    userEmail: text("user_email").notNull(),
+    joinedAt: text("joined_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
-  (table) => [unique("channel_members_channel_id_user_email_unique").on(table.channelId, table.userEmail)],
+  (table) => [uniqueIndex("channel_members_channel_id_user_email_unique").on(table.channelId, table.userEmail)],
 );
 
-export const messages = pgTable(
+export const messages = sqliteTable(
   "messages",
   {
-    id: serial("id").primaryKey(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
     content: text("content").notNull(),
-    userEmail: varchar("user_email", { length: 255 }).notNull(),
-    userName: varchar("user_name", { length: 255 }),
+    userEmail: text("user_email").notNull(),
+    userName: text("user_name"),
     channelId: integer("channel_id")
       .notNull()
       .references(() => channels.id),
-    createdAt: timestamp("created_at").defaultNow(),
+    createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
   (table) => [
     index("messages_created_at_idx").on(table.createdAt),
@@ -38,10 +39,10 @@ export const messages = pgTable(
   ],
 );
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  name: varchar("name", { length: 255 }).notNull(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });

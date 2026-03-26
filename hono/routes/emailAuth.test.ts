@@ -8,7 +8,7 @@ const { mockLimit, mockVerifyPassword, mockInsertValues } = vi.hoisted(() => ({
 }));
 
 vi.mock("../db/index.js", () => ({
-  db: {
+  getDb: () => ({
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -19,7 +19,7 @@ vi.mock("../db/index.js", () => ({
     insert: vi.fn().mockReturnValue({
       values: mockInsertValues,
     }),
-  },
+  }),
   users: {},
 }));
 
@@ -98,7 +98,6 @@ describe("Email Auth routes", () => {
 
       const formData = new FormData();
       formData.append("email", "test@example.com");
-      // password missing
 
       const response = await app.request("/auth/login", {
         method: "POST",
@@ -192,7 +191,6 @@ describe("Email Auth routes", () => {
 
       const formData = new FormData();
       formData.append("email", "test@example.com");
-      // name and password missing
 
       const response = await app.request("/auth/register", {
         method: "POST",

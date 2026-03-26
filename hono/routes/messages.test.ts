@@ -1,27 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testApp.js";
 
-vi.mock("../db/index.js", () => ({
-  db: {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: 1,
-                content: "Test message",
-                userEmail: "test@example.com",
-                userName: "Test User",
-                channelId: 1,
-                createdAt: new Date(),
-              },
-            ]),
-          }),
+const mockDb = {
+  select: vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([
+            {
+              id: 1,
+              content: "Test message",
+              userEmail: "test@example.com",
+              userName: "Test User",
+              channelId: 1,
+              createdAt: "2025-01-01T00:00:00.000Z",
+            },
+          ]),
         }),
       }),
     }),
-  },
+  }),
+};
+
+vi.mock("../db/index.js", () => ({
+  getDb: () => mockDb,
   messages: { channelId: "channel_id", createdAt: "created_at" },
 }));
 
@@ -34,7 +36,7 @@ describe("Messages API endpoint", () => {
     const response = await app.request("/api/messages?channelId=1");
     expect(response.status).toBe(200);
 
-    const body = await response.json();
+    const body = (await response.json()) as { messages: unknown[] };
     expect(body).toHaveProperty("messages");
     expect(Array.isArray(body.messages)).toBe(true);
   });

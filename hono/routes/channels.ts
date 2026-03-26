@@ -1,13 +1,14 @@
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
-import { channelMembers, channels, db } from "../db/index.js";
-import type { Variables } from "../types.js";
+import { channelMembers, channels, getDb } from "../db/index.js";
+import type { Bindings, Variables } from "../types.js";
 
-const channelsRoute = new Hono<{ Variables: Variables }>();
+const channelsRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 channelsRoute.get("/api/channels", requireUser, async (c) => {
   try {
+    const db = getDb(c.env.DB);
     const allChannels = await db.select().from(channels);
 
     return c.json({ channels: allChannels });
@@ -19,6 +20,7 @@ channelsRoute.get("/api/channels", requireUser, async (c) => {
 
 channelsRoute.post("/api/channels", requireUser, async (c) => {
   try {
+    const db = getDb(c.env.DB);
     const user = c.get("user");
 
     const body = await c.req.json();
@@ -46,6 +48,7 @@ channelsRoute.post("/api/channels", requireUser, async (c) => {
 
 channelsRoute.post("/api/channels/:id/join", requireUser, async (c) => {
   try {
+    const db = getDb(c.env.DB);
     const user = c.get("user");
 
     const channelId = Number(c.req.param("id"));
@@ -78,6 +81,7 @@ channelsRoute.post("/api/channels/:id/join", requireUser, async (c) => {
 
 channelsRoute.post("/api/channels/:id/leave", requireUser, async (c) => {
   try {
+    const db = getDb(c.env.DB);
     const user = c.get("user");
 
     const channelId = Number(c.req.param("id"));

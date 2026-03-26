@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
-import type { User, Variables } from "../types.js";
+import type { Bindings, User, Variables } from "../types.js";
 
-export const requireUser = createMiddleware<{ Variables: Variables }>(async (c, next) => {
+export const requireUser = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
   const session = c.get("session");
   const user = session.get("user") as User | undefined;
 

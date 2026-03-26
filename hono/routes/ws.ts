@@ -1,21 +1,22 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext, WSMessageReceive } from "hono/ws";
-import { channelMembers, db, messages } from "../db/index.js";
-import type { User, Variables } from "../types.js";
+import { channelMembers, getDb, messages } from "../db/index.js";
+import type { Bindings, User, Variables } from "../types.js";
 
 const WS_OPEN = 1;
 
 type WsClientInfo = { userEmail: string };
 
 export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<WSContext, WsClientInfo>) {
-  const ws = new Hono<{ Variables: Variables }>();
+  const ws = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
   ws.get(
     "/ws",
     upgradeWebSocket((c) => {
       const session = c.get("session");
       const user = session.get("user") as User | undefined;
+      const db = getDb(c.env.DB);
 
       return {
         onOpen: (_evt: Event, ws: WSContext) => {
@@ -25,7 +26,15 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
           }
           clients.set(ws, { userEmail: user.email });
         },
-        onMessage: async (evt: MessageEvent<WSMessageReceive>) => {
+        onMessage: async (evt: MessageEvent<WSMessageReceive>, ws: WSContext) => {
+          if (!user) {
+            return;
+          }
+
+          if (!clients.has(ws)) {
+            clients.set(ws, { userEmail: user.email });
+          }
+
           const raw = evt.data;
 
           const rawStr =
@@ -45,7 +54,7 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
           const channelId = parsed.channelId;
           const trimmedMessage = parsed.content.trim();
 
-          if (!user || !trimmedMessage) {
+          if (!trimmedMessage) {
             return;
           }
 
@@ -84,6 +93,11 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
         },
         onClose: (_evt: CloseEvent, ws: WSContext) => {
           clients.delete(ws);
+          try {
+            ws.close();
+          } catch {
+            // Ignore errors if the socket is already closed
+          }
         },
         onError: (evt: Event, ws: WSContext) => {
           console.error("WebSocket error:", evt);

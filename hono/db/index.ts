@@ -1,10 +1,16 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { dbCredentials } from "./config.js";
+import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema.js";
 
-const pool = new Pool(dbCredentials);
+let cachedDb: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let cachedD1: D1Database | null = null;
 
-export const db = drizzle(pool, { schema });
+export function getDb(d1: D1Database) {
+  if (cachedDb && cachedD1 === d1) {
+    return cachedDb;
+  }
+  cachedD1 = d1;
+  cachedDb = drizzle(d1, { schema });
+  return cachedDb;
+}
 
 export * from "./schema.js";

@@ -1,0 +1,17 @@
+name = "mlack"
+main = "hono/index.ts"
+compatibility_date = "2025-03-26"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./public"
+not_found_handling = "none"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mlack-db"
+database_id = "local"
+migrations_dir = "hono/db/migrations"
+
+[vars]
+NODE_ENV = "development"
