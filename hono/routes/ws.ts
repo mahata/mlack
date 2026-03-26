@@ -93,6 +93,11 @@ export function createWsRoute(upgradeWebSocket: UpgradeWebSocket, clients: Map<W
         },
         onClose: (_evt: CloseEvent, ws: WSContext) => {
           clients.delete(ws);
+          try {
+            ws.close();
+          } catch {
+            // Ignore errors if the socket is already closed
+          }
         },
         onError: (evt: Event, ws: WSContext) => {
           console.error("WebSocket error:", evt);
