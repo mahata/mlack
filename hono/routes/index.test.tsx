@@ -1,13 +1,28 @@
 import type { Hono } from "hono";
-import { beforeEach, describe, expect, it } from "vitest";
+import type { MockInstance } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testApp.js";
 import type { Bindings, Variables } from "../types.js";
 
+vi.mock("../db/index.js", () => ({
+  getDb: () => ({
+    select: () => ({
+      from: () => ({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    }),
+  }),
+  channels: { id: "id", name: "name" },
+  channelMembers: { channelId: "channel_id", userEmail: "user_email" },
+}));
+
 describe("Root page", () => {
   let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
+  let consoleErrorSpy: MockInstance;
 
   beforeEach(async () => {
-    // Create a test app with an authenticated user
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     const { app } = createTestApp({
       authenticatedUser: {
         email: "test@example.com",
@@ -17,9 +32,13 @@ describe("Root page", () => {
     });
     testApp = app;
 
-    // Add the index route to the test app
     const { index } = await import("./index.js");
     testApp.route("/", index);
+  });
+
+  afterEach(() => {
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it("should return HTML page with chat interface when user is logged in", async () => {
