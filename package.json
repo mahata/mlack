@@ -20,8 +20,8 @@
     "db:migrate": "wrangler d1 migrations apply mlack-db --local",
     "db:seed": "wrangler d1 execute mlack-db --local --file=hono/db/seed.sql",
     "db:studio": "drizzle-kit studio",
-    "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote",
-    "db:seed:prod": "wrangler d1 execute mlack-db --remote --file=hono/db/seed.sql",
+    "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote --env production",
+    "db:seed:prod": "wrangler d1 execute mlack-db --remote --env production --file=hono/db/seed.sql",
     "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production"
   },
   "keywords": [
