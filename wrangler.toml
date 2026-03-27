@@ -24,5 +24,21 @@ new_sqlite_classes = ["ChatRoom"]
 [vars]
 NODE_ENV = "development"
 
+[env.production]
+
 [env.production.vars]
 NODE_ENV = "production"
+
+[[env.production.d1_databases]]
+binding = "mlack_db"
+database_name = "mlack-db"
+database_id = "d6405044-202a-4a50-9612-089512467c9e"
+migrations_dir = "hono/db/migrations"
+
+[[env.production.durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+[[env.production.migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]
