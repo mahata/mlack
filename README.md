@@ -131,10 +131,10 @@ pnpm lint:fix
 5. **Set production secrets**:
 
    ```bash
-   npx wrangler secret put SESSION_SECRET
-   npx wrangler secret put GOOGLE_ID
-   npx wrangler secret put GOOGLE_SECRET
-   npx wrangler secret put GOOGLE_REDIRECT_URI
+   npx wrangler secret put SESSION_SECRET -e production
+   npx wrangler secret put GOOGLE_ID -e production
+   npx wrangler secret put GOOGLE_SECRET -e production
+   npx wrangler secret put GOOGLE_REDIRECT_URI -e production
    ```
 
    For `GOOGLE_REDIRECT_URI`, use your production URL (e.g. `https://mlack.<your-subdomain>.workers.dev/auth/google`). Make sure this URL is also registered in the Google Cloud Console.
