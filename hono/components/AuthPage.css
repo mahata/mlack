@@ -129,3 +129,53 @@ body {
 .auth-link a:hover {
   text-decoration: underline;
 }
+
+.verify-description {
+  color: #555;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.verification-code-input {
+  text-align: center;
+  font-size: 24px;
+  letter-spacing: 8px;
+  font-weight: 600;
+}
+
+.success-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border: 1px solid #a5d6a7;
+  font-size: 14px;
+}
+
+.resend-section {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.resend-text {
+  color: #888;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.resend-button {
+  background: none;
+  border: none;
+  color: #2196f3;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.resend-button:hover {
+  color: #1976d2;
+}

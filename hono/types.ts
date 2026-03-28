@@ -22,6 +22,8 @@ export type Bindings = {
   GOOGLE_SECRET: string;
   GOOGLE_REDIRECT_URI: string;
   E2E_GMAIL_ACCOUNT: string;
+  RESEND_API_KEY: string;
+  RESEND_FROM_EMAIL: string;
 };
 
 export type Variables = {
