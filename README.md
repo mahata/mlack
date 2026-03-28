@@ -137,7 +137,7 @@ pnpm lint:fix
    npx wrangler secret put GOOGLE_REDIRECT_URI --env production
    ```
 
-   For `GOOGLE_REDIRECT_URI`, use your production URL (e.g. `https://mlack.<your-subdomain>.workers.dev/auth/google`). Make sure this URL is also registered in the Google Cloud Console.
+   For `GOOGLE_REDIRECT_URI`, use your production URL (e.g. `https://mlack.<your-subdomain>.workers.dev/auth/google`). Make sure this URL is also added as an **Authorized redirect URI** in the Google Cloud Console under [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials), by clicking on your OAuth 2.0 Client ID.
 
 6. **Deploy**:
 
