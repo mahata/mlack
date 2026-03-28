@@ -29,12 +29,14 @@ describe("generateVerificationCode", () => {
 
 describe("createExpiresAt", () => {
   it("should return an ISO date string roughly 10 minutes in the future", () => {
-    const before = Date.now() + VERIFICATION_EXPIRY_MS - 100;
+    vi.useFakeTimers();
+    const fixedNow = new Date("2020-01-01T00:00:00.000Z");
+    vi.setSystemTime(fixedNow);
     const expiresAt = createExpiresAt();
-    const after = Date.now() + VERIFICATION_EXPIRY_MS + 100;
     const ts = new Date(expiresAt).getTime();
-    expect(ts).toBeGreaterThanOrEqual(before);
-    expect(ts).toBeLessThanOrEqual(after);
+    const expectedTs = fixedNow.getTime() + VERIFICATION_EXPIRY_MS;
+    expect(ts).toBe(expectedTs);
+    vi.useRealTimers();
   });
 });
 
