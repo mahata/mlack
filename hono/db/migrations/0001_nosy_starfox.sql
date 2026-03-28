@@ -9,3 +9,4 @@ CREATE TABLE `pending_registrations` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `pending_registrations_email_unique` ON `pending_registrations` (`email`);
+CREATE INDEX `pending_registrations_expires_at_index` ON `pending_registrations` (`expires_at`);
