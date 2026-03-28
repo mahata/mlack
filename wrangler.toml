@@ -30,7 +30,7 @@ NODE_ENV = "development"
 NODE_ENV = "production"
 
 [[env.production.d1_databases]]
-binding = "mlack_db"
+binding = "DB"
 database_name = "mlack-db"
 database_id = "d6405044-202a-4a50-9612-089512467c9e"
 migrations_dir = "hono/db/migrations"
