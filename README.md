@@ -142,7 +142,7 @@ pnpm lint:fix
 6. **Deploy**:
 
    ```bash
-   pnpm deploy
+   pnpm run deploy
    ```
 
 ### Subsequent Deployments
@@ -150,7 +150,7 @@ pnpm lint:fix
 After the initial setup, deploy with:
 
 ```bash
-pnpm deploy
+pnpm run deploy
 ```
 
 If you've added new database migrations, apply them before deploying:
@@ -249,3 +249,14 @@ pnpm test:e2e
 ```
 
 E2E tests verify the full application flow including authentication, chat interface rendering, real-time WebSocket messaging, and message persistence.
+
+## OpenCode MCP Servers
+
+This project uses [OpenCode](https://opencode.ai/) with MCP servers for Cloudflare and Chrome DevTools. After setting up OpenCode, authenticate with each Cloudflare MCP server:
+
+```bash
+opencode mcp auth cloudflare-docs
+opencode mcp auth cloudflare-bindings
+opencode mcp auth cloudflare-observability
+opencode mcp auth cloudflare-radar
+```
