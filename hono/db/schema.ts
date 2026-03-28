@@ -46,3 +46,13 @@ export const users = sqliteTable("users", {
   passwordHash: text("password_hash").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
+
+export const pendingRegistrations = sqliteTable("pending_registrations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  verificationCode: text("verification_code").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+});

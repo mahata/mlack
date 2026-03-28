@@ -9,7 +9,7 @@ A real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare Work
 - **Real-time Chat**: WebSocket-powered chat with instant messaging via Cloudflare Durable Objects
 - **Channels**: Create, join, and leave channels. Messages are scoped to channels
 - **Persistent Storage**: Messages stored in Cloudflare D1 (SQLite) and persist across sessions
-- **Authentication**: Google OAuth and email/password registration
+- **Authentication**: Google OAuth and email/password registration with email verification (6-digit OTP)
 - **WebSocket Hibernation**: Cost-efficient WebSocket management that hibernates idle connections
 - **Health Check Endpoint**: `/health` endpoint for monitoring
 - **TypeScript**: Full TypeScript with strict type checking
@@ -44,6 +44,10 @@ Required variables in `.dev.vars`:
 - `GOOGLE_SECRET`: Google OAuth client secret
 - `GOOGLE_REDIRECT_URI`: Google OAuth redirect URI (e.g. `http://localhost:8787/auth/google`)
 - `E2E_GMAIL_ACCOUNT`: Gmail account for E2E testing
+- `RESEND_API_KEY`: API key from [Resend](https://resend.com/) for sending verification emails
+- `RESEND_FROM_EMAIL`: Sender address for verification emails (e.g. `noreply@yourdomain.com`)
+
+> **Note**: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are only required in production. In local development (`NODE_ENV=development`), verification codes are logged to the Wrangler console instead of sending real emails.
 
 ### Database Setup
 
@@ -135,9 +139,13 @@ pnpm lint:fix
    npx wrangler secret put GOOGLE_ID --env production
    npx wrangler secret put GOOGLE_SECRET --env production
    npx wrangler secret put GOOGLE_REDIRECT_URI --env production
+   npx wrangler secret put RESEND_API_KEY --env production
+   npx wrangler secret put RESEND_FROM_EMAIL --env production
    ```
 
    For `GOOGLE_REDIRECT_URI`, use your production URL (e.g. `https://mlack.<your-subdomain>.workers.dev/auth/google`). Make sure this URL is also added as an **Authorized redirect URI** in the Google Cloud Console under [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials), by clicking on your OAuth 2.0 Client ID.
+
+   For `RESEND_API_KEY`, create an API key at [Resend](https://resend.com/). For `RESEND_FROM_EMAIL`, use a verified domain in your Resend account (e.g. `noreply@yourdomain.com`).
 
 6. **Deploy**:
 
@@ -165,7 +173,7 @@ pnpm db:migrate:prod
 mlack/
 ├── e2e/                    # Playwright E2E tests
 ├── hono/                   # Application source
-│   ├── auth/               # Password hashing utilities
+│   ├── auth/               # Password hashing, email verification utilities
 │   ├── components/         # Server-rendered JSX pages + CSS
 │   ├── db/                 # Drizzle schema, connection, migrations
 │   ├── durableObjects/     # Cloudflare Durable Objects
