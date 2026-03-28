@@ -36,7 +36,7 @@ export async function VerifyEmailPage({ email, error, success }: VerifyEmailPage
                 required
                 maxLength={6}
                 minLength={6}
-                pattern="\d{6}"
+                pattern="[0-9]{6}"
                 autoComplete="one-time-code"
                 inputMode="numeric"
                 className="verification-code-input"
