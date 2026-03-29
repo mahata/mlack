@@ -75,7 +75,7 @@ Execute the plan using the TodoWrite tool to track progress. For each item:
 ## Key Principles
 
 1. **Don't over-engineer** — Only add what provides clear value. Skip custom tools if MCP servers already cover the use case.
-2. **Read-only agents for review** — Security auditors and code reviewers should have `mode: plan` and deny write permissions.
+2. **Read-only agents for review** — Security auditors and code reviewers should have `mode: subagent` and deny write permissions.
 3. **Commands should be thin wrappers** — They run existing package.json scripts, not complex logic.
 4. **Skills are reference docs** — They provide domain knowledge, not instructions. Load them on-demand.
 5. **Permissions should be conservative** — Default to `ask` for destructive operations, `deny` for secrets.
