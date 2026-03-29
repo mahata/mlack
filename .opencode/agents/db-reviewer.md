@@ -1,7 +1,7 @@
 ---
 description: Review database schema, migrations, and queries for correctness and performance
 model: claude-sonnet
-mode: plan
+mode: subagent
 temperature: 0.2
 max_steps: 20
 permissions:

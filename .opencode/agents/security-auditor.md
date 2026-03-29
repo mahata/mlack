@@ -1,7 +1,7 @@
 ---
 description: Review code for security issues in Cloudflare Workers, auth flows, and data handling
 model: claude-sonnet
-mode: plan
+mode: subagent
 temperature: 0.2
 max_steps: 30
 permissions:
