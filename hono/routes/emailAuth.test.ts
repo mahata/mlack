@@ -7,6 +7,7 @@ const {
   mockDeleteWhere,
   mockUpdateSetWhere,
   mockInsertValues,
+  mockOnConflictDoUpdate,
   mockVerifyPassword,
   mockSendVerificationEmail,
   mockGenerateVerificationCode,
@@ -17,6 +18,7 @@ const {
   mockDeleteWhere: vi.fn().mockResolvedValue(undefined),
   mockUpdateSetWhere: vi.fn().mockResolvedValue(undefined),
   mockInsertValues: vi.fn().mockResolvedValue(undefined),
+  mockOnConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
   mockVerifyPassword: vi.fn().mockResolvedValue(false),
   mockSendVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   mockGenerateVerificationCode: vi.fn().mockReturnValue("123456"),
@@ -35,9 +37,12 @@ vi.mock("../db/index.js", async (importOriginal) => {
           }),
         })),
       }),
-      insert: vi.fn().mockReturnValue({
-        values: mockInsertValues,
-      }),
+      insert: vi.fn().mockImplementation((table: unknown) => ({
+        values:
+          table === original.pendingRegistrations
+            ? vi.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
+            : mockInsertValues,
+      })),
       delete: vi.fn().mockReturnValue({
         where: mockDeleteWhere,
       }),
@@ -282,9 +287,8 @@ describe("Email Auth routes", () => {
       expect(html).toContain("An account with this email already exists.");
     });
 
-    it("should redirect to verify-email on successful registration (new pending)", async () => {
+    it("should redirect to verify-email on successful registration", async () => {
       mockUsersSelectLimit.mockResolvedValueOnce([]);
-      mockPendingSelectLimit.mockResolvedValueOnce([]);
       const { app } = createTestApp({ authenticatedUser: null });
 
       const formData = new FormData();
@@ -300,22 +304,12 @@ describe("Email Auth routes", () => {
 
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/auth/verify-email?email=new%40example.com");
-      expect(mockInsertValues).toHaveBeenCalled();
+      expect(mockOnConflictDoUpdate).toHaveBeenCalled();
       expect(mockSendVerificationEmail).toHaveBeenCalled();
     });
 
-    it("should update existing pending registration instead of inserting", async () => {
+    it("should upsert pending registration when email already has a pending entry", async () => {
       mockUsersSelectLimit.mockResolvedValueOnce([]);
-      mockPendingSelectLimit.mockResolvedValueOnce([
-        {
-          id: 1,
-          email: "existing@example.com",
-          name: "Old Name",
-          passwordHash: "old:hash",
-          verificationCode: "000000",
-          expiresAt: "2099-01-01T00:00:00.000Z",
-        },
-      ]);
       const { app } = createTestApp({ authenticatedUser: null });
 
       const formData = new FormData();
@@ -331,13 +325,12 @@ describe("Email Auth routes", () => {
 
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/auth/verify-email?email=existing%40example.com");
-      expect(mockUpdateSetWhere).toHaveBeenCalled();
+      expect(mockOnConflictDoUpdate).toHaveBeenCalled();
       expect(mockSendVerificationEmail).toHaveBeenCalled();
     });
 
     it("should return 500 when email sending fails", async () => {
       mockUsersSelectLimit.mockResolvedValueOnce([]);
-      mockPendingSelectLimit.mockResolvedValueOnce([]);
       mockSendVerificationEmail.mockResolvedValueOnce({ success: false, error: "API error" });
       const { app } = createTestApp({ authenticatedUser: null });
 

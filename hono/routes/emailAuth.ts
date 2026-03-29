@@ -99,26 +99,13 @@ emailAuth.post("/auth/register", async (c) => {
 
     await db.delete(pendingRegistrations).where(lt(pendingRegistrations.expiresAt, new Date().toISOString()));
 
-    const [existingPending] = await db
-      .select()
-      .from(pendingRegistrations)
-      .where(eq(pendingRegistrations.email, email))
-      .limit(1);
-
-    if (existingPending) {
-      await db
-        .update(pendingRegistrations)
-        .set({ name, passwordHash, verificationCode, expiresAt })
-        .where(eq(pendingRegistrations.email, email));
-    } else {
-      await db.insert(pendingRegistrations).values({
-        email,
-        name,
-        passwordHash,
-        verificationCode,
-        expiresAt,
+    await db
+      .insert(pendingRegistrations)
+      .values({ email, name, passwordHash, verificationCode, expiresAt })
+      .onConflictDoUpdate({
+        target: pendingRegistrations.email,
+        set: { name, passwordHash, verificationCode, expiresAt },
       });
-    }
 
     if (c.env.NODE_ENV === "development") {
       console.log(`[DEV] Verification code for ${email}: ${verificationCode}`);
