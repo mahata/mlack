@@ -30,6 +30,12 @@ export function createTestApp(options?: {
     if (!c.env.SESSION_SECRET) {
       c.env.SESSION_SECRET = "test-secret";
     }
+    if (!c.env.RESEND_API_KEY) {
+      c.env.RESEND_API_KEY = "re_test_key";
+    }
+    if (!c.env.RESEND_FROM_EMAIL) {
+      c.env.RESEND_FROM_EMAIL = "noreply@test.com";
+    }
     await next();
   };
 
