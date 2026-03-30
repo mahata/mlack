@@ -172,15 +172,12 @@ git merge main
 git push origin prod
 ```
 
-**Required GitHub secret:**
+**Required GitHub secrets:**
 
-The deploy job authenticates with Cloudflare using the `CLOUDFLARE_API_TOKEN` repository secret. To set it up:
+The deploy job requires two repository secrets. Add them under **Settings > Secrets and variables > Actions > New repository secret**:
 
-1. Go to [Cloudflare Dashboard > API Tokens](https://dash.cloudflare.com/profile/api-tokens) and create a token with these permissions:
-   - **Workers Scripts: Edit**
-   - **D1: Edit**
-   - **Account Settings: Read**
-2. Add the token as `CLOUDFLARE_API_TOKEN` in your GitHub repository under **Settings > Secrets and variables > Actions > New repository secret**
+1. **`CLOUDFLARE_API_TOKEN`** — Create a token in the [Cloudflare dashboard](https://dash.cloudflare.com/profile/api-tokens) using the **"Edit Cloudflare Workers"** template, then add **D1 Edit** permission to it. The template includes Workers Scripts Write, Account Settings Read, User Memberships Read, and other permissions Wrangler needs.
+2. **`CLOUDFLARE_ACCOUNT_ID`** — Your Cloudflare account ID. Find it on the [Workers & Pages overview page](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/) in the right sidebar.
 
 The E2E job reuses the existing `SESSION_SECRET`, `E2E_GMAIL_ACCOUNT`, and `E2E_GMAIL_PASSWORD` secrets already configured for CI.
 
