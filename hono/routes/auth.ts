@@ -1,9 +1,7 @@
 import { googleAuth } from "@hono/oauth-providers/google";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
-import type { Bindings, Variables } from "../types.js";
-
-type Env = { Bindings: Bindings; Variables: Variables };
+import type { Env } from "../types.js";
 
 const auth = new Hono<Env>();
 

@@ -2,9 +2,9 @@ import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
 import { getDb, messages } from "../db/index.js";
-import type { Bindings, Variables } from "../types.js";
+import type { Env } from "../types.js";
 
-const messagesRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const messagesRoute = new Hono<Env>();
 
 messagesRoute.get("/api/messages", requireUser, async (c) => {
   try {

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import type { Bindings, User, Variables } from "../types.js";
+import type { Env, User } from "../types.js";
 
 export function createWsRoute() {
-  const ws = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+  const ws = new Hono<Env>();
 
   ws.get("/ws", async (c) => {
     const upgradeHeader = c.req.header("Upgrade");

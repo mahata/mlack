@@ -3,9 +3,10 @@ import { Hono } from "hono";
 import { AboutPage } from "../components/AboutPage.js";
 import { ChatPage } from "../components/ChatPage.js";
 import { channelMembers, channels, getDb } from "../db/index.js";
-import type { Bindings, User, Variables } from "../types.js";
+import { renderPage } from "../helpers/renderPage.js";
+import type { Env, User } from "../types.js";
 
-const index = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const index = new Hono<Env>();
 
 index.get("/", async (c) => {
   const session = c.get("session");
@@ -41,11 +42,11 @@ index.get("/", async (c) => {
     console.error("Error auto-joining #general:", error);
   }
 
-  return c.html(`<!DOCTYPE html>${await ChatPage(wsUrl, user)}`);
+  return renderPage(c, ChatPage(wsUrl, user));
 });
 
 index.get("/about", async (c) => {
-  return c.html(`<!DOCTYPE html>${await AboutPage()}`);
+  return renderPage(c, AboutPage());
 });
 
 export { index };
