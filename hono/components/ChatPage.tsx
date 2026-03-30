@@ -42,17 +42,37 @@ export async function ChatPage(wsUrl?: string, user?: User) {
           <main className="chat-main">
             <div className="chat-header">
               <h1>Hello, world!</h1>
-              <h2 id="channelName">#general</h2>
+              <div className="chat-header-row">
+                <h2 id="channelName">#general</h2>
+                <button
+                  type="button"
+                  id="toggleMembersButton"
+                  className="toggle-members-button"
+                  title="Toggle members panel"
+                >
+                  Members
+                </button>
+              </div>
             </div>
             <div id="status" className="status disconnected">
               Connecting to {wsUrl}...
             </div>
-            <div id="messages"></div>
-            <div className="input-container">
-              <input type="text" id="messageInput" placeholder="Type your message..." disabled />
-              <button type="button" id="sendButton" disabled>
-                Send
-              </button>
+            <div className="chat-content">
+              <div className="chat-messages-area">
+                <div id="messages"></div>
+                <div className="input-container">
+                  <input type="text" id="messageInput" placeholder="Type your message..." disabled />
+                  <button type="button" id="sendButton" disabled>
+                    Send
+                  </button>
+                </div>
+              </div>
+              <aside id="membersPanel" className="members-panel">
+                <div className="members-panel-header">
+                  <h3>Members</h3>
+                </div>
+                <ul id="membersList" className="members-list"></ul>
+              </aside>
             </div>
           </main>
         </div>

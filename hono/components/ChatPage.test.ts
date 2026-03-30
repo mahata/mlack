@@ -55,4 +55,21 @@ describe("ChatPage component", () => {
     const html = jsxElement.toString();
     expect(html).toContain(`data-ws-url="${customWsUrl}"`);
   });
+
+  it("should include members panel", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="membersPanel"');
+    expect(html).toContain('id="membersList"');
+    expect(html).toContain('class="members-panel"');
+  });
+
+  it("should include toggle members button", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="toggleMembersButton"');
+    expect(html).toContain("Members");
+  });
 });
