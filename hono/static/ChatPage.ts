@@ -10,6 +10,9 @@ const createChannelModal = document.getElementById("createChannelModal") as HTML
 const newChannelNameInput = document.getElementById("newChannelName") as HTMLInputElement;
 const cancelCreateChannel = document.getElementById("cancelCreateChannel") as HTMLButtonElement;
 const confirmCreateChannel = document.getElementById("confirmCreateChannel") as HTMLButtonElement;
+const membersPanel = document.getElementById("membersPanel") as HTMLElement;
+const membersList = document.getElementById("membersList") as HTMLUListElement;
+const toggleMembersButton = document.getElementById("toggleMembersButton") as HTMLButtonElement;
 
 const STATUS_CLASS = "status";
 const CONNECTED_CLASS = "connected";
@@ -32,13 +35,28 @@ type Channel = {
   createdByEmail: string;
 };
 
+type Member = {
+  email: string;
+  name: string;
+};
+
 let activeChannelId: number | null = null;
 const myChannelIds: Set<number> = new Set();
 let allChannels: Channel[] = [];
+let currentMembers: Member[] = [];
+let currentUserEmail = "";
+let membersPanelVisible = true;
 
 let ws: WebSocket;
 let reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
 let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+
+function detectCurrentUserEmail(): void {
+  const userEmailEl = document.querySelector(".user-email");
+  if (userEmailEl) {
+    currentUserEmail = userEmailEl.textContent?.trim() || "";
+  }
+}
 
 function displayMessage(messageText: string): void {
   const messageElement = document.createElement("div");
@@ -84,15 +102,52 @@ async function loadMessagesForChannel(channelId: number): Promise<void> {
   }
 }
 
-async function fetchChannels(): Promise<void> {
+async function fetchMemberships(): Promise<void> {
   try {
-    const response = await fetch("/api/channels");
+    const response = await fetch("/api/channels/memberships");
     if (response.ok) {
-      const data = (await response.json()) as { channels?: Channel[] };
-      allChannels = data.channels || [];
+      const data = (await response.json()) as { myChannels?: Channel[]; otherChannels?: Channel[] };
+      const myChannels = data.myChannels || [];
+      const otherChannels = data.otherChannels || [];
+      allChannels = [...myChannels, ...otherChannels];
+      myChannelIds.clear();
+      for (const ch of myChannels) {
+        myChannelIds.add(ch.id);
+      }
     }
   } catch (error) {
-    console.error("Error fetching channels:", error);
+    console.error("Error fetching memberships:", error);
+  }
+}
+
+async function fetchChannelMembers(channelId: number): Promise<void> {
+  try {
+    const response = await fetch(`/api/channels/${channelId}/members`);
+    if (response.ok) {
+      const data = (await response.json()) as { members?: Member[] };
+      currentMembers = data.members || [];
+    } else {
+      currentMembers = [];
+    }
+  } catch (error) {
+    console.error("Error fetching channel members:", error);
+    currentMembers = [];
+  }
+  renderMembersList();
+}
+
+function renderMembersList(): void {
+  membersList.innerHTML = "";
+  const sorted = [...currentMembers].sort((a, b) => {
+    if (a.email === currentUserEmail) return -1;
+    if (b.email === currentUserEmail) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  for (const member of sorted) {
+    const li = document.createElement("li");
+    li.className = `member-item${member.email === currentUserEmail ? " current-user" : ""}`;
+    li.textContent = member.name;
+    membersList.appendChild(li);
   }
 }
 
@@ -147,31 +202,25 @@ function renderChannelLists(): void {
 }
 
 async function initChannels(): Promise<void> {
-  await fetchChannels();
+  await fetchMemberships();
 
-  // The user is auto-joined to #general on page load by the server.
-  // Detect membership: the simplest approach is to try joining each channel
-  // and checking the response. But that would actually join them to every channel.
-  // Instead, we'll just use a simple heuristic: assume we're members of #general,
-  // and store memberships client-side as we join/leave.
-  // For now, assume membership of #general (server auto-joins), and load full list.
   const generalChannel = allChannels.find((ch) => ch.name === "general");
-  if (generalChannel) {
-    myChannelIds.add(generalChannel.id);
+  if (generalChannel && myChannelIds.has(generalChannel.id)) {
     activeChannelId = generalChannel.id;
     channelNameHeader.textContent = `#${generalChannel.name}`;
+  } else if (myChannelIds.size > 0) {
+    const firstJoined = allChannels.find((ch) => myChannelIds.has(ch.id));
+    if (firstJoined) {
+      activeChannelId = firstJoined.id;
+      channelNameHeader.textContent = `#${firstJoined.name}`;
+    }
   }
 
-  // Fetch actual memberships by trying a simple check
-  // We'll use a lightweight approach: fetch messages for each channel.
-  // Actually the simplest: the server auto-joins general. For other channels,
-  // we track locally. Let's fetch memberships properly with a dedicated approach.
-  // Since we don't have a "my channels" endpoint yet, we mark general as joined
-  // and let the user join others via Browse.
   renderChannelLists();
 
   if (activeChannelId) {
     await loadMessagesForChannel(activeChannelId);
+    await fetchChannelMembers(activeChannelId);
   }
 }
 
@@ -181,7 +230,14 @@ async function switchChannel(channelId: number, channelName: string): Promise<vo
   channelNameHeader.textContent = `#${channelName}`;
   renderChannelLists();
   await loadMessagesForChannel(channelId);
+  await fetchChannelMembers(channelId);
   messageInput.focus();
+}
+
+function notifyMembershipChange(type: "memberJoin" | "memberLeave", channelId: number): void {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type, channelId, userEmail: currentUserEmail, userName: currentUserEmail }));
+  }
 }
 
 async function joinChannel(channelId: number): Promise<void> {
@@ -189,6 +245,7 @@ async function joinChannel(channelId: number): Promise<void> {
     const response = await fetch(`/api/channels/${channelId}/join`, { method: "POST" });
     if (response.ok) {
       myChannelIds.add(channelId);
+      notifyMembershipChange("memberJoin", channelId);
       const ch = allChannels.find((c) => c.id === channelId);
       renderChannelLists();
       if (ch) {
@@ -205,6 +262,7 @@ async function leaveChannel(channelId: number): Promise<void> {
     const response = await fetch(`/api/channels/${channelId}/leave`, { method: "POST" });
     if (response.ok) {
       myChannelIds.delete(channelId);
+      notifyMembershipChange("memberLeave", channelId);
       if (activeChannelId === channelId) {
         const generalChannel = allChannels.find((ch) => ch.name === "general");
         if (generalChannel) {
@@ -240,6 +298,18 @@ async function createChannel(name: string): Promise<void> {
     console.error("Error creating channel:", error);
   }
 }
+
+// Toggle members panel
+toggleMembersButton.addEventListener("click", () => {
+  membersPanelVisible = !membersPanelVisible;
+  if (membersPanelVisible) {
+    membersPanel.classList.remove("hidden");
+    toggleMembersButton.classList.add("active");
+  } else {
+    membersPanel.classList.add("hidden");
+    toggleMembersButton.classList.remove("active");
+  }
+});
 
 // Modal handlers
 createChannelButton.addEventListener("click", () => {
@@ -331,6 +401,9 @@ function connect(): void {
         const formattedMessage = `${data.userName || data.userEmail}: ${data.content}`;
         displayMessage(formattedMessage);
       }
+      if ((data.type === "memberJoin" || data.type === "memberLeave") && data.channelId === activeChannelId) {
+        fetchChannelMembers(data.channelId);
+      }
     } catch {
       // Ignore non-JSON messages
     }
@@ -385,6 +458,8 @@ window.addEventListener("online", () => {
 connect();
 
 window.addEventListener("load", () => {
+  detectCurrentUserEmail();
+  toggleMembersButton.classList.add("active");
   messageInput.focus();
   initChannels();
 });
