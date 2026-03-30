@@ -128,7 +128,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG_NAME="deploy-$(date -u +%Y-%m-%d)-$(git rev-parse --short HEAD)"
+          TAG_NAME="deploy-$(date -u +%Y-%m-%d)-$(git rev-parse --short HEAD)-${GITHUB_RUN_ID}"
           git tag "$TAG_NAME"
           git push origin "$TAG_NAME"
 
