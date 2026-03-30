@@ -56,10 +56,6 @@ export class ChatRoom extends DurableObject<Bindings> {
     const channelId = parsed.channelId;
     const trimmedMessage = parsed.content.trim();
 
-    if (!trimmedMessage) {
-      return;
-    }
-
     const db = getDb(this.env.DB);
 
     try {

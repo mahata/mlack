@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import type { Bindings, Variables } from "../types.js";
+import type { Env } from "../types.js";
 
-const testAuth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const testAuth = new Hono<Env>();
 
 testAuth.post("/test/login", async (c) => {
   if (c.env.NODE_ENV !== "development") {

@@ -10,13 +10,13 @@ import { index } from "./routes/index.js";
 import { messagesRoute } from "./routes/messages.js";
 import { testAuth } from "./routes/testAuth.js";
 import { createWsRoute } from "./routes/ws.js";
-import type { Bindings, Variables } from "./types.js";
+import type { Env } from "./types.js";
 
 type AppOptions = {
-  sessionMiddleware?: MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }>;
+  sessionMiddleware?: MiddlewareHandler<Env>;
 };
 
-function createLazySessionMiddleware(): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
+function createLazySessionMiddleware(): MiddlewareHandler<Env> {
   let cached: MiddlewareHandler | null = null;
   return async (c, next) => {
     if (!cached) {
@@ -39,7 +39,7 @@ function createLazySessionMiddleware(): MiddlewareHandler<{ Bindings: Bindings; 
 }
 
 export function createApp(options?: AppOptions) {
-  const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+  const app = new Hono<Env>();
 
   if (options?.sessionMiddleware) {
     app.use("*", options.sessionMiddleware);

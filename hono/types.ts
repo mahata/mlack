@@ -30,3 +30,8 @@ export type Variables = {
   session: Session;
   user: User;
 };
+
+export type Env = {
+  Bindings: Bindings;
+  Variables: Variables;
+};
