@@ -5,7 +5,7 @@ on:
     branches: [prod]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: production-deploy
@@ -91,6 +91,8 @@ jobs:
   deploy:
     needs: [test, e2e]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
