@@ -49,6 +49,8 @@ export async function ChatPage(wsUrl?: string, user?: User) {
                   id="toggleMembersButton"
                   className="toggle-members-button"
                   title="Toggle members panel"
+                  aria-controls="membersPanel"
+                  aria-expanded="true"
                 >
                   Members
                 </button>
