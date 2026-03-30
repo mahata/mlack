@@ -1,9 +1,22 @@
 import { DurableObject } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { channelMembers, getDb, messages } from "../db/index.js";
 import type { Bindings } from "../types.js";
 
 type SessionAttachment = {
+  userEmail: string;
+  userName: string;
+};
+
+type IncomingMessage = {
+  type: string;
+  channelId: number;
+  content: string;
+};
+
+type MembershipEvent = {
+  type: string;
+  channelId: number;
   userEmail: string;
   userName: string;
 };
@@ -42,25 +55,41 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     const rawStr = typeof message === "string" ? message : new TextDecoder().decode(message);
 
-    let parsed: { type: string; channelId: number; content: string };
+    let parsed: IncomingMessage | MembershipEvent;
     try {
       parsed = JSON.parse(rawStr);
     } catch {
       return;
     }
 
-    if (parsed.type !== "message" || !parsed.channelId || !parsed.content?.trim()) {
+    if (parsed.type === "memberJoin" || parsed.type === "memberLeave") {
+      await this.handleMembershipEvent(parsed as MembershipEvent);
       return;
     }
 
-    const channelId = parsed.channelId;
-    const trimmedMessage = parsed.content.trim();
-
-    if (!trimmedMessage) {
+    const msg = parsed as IncomingMessage;
+    if (msg.type !== "message" || !msg.channelId || !msg.content?.trim()) {
       return;
     }
+
+    const channelId = msg.channelId;
+    const trimmedMessage = msg.content.trim();
 
     const db = getDb(this.env.DB);
+
+    const membership = await db
+      .select()
+      .from(channelMembers)
+      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, attachment.userEmail)));
+
+    if (membership.length === 0) {
+      try {
+        ws.send(JSON.stringify({ type: "error", error: "Not a member of this channel" }));
+      } catch {
+        // Socket may be closed
+      }
+      return;
+    }
 
     try {
       await db.insert(messages).values({
@@ -98,6 +127,39 @@ export class ChatRoom extends DurableObject<Bindings> {
       }
     } catch (error) {
       console.error("Error broadcasting message:", error);
+    }
+  }
+
+  private async handleMembershipEvent(event: MembershipEvent): Promise<void> {
+    const outgoing = JSON.stringify({
+      type: event.type,
+      channelId: event.channelId,
+      userEmail: event.userEmail,
+      userName: event.userName,
+    });
+
+    try {
+      const db = getDb(this.env.DB);
+      const members = await db.select().from(channelMembers).where(eq(channelMembers.channelId, event.channelId));
+      const memberEmails = new Set(members.map((m) => m.userEmail));
+
+      if (event.type === "memberJoin") {
+        memberEmails.add(event.userEmail);
+      }
+
+      const allSockets = this.ctx.getWebSockets();
+      for (const socket of allSockets) {
+        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
+        if (socketAttachment && memberEmails.has(socketAttachment.userEmail)) {
+          try {
+            socket.send(outgoing);
+          } catch {
+            // Socket may be closed
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error broadcasting membership event:", error);
     }
   }
 

@@ -1,10 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
-import { channelMembers, channels, getDb } from "../db/index.js";
-import type { Bindings, Variables } from "../types.js";
+import { channelMembers, channels, getDb, users } from "../db/index.js";
+import type { Env } from "../types.js";
 
-const channelsRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const channelsRoute = new Hono<Env>();
 
 channelsRoute.get("/api/channels", requireUser, async (c) => {
   try {
@@ -15,6 +15,69 @@ channelsRoute.get("/api/channels", requireUser, async (c) => {
   } catch (error) {
     console.error("Error fetching channels:", error);
     return c.json({ error: "Failed to fetch channels" }, 500);
+  }
+});
+
+channelsRoute.get("/api/channels/memberships", requireUser, async (c) => {
+  try {
+    const db = getDb(c.env.DB);
+    const user = c.get("user");
+
+    const allChannels = await db.select().from(channels);
+    const memberships = await db
+      .select({ channelId: channelMembers.channelId })
+      .from(channelMembers)
+      .where(eq(channelMembers.userEmail, user.email));
+
+    const myChannelIds = new Set(memberships.map((m) => m.channelId));
+    const myChannels = allChannels.filter((ch) => myChannelIds.has(ch.id));
+    const otherChannels = allChannels.filter((ch) => !myChannelIds.has(ch.id));
+
+    return c.json({ myChannels, otherChannels });
+  } catch (error) {
+    console.error("Error fetching memberships:", error);
+    return c.json({ error: "Failed to fetch memberships" }, 500);
+  }
+});
+
+channelsRoute.get("/api/channels/:id/members", requireUser, async (c) => {
+  try {
+    const db = getDb(c.env.DB);
+    const user = c.get("user");
+
+    const channelId = Number(c.req.param("id"));
+    if (Number.isNaN(channelId)) {
+      return c.json({ error: "Invalid channel ID" }, 400);
+    }
+
+    const channel = await db.select().from(channels).where(eq(channels.id, channelId));
+    if (channel.length === 0) {
+      return c.json({ error: "Channel not found" }, 404);
+    }
+
+    const memberships = await db
+      .select({ userEmail: channelMembers.userEmail })
+      .from(channelMembers)
+      .where(eq(channelMembers.channelId, channelId));
+
+    const isMember = memberships.some((m) => m.userEmail === user.email);
+    if (!isMember) {
+      return c.json({ error: "Not a member of this channel" }, 403);
+    }
+
+    const memberEmails = memberships.map((m) => m.userEmail);
+    const memberUsers =
+      memberEmails.length > 0
+        ? await db
+            .select({ email: users.email, name: users.name })
+            .from(users)
+            .where(inArray(users.email, memberEmails))
+        : [];
+
+    return c.json({ members: memberUsers });
+  } catch (error) {
+    console.error("Error fetching channel members:", error);
+    return c.json({ error: "Failed to fetch channel members" }, 500);
   }
 });
 

@@ -1,10 +1,10 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
-import { getDb, messages } from "../db/index.js";
-import type { Bindings, Variables } from "../types.js";
+import { channelMembers, getDb, messages } from "../db/index.js";
+import type { Env } from "../types.js";
 
-const messagesRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const messagesRoute = new Hono<Env>();
 
 messagesRoute.get("/api/messages", requireUser, async (c) => {
   try {
@@ -19,6 +19,17 @@ messagesRoute.get("/api/messages", requireUser, async (c) => {
     }
 
     const db = getDb(c.env.DB);
+    const user = c.get("user");
+
+    const membership = await db
+      .select()
+      .from(channelMembers)
+      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email)));
+
+    if (membership.length === 0) {
+      return c.json({ error: "Not a member of this channel" }, 403);
+    }
+
     const latestMessages = await db
       .select()
       .from(messages)

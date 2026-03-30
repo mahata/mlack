@@ -4,6 +4,10 @@ on:
   push:
     branches: [prod]
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-24.04
