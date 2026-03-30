@@ -153,9 +153,40 @@ pnpm lint:fix
    pnpm run deploy
    ```
 
-### Subsequent Deployments
+### Automated Deployment (CI/CD)
 
-After the initial setup, deploy with:
+Production deployments are automated via GitHub Actions. Pushing to the `prod` branch triggers the deployment pipeline defined in `.github/workflows/deploy.yml`.
+
+**Pipeline overview:**
+
+1. **`test` job** — Runs unit tests, linter, and full build
+2. **`e2e` job** — Runs Playwright E2E tests (in parallel with `test`)
+3. **`deploy` job** — Applies D1 migrations and deploys to Cloudflare Workers (only runs after both `test` and `e2e` pass)
+
+**Typical workflow:**
+
+```bash
+# Merge main into prod to trigger a deployment
+git checkout prod
+git merge main
+git push origin prod
+```
+
+**Required GitHub secret:**
+
+The deploy job authenticates with Cloudflare using the `CLOUDFLARE_API_TOKEN` repository secret. To set it up:
+
+1. Go to [Cloudflare Dashboard > API Tokens](https://dash.cloudflare.com/profile/api-tokens) and create a token with these permissions:
+   - **Workers Scripts: Edit**
+   - **D1: Edit**
+   - **Account Settings: Read**
+2. Add the token as `CLOUDFLARE_API_TOKEN` in your GitHub repository under **Settings > Secrets and variables > Actions > New repository secret**
+
+The E2E job reuses the existing `SESSION_SECRET`, `E2E_GMAIL_ACCOUNT`, and `E2E_GMAIL_PASSWORD` secrets already configured for CI.
+
+### Manual Deployment
+
+You can still deploy manually if needed:
 
 ```bash
 pnpm run deploy

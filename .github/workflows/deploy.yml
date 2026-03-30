@@ -1,0 +1,113 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [prod]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test:run
+
+      - name: Run linter (without build artifacts)
+        run: rm -rf dist && rm -f hono/static/*.js hono/static/*.js.map && pnpm lint
+
+      - name: Run build
+        run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build JavaScript files
+        run: pnpm build
+
+      - name: Run database migrations
+        run: pnpm db:migrate
+
+      - name: Seed database
+        run: pnpm db:seed
+
+      - name: Run Playwright tests
+        env:
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          E2E_GMAIL_ACCOUNT: ${{ secrets.E2E_GMAIL_ACCOUNT }}
+          E2E_GMAIL_PASSWORD: ${{ secrets.E2E_GMAIL_PASSWORD }}
+        run: pnpm test:e2e
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  deploy:
+    needs: [test, e2e]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply D1 database migrations
+        run: pnpm db:migrate:prod
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deploy to Cloudflare Workers
+        run: pnpm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
