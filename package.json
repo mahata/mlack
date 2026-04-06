@@ -34,7 +34,7 @@
   "packageManager": "pnpm@10.12.4",
   "dependencies": {
     "@hono/oauth-providers": "^0.8.5",
-    "drizzle-orm": "^0.45.0",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.12.11",
     "hono-sessions": "^0.8.1"
   },
