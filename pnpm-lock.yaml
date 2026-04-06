@@ -10,16 +10,16 @@ importers:
     dependencies:
       '@hono/oauth-providers':
         specifier: ^0.8.5
-        version: 0.8.5(hono@4.12.9)
+        version: 0.8.5(hono@4.12.11)
       drizzle-orm:
         specifier: ^0.45.0
         version: 0.45.1(@cloudflare/workers-types@4.20260329.1)(@libsql/client-wasm@0.15.10)(@libsql/client@0.17.2)(@types/pg@8.20.0)(better-sqlite3@12.8.0)(pg@8.20.0)
       hono:
-        specifier: ^4.12.9
-        version: 4.12.9
+        specifier: ^4.12.11
+        version: 4.12.11
       hono-sessions:
         specifier: ^0.8.1
-        version: 0.8.1(hono@4.12.9)
+        version: 0.8.1(hono@4.12.11)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.9
@@ -1125,6 +1125,9 @@ packages:
   '@types/node@24.12.0':
     resolution: {integrity: sha512-GYDxsZi3ChgmckRT9HPU0WEhKLP08ev/Yfcq2AstjrDASOYCSXeyjDsHg4v5t4jOj7cyDX3vmprafKlWIG9MXQ==}
 
+  '@types/node@24.12.2':
+    resolution: {integrity: sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==}
+
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
 
@@ -1420,8 +1423,8 @@ packages:
     peerDependencies:
       hono: ^4.0.0
 
-  hono@4.12.9:
-    resolution: {integrity: sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA==}
+  hono@4.12.11:
+    resolution: {integrity: sha512-r4xbIa3mGGGoH9nN4A14DOg2wx7y2oQyJEb5O57C/xzETG/qx4c7CVDQ5WMeKHZ7ORk2W0hZ/sQKXTav3cmYBA==}
     engines: {node: '>=16.9.0'}
 
   ieee754@1.2.1:
@@ -2248,9 +2251,9 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
-  '@hono/oauth-providers@0.8.5(hono@4.12.9)':
+  '@hono/oauth-providers@0.8.5(hono@4.12.11)':
     dependencies:
-      hono: 4.12.9
+      hono: 4.12.11
 
   '@img/colour@1.1.0': {}
 
@@ -2525,9 +2528,14 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/node@24.12.2':
+    dependencies:
+      undici-types: 7.16.0
+    optional: true
+
   '@types/pg@8.20.0':
     dependencies:
-      '@types/node': 24.12.0
+      '@types/node': 24.12.2
       pg-protocol: 1.13.0
       pg-types: 2.2.0
     optional: true
@@ -2832,13 +2840,13 @@ snapshots:
   github-from-package@0.0.0:
     optional: true
 
-  hono-sessions@0.8.1(hono@4.12.9):
+  hono-sessions@0.8.1(hono@4.12.11):
     dependencies:
-      hono: 4.12.9
+      hono: 4.12.11
       iron-webcrypto: 1.2.1
       ohash: 2.0.11
 
-  hono@4.12.9: {}
+  hono@4.12.11: {}
 
   ieee754@1.2.1:
     optional: true
