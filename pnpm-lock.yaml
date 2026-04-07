@@ -2529,6 +2529,7 @@ snapshots:
   '@types/node@24.12.2':
     dependencies:
       undici-types: 7.16.0
+    optional: true
 
   '@types/pg@8.20.0':
     dependencies:
