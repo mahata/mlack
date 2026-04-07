@@ -22,7 +22,10 @@
     "db:studio": "drizzle-kit studio",
     "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote --env production",
     "db:seed:prod": "wrangler d1 execute mlack-db --remote --env production --file=hono/db/seed.sql",
-    "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production"
+    "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production",
+    "electron:dev": "pnpm run --filter mlack-desktop dev",
+    "electron:build": "pnpm run --filter mlack-desktop build",
+    "electron:package": "pnpm run --filter mlack-desktop package"
   },
   "keywords": [
     "hono",
@@ -32,6 +35,14 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild",
+      "workerd"
+    ]
+  },
   "dependencies": {
     "@hono/oauth-providers": "^0.8.5",
     "drizzle-orm": "^0.45.2",
