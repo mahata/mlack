@@ -1,28 +1,39 @@
 import { Notification, ipcMain } from "electron";
 import type { BrowserWindow } from "electron";
 
+let notificationWindow: BrowserWindow | null = null;
+let hasRegisteredShowNotificationListener = false;
+
 export function setupNotifications(mainWindow: BrowserWindow): void {
-  ipcMain.on("show-notification", (_event, data: { title: string; body: string; channelId?: number }) => {
-    if (mainWindow.isFocused()) {
-      return;
-    }
+  notificationWindow = mainWindow;
 
-    const notification = new Notification({
-      title: data.title,
-      body: data.body,
-      silent: false,
-    });
+  if (!hasRegisteredShowNotificationListener) {
+    ipcMain.on("show-notification", (_event, data: { title: string; body: string; channelId?: number }) => {
+      const currentWindow = notificationWindow;
 
-    notification.on("click", () => {
-      mainWindow.show();
-      mainWindow.focus();
-      if (data.channelId !== undefined) {
-        mainWindow.webContents.send("notification-clicked", data.channelId);
+      if (!currentWindow || currentWindow.isFocused()) {
+        return;
       }
+
+      const notification = new Notification({
+        title: data.title,
+        body: data.body,
+        silent: false,
+      });
+
+      notification.on("click", () => {
+        currentWindow.show();
+        currentWindow.focus();
+        if (data.channelId !== undefined) {
+          currentWindow.webContents.send("notification-clicked", data.channelId);
+        }
+      });
+
+      notification.show();
     });
 
-    notification.show();
-  });
+    hasRegisteredShowNotificationListener = true;
+  }
 
   mainWindow.webContents.on("did-finish-load", () => {
     mainWindow.webContents.executeJavaScript(`
