@@ -25,6 +25,9 @@ new_sqlite_classes = ["ChatRoom"]
 NODE_ENV = "development"
 
 [env.production]
+routes = [
+  { pattern = "mlack.uk", custom_domain = true }
+]
 
 [env.production.vars]
 NODE_ENV = "production"
