@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 let tray: Tray | null = null;
 
 export function createTray(mainWindow: BrowserWindow): void {
+  destroyTray();
   const iconPath = path.join(__dirname, "..", "assets", "icon.png");
   let trayIcon: Electron.NativeImage;
 
