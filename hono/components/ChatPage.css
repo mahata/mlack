@@ -32,6 +32,9 @@ body {
 .sidebar-header {
   padding: 16px;
   border-bottom: 1px solid #35373b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .sidebar-header h2 {
@@ -466,4 +469,82 @@ body {
 
 .reconnecting {
   color: #ff9800;
+}
+
+/* Create workspace button */
+.create-workspace-button {
+  background: none;
+  border: 1px solid #ababad;
+  color: #ababad;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.create-workspace-button:hover {
+  background-color: #35373b;
+  color: #fff;
+  border-color: #fff;
+}
+
+/* Workspace modal extras */
+.modal-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ababad;
+  margin-bottom: 6px;
+}
+
+.slug-preview {
+  font-size: 12px;
+  color: #ababad;
+  margin-bottom: 16px;
+}
+
+.slug-preview-value {
+  color: #1164a3;
+  font-weight: 600;
+}
+
+.modal-error {
+  font-size: 13px;
+  color: #e0143c;
+  margin-bottom: 12px;
+}
+
+.modal-error.hidden {
+  display: none;
+}
+
+#cancelCreateWorkspace {
+  background-color: transparent;
+  color: #ababad;
+  border: 1px solid #35373b;
+}
+
+#cancelCreateWorkspace:hover {
+  background-color: #35373b;
+}
+
+#confirmCreateWorkspace {
+  background-color: #007a5a;
+  color: #fff;
+}
+
+#confirmCreateWorkspace:hover {
+  background-color: #005e46;
+}
+
+#confirmCreateWorkspace:disabled {
+  background-color: #35373b;
+  color: #ababad;
+  cursor: not-allowed;
 }
