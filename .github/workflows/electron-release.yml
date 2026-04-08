@@ -36,7 +36,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           TAG_NAME="electron-v${VERSION}"
-          if gh api "/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG_NAME}" > /dev/null 2>&1; then
+          if git ls-remote --exit-code --tags "https://github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${TAG_NAME}" > /dev/null 2>&1; then
             echo "Tag ${TAG_NAME} already exists"
             exit 1
           fi
