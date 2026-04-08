@@ -1,0 +1,146 @@
+name: Electron Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: electron-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Validate version format
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+            echo "Invalid version: $VERSION"
+            exit 1
+          }
+
+      - name: Check tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          TAG_NAME="electron-v${VERSION}"
+          if git ls-remote --exit-code --tags "https://github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${TAG_NAME}" > /dev/null 2>&1; then
+            echo "Tag ${TAG_NAME} already exists"
+            exit 1
+          fi
+
+          if gh release view "${TAG_NAME}" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release ${TAG_NAME} already exists"
+            exit 1
+          fi
+
+  build:
+    needs: [validate]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            package-script: package:mac
+            artifact-name: electron-mac
+            artifact-path: electron/release/*.dmg
+          - os: windows-latest
+            package-script: package:win
+            artifact-name: electron-win
+            artifact-path: electron/release/*.exe
+          - os: ubuntu-24.04
+            package-script: package:linux
+            artifact-name: electron-linux
+            artifact-path: electron/release/*.AppImage
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Update electron package version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: cd electron && npm version --no-git-tag-version "$VERSION"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and package
+        run: pnpm run --filter mlack-desktop ${{ matrix.package-script }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-path }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: electron-mac
+          path: artifacts/mac
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: electron-win
+          path: artifacts/win
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: electron-linux
+          path: artifacts/linux
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          TAG_NAME="electron-v${VERSION}"
+          gh release create "$TAG_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "MLack Desktop v${VERSION}" \
+            --generate-notes \
+            artifacts/mac/*.dmg \
+            artifacts/win/*.exe \
+            artifacts/linux/*.AppImage
