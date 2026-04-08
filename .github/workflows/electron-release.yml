@@ -89,10 +89,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Update electron package version
-        shell: bash
         env:
           VERSION: ${{ inputs.version }}
-        run: pnpm --dir electron version --no-git-tag-version "$VERSION"
+        run: node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('electron/package.json','utf8'));p.version=process.env.VERSION;fs.writeFileSync('electron/package.json',JSON.stringify(p,null,2)+String.fromCharCode(10))"
 
       - name: Build and package
         run: pnpm run --filter mlack-desktop ${{ matrix.package-script }}
