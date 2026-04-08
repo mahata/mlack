@@ -471,6 +471,14 @@ body {
   color: #ff9800;
 }
 
+/* Workspace back link */
+.workspace-back-link {
+  overflow: hidden;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
 /* Create workspace button */
 .create-workspace-button {
   background: none;
