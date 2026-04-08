@@ -30,13 +30,19 @@ jobs:
             exit 1
           }
 
-      - name: Check tag does not already exist
+      - name: Check tag and release do not already exist
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
-          if gh release view "electron-v${VERSION}" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            echo "Release electron-v${VERSION} already exists"
+          TAG_NAME="electron-v${VERSION}"
+          if gh api "/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG_NAME}" > /dev/null 2>&1; then
+            echo "Tag ${TAG_NAME} already exists"
+            exit 1
+          fi
+
+          if gh release view "${TAG_NAME}" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release ${TAG_NAME} already exists"
             exit 1
           fi
 
