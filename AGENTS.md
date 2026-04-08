@@ -152,6 +152,16 @@ routeHandler.get("/path", async (c) => {
 - Use `loginWithMock(page)` helper for authentication.
 - Selectors: CSS classes (`.user-email`) and IDs (`#messageInput`).
 
+## Copilot CLI Reviews
+
+After completing a task (not after every individual file edit), you must run:
+
+```shell
+copilot -p 'Review @path/to/file for security, efficiency, and readability. Suggest specific improvements.' --model gpt-5.4 -s
+```
+
+Replace `path/to/file` with the actual file path (for example, `hono/routes/health.ts`). Run this for each file that was created or modified during the task. If Copilot finds issues, refactor the code and repeat the review for the affected files.
+
 ## Git Conventions
 
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, etc.
