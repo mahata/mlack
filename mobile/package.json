@@ -1,0 +1,22 @@
+{
+  "name": "mlack-mobile",
+  "version": "1.0.0",
+  "description": "MLack mobile client",
+  "type": "module",
+  "scripts": {
+    "cap:sync": "cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:run:ios": "cap run ios",
+    "cap:run:android": "cap run android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "typescript": "^5.9.3"
+  }
+}

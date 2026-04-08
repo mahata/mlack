@@ -25,7 +25,10 @@
     "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production",
     "electron:dev": "pnpm run --filter mlack-desktop dev",
     "electron:build": "pnpm run --filter mlack-desktop build",
-    "electron:package": "pnpm run --filter mlack-desktop package"
+    "electron:package": "pnpm run --filter mlack-desktop package",
+    "mobile:sync": "pnpm run --filter mlack-mobile cap:sync",
+    "mobile:ios": "pnpm run --filter mlack-mobile cap:open:ios",
+    "mobile:android": "pnpm run --filter mlack-mobile cap:open:android"
   },
   "keywords": [
     "hono",

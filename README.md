@@ -200,6 +200,8 @@ pnpm db:migrate:prod
 ```
 mlack/
 ├── e2e/                    # Playwright E2E tests
+├── electron/               # Electron desktop app wrapper
+│   └── src/main.ts         # Electron entry point (loads remote URL)
 ├── hono/                   # Application source
 │   ├── auth/               # Password hashing, email verification utilities
 │   ├── components/         # Server-rendered JSX pages + CSS
@@ -212,6 +214,11 @@ mlack/
 │   ├── index.ts            # Entry point (exports app + Durable Objects)
 │   ├── testApp.ts          # Test helper with mock session
 │   └── types.ts            # Shared types (User, Bindings, Variables)
+├── mobile/                 # Capacitor mobile app (iOS + Android)
+│   ├── android/            # Android Studio project
+│   ├── ios/                # Xcode project
+│   ├── www/                # Local fallback / loading page
+│   └── capacitor.config.ts # Capacitor configuration
 ├── wrangler.toml           # Cloudflare Workers configuration
 ├── package.json            # Dependencies and scripts
 ├── playwright.config.ts    # Playwright configuration
@@ -219,6 +226,40 @@ mlack/
 ├── vitest.config.ts        # Vitest configuration
 └── biome.json              # Biome linter/formatter configuration
 ```
+
+## Mobile App (iOS & Android)
+
+mlack includes a [Capacitor](https://capacitorjs.com/) mobile wrapper in the `mobile/` workspace. Like the Electron desktop app, it loads the remote web app (`https://mlack.uk`) inside a native WebView.
+
+### Prerequisites
+
+- **iOS**: macOS with Xcode 16+ and the Xcode Command Line Tools
+- **Android**: [Android Studio](https://developer.android.com/studio) (use its bundled JDK — system Java 25+ causes Gradle issues)
+
+### Running
+
+```bash
+# Sync web assets and native config to both platforms
+pnpm mobile:sync
+
+# Open in Xcode (build and run from there)
+pnpm mobile:ios
+
+# Open in Android Studio (build and run from there)
+pnpm mobile:android
+```
+
+### Configuration
+
+`mobile/capacitor.config.ts` controls the remote URL:
+
+- **Production**: loads `https://mlack.uk`
+- **Development**: set `NODE_ENV=development` to load `http://localhost:8787` (requires `pnpm dev` running)
+
+### Known Limitations
+
+- Apple may reject thin WebView wrappers that only load a remote URL. For App Store submission, a hybrid approach (local shell + remote content) will be needed.
+- Android CLI builds (`npx cap sync android`) may fail with Java 25+. Use Android Studio's bundled JDK (Java 21) instead.
 
 ## Technology Stack
 
@@ -229,6 +270,8 @@ mlack/
 - **Language**: TypeScript
 - **Testing**: [Vitest](https://vitest.dev/) for unit tests, [Playwright](https://playwright.dev/) for E2E tests
 - **Linting**: [Biome](https://biomejs.dev/)
+- **Mobile**: [Capacitor](https://capacitorjs.com/) (iOS + Android)
+- **Desktop**: [Electron](https://www.electronjs.org/)
 - **Package Manager**: pnpm
 
 ## API Endpoints
