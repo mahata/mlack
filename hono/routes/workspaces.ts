@@ -58,13 +58,6 @@ workspacesRoute.post("/api/workspaces", requireUser, async (c) => {
       return c.json({ error: "Workspace slug already exists" }, 409);
     }
 
-    const isAdminAnywhere = await db.select().from(workspaceMembers).where(eq(workspaceMembers.userEmail, user.email));
-
-    const hasAdminRole = isAdminAnywhere.some((m) => m.role === "admin");
-    if (!hasAdminRole) {
-      return c.json({ error: "Only workspace admins can create new workspaces" }, 403);
-    }
-
     const [created] = await db.insert(workspaces).values({ name, slug, createdByEmail: user.email }).returning();
 
     await db.insert(workspaceMembers).values({
