@@ -4,7 +4,7 @@ Coding agent guide for the **mlack** repository — a real-time Slack-like chat 
 
 ## Build / Lint / Test Commands
 
-Package manager is **pnpm** (v10.12.4). Node 22.
+Package manager is **pnpm** (v10.12.4). Node 24.
 
 ```bash
 pnpm install                  # Install dependencies
@@ -151,6 +151,16 @@ routeHandler.get("/path", async (c) => {
 - Files in `e2e/` with `.spec.ts` extension.
 - Use `loginWithMock(page)` helper for authentication.
 - Selectors: CSS classes (`.user-email`) and IDs (`#messageInput`).
+
+## Copilot CLI Reviews
+
+After completing a task (not after every individual file edit), you must run:
+
+```shell
+copilot -p 'Review @path/to/file for security, efficiency, and readability. Suggest specific improvements.' --model gpt-5.4 -s
+```
+
+Replace `path/to/file` with the actual file path (for example, `hono/routes/health.ts`). Run this for each file that was created or modified during the task. If Copilot finds issues, refactor the code and repeat the review for the affected files.
 
 ## Git Conventions
 

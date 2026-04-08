@@ -4,7 +4,7 @@ import type { Env, User } from "../types.js";
 export function createWsRoute() {
   const ws = new Hono<Env>();
 
-  ws.get("/ws", async (c) => {
+  ws.get("/w/:slug/ws", async (c) => {
     const upgradeHeader = c.req.header("Upgrade");
     if (!upgradeHeader || upgradeHeader !== "websocket") {
       return c.text("Expected Upgrade: websocket", 426);
@@ -17,7 +17,8 @@ export function createWsRoute() {
       return c.text("Unauthorized", 401);
     }
 
-    const stub = c.env.CHAT_ROOM.getByName("main");
+    const workspace = c.get("workspace")!;
+    const stub = c.env.CHAT_ROOM.getByName(workspace.slug);
 
     const url = new URL(c.req.url);
     url.searchParams.set("userEmail", user.email);

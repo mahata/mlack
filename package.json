@@ -22,7 +22,10 @@
     "db:studio": "drizzle-kit studio",
     "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote --env production",
     "db:seed:prod": "wrangler d1 execute mlack-db --remote --env production --file=hono/db/seed.sql",
-    "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production"
+    "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production",
+    "electron:dev": "pnpm run --filter mlack-desktop dev",
+    "electron:build": "pnpm run --filter mlack-desktop build",
+    "electron:package": "pnpm run --filter mlack-desktop package"
   },
   "keywords": [
     "hono",
@@ -31,23 +34,30 @@
   ],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.12.4",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild",
+      "workerd"
+    ]
+  },
   "dependencies": {
     "@hono/oauth-providers": "^0.8.5",
-    "drizzle-orm": "^0.45.0",
-    "hono": "^4.12.9",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.12",
     "hono-sessions": "^0.8.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.9",
-    "@cloudflare/workers-types": "^4.20260317.1",
+    "@biomejs/biome": "^2.4.10",
+    "@cloudflare/workers-types": "^4.20260405.1",
     "@libsql/client": "^0.17.2",
-    "@playwright/test": "^1.58.2",
-    "@types/node": "^24.12.0",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^24.12.2",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "wrangler": "^4.77.0"
+    "wrangler": "^4.80.0"
   }
 }

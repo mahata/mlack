@@ -1,0 +1,47 @@
+{
+  "name": "mlack-desktop",
+  "version": "1.0.0",
+  "description": "MLack desktop client",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc && electron dist/main.js --dev",
+    "build": "tsc",
+    "package": "tsc && electron-builder",
+    "package:mac": "tsc && electron-builder --mac",
+    "package:win": "tsc && electron-builder --win",
+    "package:linux": "tsc && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.mlack.desktop",
+    "productName": "MLack",
+    "publish": null,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "icon": "assets/icon.icns",
+      "target": ["dmg"]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": ["nsis"]
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": ["AppImage"],
+      "category": "Network"
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^39.8.5",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.9.3"
+  }
+}

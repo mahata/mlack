@@ -4,6 +4,9 @@ on:
   push:
     branches: [prod]
 
+permissions:
+  contents: read
+
 concurrency:
   group: production-deploy
   cancel-in-progress: false
@@ -16,8 +19,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -45,8 +50,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -88,13 +95,17 @@ jobs:
   deploy:
     needs: [test, e2e]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -117,3 +128,21 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Fetch existing deploy tags
+        run: git fetch --tags --force
+
+      - name: Create deployment tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG_NAME="deploy-$(date -u +%Y-%m-%d)-$(git rev-parse --short HEAD)-${GITHUB_RUN_ID}"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
+          PREVIOUS_TAG=$(git tag -l 'deploy-*' --sort=-creatordate | sed -n '2p' || true)
+          if [ -n "$PREVIOUS_TAG" ]; then
+            gh release create "$TAG_NAME" --generate-notes --notes-start-tag "$PREVIOUS_TAG" --title "$TAG_NAME"
+          else
+            gh release create "$TAG_NAME" --generate-notes --title "$TAG_NAME"
+          fi
