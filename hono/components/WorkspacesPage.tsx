@@ -26,10 +26,14 @@ export async function WorkspacesPage(user: User, workspaceList: WorkspaceWithRol
             </div>
           </div>
 
+          <button type="button" id="createWorkspaceButton" className="create-workspace-button">
+            + Create Workspace
+          </button>
+
           {workspaceList.length === 0 ? (
             <div className="empty-state">
               <p>You are not a member of any workspaces yet.</p>
-              <p>Ask an admin for an invite link to join a workspace.</p>
+              <p>Create a new workspace or ask someone for an invite link.</p>
             </div>
           ) : (
             <ul className="workspace-list">
@@ -45,6 +49,40 @@ export async function WorkspacesPage(user: User, workspaceList: WorkspaceWithRol
             </ul>
           )}
         </div>
+
+        <div
+          id="createWorkspaceModal"
+          className="modal hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="createWorkspaceTitle"
+        >
+          <div className="modal-content">
+            <h3 id="createWorkspaceTitle">Create Workspace</h3>
+            <label className="modal-label" htmlFor="workspaceName">
+              Name
+            </label>
+            <input type="text" id="workspaceName" placeholder="My Workspace" />
+            <label className="modal-label" htmlFor="workspaceSlug">
+              Slug
+            </label>
+            <input type="text" id="workspaceSlug" placeholder="my-workspace" />
+            <p className="slug-preview" id="slugPreview">
+              URL: /w/<span id="slugPreviewValue">...</span>
+            </p>
+            <p className="modal-error hidden" id="createWorkspaceError" />
+            <div className="modal-actions">
+              <button type="button" id="cancelCreateWorkspace">
+                Cancel
+              </button>
+              <button type="button" id="confirmCreateWorkspace">
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <script src="/static/WorkspacesPage.js"></script>
       </body>
     </html>
   );
