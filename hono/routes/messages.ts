@@ -1,12 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { requireUser } from "../auth/requireUser.js";
-import { channelMembers, getDb, messages } from "../db/index.js";
+import { channelMembers, channels, getDb, messages } from "../db/index.js";
 import type { Env } from "../types.js";
 
 const messagesRoute = new Hono<Env>();
 
-messagesRoute.get("/api/messages", requireUser, async (c) => {
+messagesRoute.get("/w/:slug/api/messages", async (c) => {
   try {
     const channelIdParam = c.req.query("channelId");
     if (!channelIdParam) {
@@ -20,6 +19,15 @@ messagesRoute.get("/api/messages", requireUser, async (c) => {
 
     const db = getDb(c.env.DB);
     const user = c.get("user");
+    const workspace = c.get("workspace");
+
+    const channel = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspace.id)));
+    if (channel.length === 0) {
+      return c.json({ error: "Channel not found in this workspace" }, 404);
+    }
 
     const membership = await db
       .select()

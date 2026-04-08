@@ -1,15 +1,16 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
-import { requireUser } from "../auth/requireUser.js";
 import { channelMembers, channels, getDb, users } from "../db/index.js";
 import type { Env } from "../types.js";
 
 const channelsRoute = new Hono<Env>();
 
-channelsRoute.get("/api/channels", requireUser, async (c) => {
+channelsRoute.get("/w/:slug/api/channels", async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const allChannels = await db.select().from(channels);
+    const workspace = c.get("workspace");
+
+    const allChannels = await db.select().from(channels).where(eq(channels.workspaceId, workspace.id));
 
     return c.json({ channels: allChannels });
   } catch (error) {
@@ -18,12 +19,13 @@ channelsRoute.get("/api/channels", requireUser, async (c) => {
   }
 });
 
-channelsRoute.get("/api/channels/memberships", requireUser, async (c) => {
+channelsRoute.get("/w/:slug/api/channels/memberships", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
+    const workspace = c.get("workspace");
 
-    const allChannels = await db.select().from(channels);
+    const allChannels = await db.select().from(channels).where(eq(channels.workspaceId, workspace.id));
     const memberships = await db
       .select({ channelId: channelMembers.channelId })
       .from(channelMembers)
@@ -40,17 +42,21 @@ channelsRoute.get("/api/channels/memberships", requireUser, async (c) => {
   }
 });
 
-channelsRoute.get("/api/channels/:id/members", requireUser, async (c) => {
+channelsRoute.get("/w/:slug/api/channels/:id/members", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
+    const workspace = c.get("workspace");
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
       return c.json({ error: "Invalid channel ID" }, 400);
     }
 
-    const channel = await db.select().from(channels).where(eq(channels.id, channelId));
+    const channel = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspace.id)));
     if (channel.length === 0) {
       return c.json({ error: "Channel not found" }, 404);
     }
@@ -81,10 +87,11 @@ channelsRoute.get("/api/channels/:id/members", requireUser, async (c) => {
   }
 });
 
-channelsRoute.post("/api/channels", requireUser, async (c) => {
+channelsRoute.post("/w/:slug/api/channels", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
+    const workspace = c.get("workspace");
 
     const body = await c.req.json();
     const name = body.name?.trim();
@@ -93,12 +100,18 @@ channelsRoute.post("/api/channels", requireUser, async (c) => {
       return c.json({ error: "Channel name is required" }, 400);
     }
 
-    const existing = await db.select().from(channels).where(eq(channels.name, name));
+    const existing = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.workspaceId, workspace.id), eq(channels.name, name)));
     if (existing.length > 0) {
       return c.json({ error: "Channel name already exists" }, 409);
     }
 
-    const [created] = await db.insert(channels).values({ name, createdByEmail: user.email }).returning();
+    const [created] = await db
+      .insert(channels)
+      .values({ name, workspaceId: workspace.id, createdByEmail: user.email })
+      .returning();
 
     await db.insert(channelMembers).values({ channelId: created.id, userEmail: user.email });
 
@@ -109,17 +122,21 @@ channelsRoute.post("/api/channels", requireUser, async (c) => {
   }
 });
 
-channelsRoute.post("/api/channels/:id/join", requireUser, async (c) => {
+channelsRoute.post("/w/:slug/api/channels/:id/join", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
+    const workspace = c.get("workspace");
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
       return c.json({ error: "Invalid channel ID" }, 400);
     }
 
-    const channel = await db.select().from(channels).where(eq(channels.id, channelId));
+    const channel = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspace.id)));
     if (channel.length === 0) {
       return c.json({ error: "Channel not found" }, 404);
     }
@@ -142,17 +159,21 @@ channelsRoute.post("/api/channels/:id/join", requireUser, async (c) => {
   }
 });
 
-channelsRoute.post("/api/channels/:id/leave", requireUser, async (c) => {
+channelsRoute.post("/w/:slug/api/channels/:id/leave", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
+    const workspace = c.get("workspace");
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
       return c.json({ error: "Invalid channel ID" }, 400);
     }
 
-    const channel = await db.select().from(channels).where(eq(channels.id, channelId));
+    const channel = await db
+      .select()
+      .from(channels)
+      .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspace.id)));
     if (channel.length === 0) {
       return c.json({ error: "Channel not found" }, 404);
     }

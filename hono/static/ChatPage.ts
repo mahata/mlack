@@ -28,6 +28,8 @@ const UNAUTHORIZED_CLOSE_CODE = 1008;
 
 const container = document.querySelector("[data-ws-url]") as HTMLElement;
 const wsUrl = container.getAttribute("data-ws-url") as string;
+const workspaceSlug = container.getAttribute("data-workspace-slug") as string;
+const apiBase = `/w/${workspaceSlug}/api`;
 
 type Channel = {
   id: number;
@@ -75,7 +77,7 @@ async function loadMessagesForChannel(channelId: number): Promise<void> {
   const controller = new AbortController();
   const timeoutId = MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
   try {
-    const response = await fetch(`/api/messages?channelId=${channelId}`, { signal: controller.signal });
+    const response = await fetch(`${apiBase}/messages?channelId=${channelId}`, { signal: controller.signal });
     if (response.ok) {
       const data = (await response.json()) as {
         messages?: { content: string; userEmail: string; userName?: string }[];
@@ -104,7 +106,7 @@ async function loadMessagesForChannel(channelId: number): Promise<void> {
 
 async function fetchMemberships(): Promise<void> {
   try {
-    const response = await fetch("/api/channels/memberships");
+    const response = await fetch(`${apiBase}/channels/memberships`);
     if (response.ok) {
       const data = (await response.json()) as { myChannels?: Channel[]; otherChannels?: Channel[] };
       const myChannels = data.myChannels || [];
@@ -122,7 +124,7 @@ async function fetchMemberships(): Promise<void> {
 
 async function fetchChannelMembers(channelId: number): Promise<void> {
   try {
-    const response = await fetch(`/api/channels/${channelId}/members`);
+    const response = await fetch(`${apiBase}/channels/${channelId}/members`);
     if (response.ok) {
       const data = (await response.json()) as { members?: Member[] };
       currentMembers = data.members || [];
@@ -242,7 +244,7 @@ function notifyMembershipChange(type: "memberJoin" | "memberLeave", channelId: n
 
 async function joinChannel(channelId: number): Promise<void> {
   try {
-    const response = await fetch(`/api/channels/${channelId}/join`, { method: "POST" });
+    const response = await fetch(`${apiBase}/channels/${channelId}/join`, { method: "POST" });
     if (response.ok) {
       myChannelIds.add(channelId);
       notifyMembershipChange("memberJoin", channelId);
@@ -259,7 +261,7 @@ async function joinChannel(channelId: number): Promise<void> {
 
 async function leaveChannel(channelId: number): Promise<void> {
   try {
-    const response = await fetch(`/api/channels/${channelId}/leave`, { method: "POST" });
+    const response = await fetch(`${apiBase}/channels/${channelId}/leave`, { method: "POST" });
     if (response.ok) {
       myChannelIds.delete(channelId);
       notifyMembershipChange("memberLeave", channelId);
@@ -278,7 +280,7 @@ async function leaveChannel(channelId: number): Promise<void> {
 
 async function createChannel(name: string): Promise<void> {
   try {
-    const response = await fetch("/api/channels", {
+    const response = await fetch(`${apiBase}/channels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
@@ -299,7 +301,6 @@ async function createChannel(name: string): Promise<void> {
   }
 }
 
-// Toggle members panel
 toggleMembersButton.addEventListener("click", () => {
   membersPanelVisible = !membersPanelVisible;
   if (membersPanelVisible) {
@@ -311,7 +312,6 @@ toggleMembersButton.addEventListener("click", () => {
   }
 });
 
-// Modal handlers
 createChannelButton.addEventListener("click", () => {
   createChannelModal.classList.remove("hidden");
   newChannelNameInput.value = "";

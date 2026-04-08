@@ -25,7 +25,7 @@ test("App renders Hello, world! text", async ({ page }) => {
   await expect(page.locator("h1")).toContainText("Hello, world!");
 
   // Verify that the page title is correct
-  await expect(page).toHaveTitle("MLack - Real-time Chat");
+  await expect(page).toHaveTitle("Default - MLack");
 
   // Verify that the page contains chat interface elements
   await expect(page.locator("#messageInput")).toBeVisible();

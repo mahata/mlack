@@ -1,19 +1,28 @@
-import type { User } from "../types.js";
+import type { User, Workspace } from "../types.js";
 
-export async function ChatPage(wsUrl?: string, user?: User) {
+export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspace) {
+  const slug = workspace?.slug || "default";
+  const workspaceName = workspace?.name || "MLack";
+
   return (
     <html lang="en">
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>MLack - Real-time Chat</title>
+        <title>{workspaceName} - MLack</title>
         <link rel="stylesheet" href="/components/ChatPage.css" />
       </head>
       <body>
-        <div className="app-layout" data-ws-url={wsUrl || "ws://localhost:3000/ws"}>
+        <div
+          className="app-layout"
+          data-ws-url={wsUrl || "ws://localhost:3000/w/default/ws"}
+          data-workspace-slug={slug}
+        >
           <aside className="sidebar">
             <div className="sidebar-header">
-              <h2>MLack</h2>
+              <a href="/" className="workspace-back-link" title="All workspaces">
+                <h2>{workspaceName}</h2>
+              </a>
             </div>
             <div className="sidebar-channels">
               <div className="sidebar-section-header">
