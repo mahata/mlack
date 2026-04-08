@@ -19,7 +19,7 @@ messagesRoute.get("/w/:slug/api/messages", async (c) => {
 
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const channel = await db
       .select()

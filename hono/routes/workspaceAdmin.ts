@@ -12,7 +12,7 @@ const workspaceAdminRoute = new Hono<Env>();
 workspaceAdminRoute.post("/w/:slug/admin/invites", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
     const user = c.get("user");
 
     const code = crypto.randomUUID();
@@ -46,7 +46,7 @@ workspaceAdminRoute.post("/w/:slug/admin/invites", requireWorkspaceMember, requi
 workspaceAdminRoute.get("/w/:slug/admin/invites", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const invites = await db.select().from(workspaceInvites).where(eq(workspaceInvites.workspaceId, workspace.id));
 
@@ -63,7 +63,7 @@ workspaceAdminRoute.get("/w/:slug/admin/invites", requireWorkspaceMember, requir
 workspaceAdminRoute.delete("/w/:slug/admin/invites/:code", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
     const code = c.req.param("code");
 
     const deleted = await db
@@ -85,7 +85,7 @@ workspaceAdminRoute.delete("/w/:slug/admin/invites/:code", requireWorkspaceMembe
 workspaceAdminRoute.get("/w/:slug/admin/members", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const members = await db.select().from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspace.id));
 
@@ -99,7 +99,7 @@ workspaceAdminRoute.get("/w/:slug/admin/members", requireWorkspaceMember, requir
 workspaceAdminRoute.patch("/w/:slug/admin/members/:email", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
     const email = c.req.param("email");
 
     const body = await c.req.json();

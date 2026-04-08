@@ -8,7 +8,7 @@ const channelsRoute = new Hono<Env>();
 channelsRoute.get("/w/:slug/api/channels", async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const allChannels = await db.select().from(channels).where(eq(channels.workspaceId, workspace.id));
 
@@ -23,7 +23,7 @@ channelsRoute.get("/w/:slug/api/channels/memberships", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const allChannels = await db.select().from(channels).where(eq(channels.workspaceId, workspace.id));
     const memberships = await db
@@ -46,7 +46,7 @@ channelsRoute.get("/w/:slug/api/channels/:id/members", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
@@ -91,7 +91,7 @@ channelsRoute.post("/w/:slug/api/channels", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const body = await c.req.json();
     const name = body.name?.trim();
@@ -126,7 +126,7 @@ channelsRoute.post("/w/:slug/api/channels/:id/join", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {
@@ -163,7 +163,7 @@ channelsRoute.post("/w/:slug/api/channels/:id/leave", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
 
     const channelId = Number(c.req.param("id"));
     if (Number.isNaN(channelId)) {

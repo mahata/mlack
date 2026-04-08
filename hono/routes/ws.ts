@@ -17,7 +17,7 @@ export function createWsRoute() {
       return c.text("Unauthorized", 401);
     }
 
-    const workspace = c.get("workspace");
+    const workspace = c.get("workspace")!;
     const stub = c.env.CHAT_ROOM.getByName(workspace.slug);
 
     const url = new URL(c.req.url);

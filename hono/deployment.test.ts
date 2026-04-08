@@ -56,6 +56,12 @@ describe("Deployment compatibility", () => {
     expect(typeof WorkspacesPage).toBe("function");
   });
 
+  it("should be able to import InvitePage component", async () => {
+    const { InvitePage } = await import("./components/InvitePage.js");
+    expect(InvitePage).toBeDefined();
+    expect(typeof InvitePage).toBe("function");
+  });
+
   it("should export ChatRoom Durable Object from entry point", async () => {
     const { ChatRoom } = await import("./durableObjects/ChatRoom.js");
     expect(ChatRoom).toBeDefined();

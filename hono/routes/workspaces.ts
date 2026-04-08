@@ -13,26 +13,18 @@ workspacesRoute.get("/api/workspaces", requireUser, async (c) => {
     const db = getDb(c.env.DB);
     const user = c.get("user");
 
-    const memberships = await db
+    const userWorkspaces = await db
       .select({
-        workspaceId: workspaceMembers.workspaceId,
+        id: workspaces.id,
+        name: workspaces.name,
+        slug: workspaces.slug,
+        createdByEmail: workspaces.createdByEmail,
+        createdAt: workspaces.createdAt,
         role: workspaceMembers.role,
       })
       .from(workspaceMembers)
+      .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
       .where(eq(workspaceMembers.userEmail, user.email));
-
-    if (memberships.length === 0) {
-      return c.json({ workspaces: [] });
-    }
-
-    const workspaceIds = memberships.map((m) => m.workspaceId);
-    const allWorkspaces = await db.select().from(workspaces);
-    const userWorkspaces = allWorkspaces
-      .filter((w) => workspaceIds.includes(w.id))
-      .map((w) => {
-        const membership = memberships.find((m) => m.workspaceId === w.id);
-        return { ...w, role: membership?.role };
-      });
 
     return c.json({ workspaces: userWorkspaces });
   } catch (error) {

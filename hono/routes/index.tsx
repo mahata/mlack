@@ -28,10 +28,17 @@ index.get("/", async (c) => {
     if (memberships.length === 0) {
       const [defaultWorkspace] = await db.select().from(workspaces).where(eq(workspaces.slug, "default"));
       if (defaultWorkspace) {
+        const existingMembers = await db
+          .select({ userEmail: workspaceMembers.userEmail })
+          .from(workspaceMembers)
+          .where(eq(workspaceMembers.workspaceId, defaultWorkspace.id));
+
+        const role = existingMembers.length === 0 ? "admin" : "member";
+
         await db.insert(workspaceMembers).values({
           workspaceId: defaultWorkspace.id,
           userEmail: user.email,
-          role: "member",
+          role,
         });
         return c.redirect(`/w/${defaultWorkspace.slug}`);
       }
@@ -45,14 +52,18 @@ index.get("/", async (c) => {
       }
     }
 
-    const allWorkspaces = await db.select().from(workspaces);
-    const workspaceIds = new Set(memberships.map((m) => m.workspaceId));
-    const userWorkspaces = allWorkspaces
-      .filter((w) => workspaceIds.has(w.id))
-      .map((w) => {
-        const membership = memberships.find((m) => m.workspaceId === w.id);
-        return { ...w, role: membership?.role ?? "member" };
-      });
+    const userWorkspaces = await db
+      .select({
+        id: workspaces.id,
+        name: workspaces.name,
+        slug: workspaces.slug,
+        createdByEmail: workspaces.createdByEmail,
+        createdAt: workspaces.createdAt,
+        role: workspaceMembers.role,
+      })
+      .from(workspaceMembers)
+      .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
+      .where(eq(workspaceMembers.userEmail, user.email));
 
     return renderPage(c, WorkspacesPage(user, userWorkspaces));
   } catch (error) {
@@ -62,14 +73,8 @@ index.get("/", async (c) => {
 });
 
 index.get("/w/:slug", async (c) => {
-  const session = c.get("session");
-  const user = session.get("user") as User | undefined;
-
-  if (!user) {
-    return c.redirect("/auth/login");
-  }
-
-  const workspace = c.get("workspace");
+  const user = c.get("user");
+  const workspace = c.get("workspace")!;
 
   const protoHeader = c.req.header("x-forwarded-proto");
   const protocol = protoHeader === "https" ? "wss:" : "ws:";

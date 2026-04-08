@@ -46,8 +46,8 @@ export type Bindings = {
 export type Variables = {
   session: Session;
   user: User;
-  workspace: Workspace;
-  workspaceMember: WorkspaceMember;
+  workspace?: Workspace;
+  workspaceMember?: WorkspaceMember;
 };
 
 export type Env = {
