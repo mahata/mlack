@@ -397,6 +397,8 @@
   }
 
   async function createWorkspace(): Promise<void> {
+    if (confirmCreateWorkspace.disabled) return;
+
     const name = workspaceNameInput.value.trim();
     const slug = workspaceSlugInput.value.trim();
 

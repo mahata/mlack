@@ -28,6 +28,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                 id="createWorkspaceButton"
                 className="create-workspace-button"
                 title="Create workspace"
+                aria-label="Create workspace"
               >
                 +
               </button>
@@ -35,7 +36,13 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
             <div className="sidebar-channels">
               <div className="sidebar-section-header">
                 <span>Channels</span>
-                <button type="button" id="createChannelButton" className="create-channel-button" title="Create channel">
+                <button
+                  type="button"
+                  id="createChannelButton"
+                  className="create-channel-button"
+                  title="Create channel"
+                  aria-label="Create channel"
+                >
                   +
                 </button>
               </div>
