@@ -91,7 +91,7 @@ jobs:
       - name: Update electron package version
         env:
           VERSION: ${{ inputs.version }}
-        run: node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('electron/package.json','utf8'));p.version=process.env.VERSION;fs.writeFileSync('electron/package.json',JSON.stringify(p,null,2)+'\n')"
+        run: node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('electron/package.json','utf8'));p.version=process.env.VERSION;fs.writeFileSync('electron/package.json',JSON.stringify(p,null,2)+String.fromCharCode(10))"
 
       - name: Build and package
         run: pnpm run --filter mlack-desktop ${{ matrix.package-script }}
