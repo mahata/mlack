@@ -14,7 +14,8 @@ function generateSlug(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+    .slice(0, 40)
+    .replace(/^-+|-+$/g, "");
 }
 
 function updateSlugPreview(): void {
@@ -32,18 +33,25 @@ function hideError(): void {
   createWorkspaceError.classList.add("hidden");
 }
 
+function resetConfirmButton(): void {
+  confirmCreateWorkspace.disabled = false;
+  confirmCreateWorkspace.textContent = "Create";
+}
+
 function openModal(): void {
   createWorkspaceModal.classList.remove("hidden");
   workspaceNameInput.value = "";
   workspaceSlugInput.value = "";
   slugManuallyEdited = false;
   hideError();
+  resetConfirmButton();
   updateSlugPreview();
   workspaceNameInput.focus();
 }
 
 function closeModal(): void {
   createWorkspaceModal.classList.add("hidden");
+  resetConfirmButton();
 }
 
 async function createWorkspace(): Promise<void> {
@@ -124,5 +132,11 @@ workspaceNameInput.addEventListener("keypress", (e: KeyboardEvent) => {
 workspaceSlugInput.addEventListener("keypress", (e: KeyboardEvent) => {
   if (e.key === "Enter") {
     createWorkspace();
+  }
+});
+
+document.addEventListener("keydown", (e: KeyboardEvent) => {
+  if (e.key === "Escape" && !createWorkspaceModal.classList.contains("hidden")) {
+    closeModal();
   }
 });

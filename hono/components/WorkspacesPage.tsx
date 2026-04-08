@@ -50,9 +50,15 @@ export async function WorkspacesPage(user: User, workspaceList: WorkspaceWithRol
           )}
         </div>
 
-        <div id="createWorkspaceModal" className="modal hidden">
+        <div
+          id="createWorkspaceModal"
+          className="modal hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="createWorkspaceTitle"
+        >
           <div className="modal-content">
-            <h3>Create Workspace</h3>
+            <h3 id="createWorkspaceTitle">Create Workspace</h3>
             <label className="modal-label" htmlFor="workspaceName">
               Name
             </label>
