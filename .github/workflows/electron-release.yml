@@ -92,7 +92,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ inputs.version }}
-        run: cd electron && npm version --no-git-tag-version "$VERSION"
+        run: pnpm --dir electron version --no-git-tag-version "$VERSION"
 
       - name: Build and package
         run: pnpm run --filter mlack-desktop ${{ matrix.package-script }}
