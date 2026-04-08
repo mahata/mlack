@@ -19,22 +19,47 @@ describe("Deployment compatibility", () => {
   });
 
   it("should be able to import all route modules", async () => {
-    const [{ health }, { index }, { createWsRoute }] = await Promise.all([
+    const [
+      { health },
+      { index },
+      { createWsRoute },
+      { workspacesRoute },
+      { workspaceAdminRoute },
+      { workspaceInviteRoute },
+    ] = await Promise.all([
       import("./routes/health.js"),
       import("./routes/index.js"),
       import("./routes/ws.js"),
+      import("./routes/workspaces.js"),
+      import("./routes/workspaceAdmin.js"),
+      import("./routes/workspaceInvite.js"),
     ]);
 
     expect(health).toBeDefined();
     expect(index).toBeDefined();
     expect(createWsRoute).toBeDefined();
     expect(typeof createWsRoute).toBe("function");
+    expect(workspacesRoute).toBeDefined();
+    expect(workspaceAdminRoute).toBeDefined();
+    expect(workspaceInviteRoute).toBeDefined();
   });
 
   it("should be able to import ChatPage component", async () => {
     const { ChatPage } = await import("./components/ChatPage.js");
     expect(ChatPage).toBeDefined();
     expect(typeof ChatPage).toBe("function");
+  });
+
+  it("should be able to import WorkspacesPage component", async () => {
+    const { WorkspacesPage } = await import("./components/WorkspacesPage.js");
+    expect(WorkspacesPage).toBeDefined();
+    expect(typeof WorkspacesPage).toBe("function");
+  });
+
+  it("should be able to import InvitePage component", async () => {
+    const { InvitePage } = await import("./components/InvitePage.js");
+    expect(InvitePage).toBeDefined();
+    expect(typeof InvitePage).toBe("function");
   });
 
   it("should export ChatRoom Durable Object from entry point", async () => {

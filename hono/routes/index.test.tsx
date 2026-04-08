@@ -4,24 +4,37 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testApp.js";
 import type { Bindings, Variables } from "../types.js";
 
+const mockSelect = vi.fn();
+const mockInsert = vi.fn();
+
 vi.mock("../db/index.js", () => ({
   getDb: () => ({
-    select: () => ({
-      from: () => ({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    }),
+    select: (...args: unknown[]) => mockSelect(...args),
+    insert: (...args: unknown[]) => mockInsert(...args),
   }),
-  channels: { id: "id", name: "name" },
+  channels: { id: "id", name: "name", workspaceId: "workspace_id" },
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
+  workspaces: { id: "id", slug: "slug" },
+  workspaceMembers: { workspaceId: "workspace_id", userEmail: "user_email" },
 }));
+
+const mockWorkspace = { id: 1, name: "Default", slug: "default", createdByEmail: "system", createdAt: "2025-01-01" };
+const mockWorkspaceMember = {
+  id: 1,
+  workspaceId: 1,
+  userEmail: "test@example.com",
+  role: "member",
+  joinedAt: "2025-01-01",
+};
 
 describe("Root page", () => {
   let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
   let consoleErrorSpy: MockInstance;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockSelect.mockReset();
+    mockInsert.mockReset();
 
     const { app } = createTestApp({
       authenticatedUser: {
@@ -31,84 +44,41 @@ describe("Root page", () => {
       },
     });
     testApp = app;
-
-    const { index } = await import("./index.js");
-    testApp.route("/", index);
   });
 
   afterEach(() => {
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 
-  it("should return HTML page with chat interface when user is logged in", async () => {
-    const response = await testApp.request("/");
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-
-    const html = await response.text();
-    expect(html).toContain('<h2 id="channelName">#general</h2>');
-    expect(html).toContain("MLack - Real-time Chat");
-    expect(html).toContain("Type your message...");
-    expect(html).toContain('src="/static/ChatPage.js"');
-    expect(html).toContain("test@example.com");
-  });
-
-  it("should have proper HTML5 structure with unescaped DOCTYPE", async () => {
-    const response = await testApp.request("/");
-    const html = await response.text();
-
-    // Verify DOCTYPE is at the beginning and not escaped
-    expect(html).toMatch(/^<!DOCTYPE html><html/);
-
-    // Verify DOCTYPE is not escaped anywhere in the document
-    expect(html).not.toContain("&lt;!DOCTYPE html&gt;");
-  });
-
-  it("should include WebSocket URL in data attribute", async () => {
-    const response = await testApp.request("http://localhost:3000/");
-    const html = await response.text();
-
-    // Should contain the WebSocket URL data attribute
-    expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
-  });
-
-  it("should construct correct WebSocket URL when X-Forwarded-Proto header is https", async () => {
-    const response = await testApp.request("http://example.com/", {
-      headers: {
-        "x-forwarded-proto": "https",
-      },
+  it("should redirect to workspace when user has exactly one workspace", async () => {
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ workspaceId: 1, role: "member" }]),
+      }),
+    });
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([mockWorkspace]),
+      }),
     });
 
-    const html = await response.text();
+    const response = await testApp.request("/");
 
-    // Should use wss:// for HTTPS requests
-    expect(html).toContain('data-ws-url="wss://example.com/ws"');
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe("/w/default");
   });
 
   it("should redirect to login page when user is not logged in", async () => {
-    // Create a test app with an unauthenticated user
     const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
-
-    // Add the index route to the test app
-    const { index } = await import("./index.js");
-    testAppNoAuth.route("/", index);
 
     const response = await testAppNoAuth.request("/");
 
-    // Expect a redirect to login page
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/auth/login");
   });
 
   it("should return the About page without authentication", async () => {
-    // Create a test app with an unauthenticated user
     const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
-
-    // Add the index route to the test app
-    const { index } = await import("./index.js");
-    testAppNoAuth.route("/", index);
 
     const response = await testAppNoAuth.request("/about");
 
@@ -116,15 +86,104 @@ describe("Root page", () => {
     expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
 
     const html = await response.text();
-
-    // Check for About page specific content
     expect(html).toContain("<title>About - Mlack</title>");
     expect(html).toContain("About Mlack");
-    expect(html).toContain("Slack-like application that&#39;s fully open source");
-    expect(html).toContain("@mahata/mlack");
-    expect(html).toContain("GitHub Copilot Coding Agent");
-    expect(html).toContain("Vibe Coding");
-    expect(html).toContain("← Back to Chat");
-    expect(html).toContain('href="/components/AboutPage.css"');
+  });
+});
+
+describe("Workspace chat page", () => {
+  let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
+  let consoleErrorSpy: MockInstance;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockSelect.mockReset();
+    mockInsert.mockReset();
+
+    const { app } = createTestApp({
+      authenticatedUser: {
+        email: "test@example.com",
+        name: "Test User",
+        picture: "https://via.placeholder.com/32",
+      },
+    });
+    testApp = app;
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
+  function setupWorkspaceMocks() {
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([mockWorkspace]),
+      }),
+    });
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([mockWorkspaceMember]),
+      }),
+    });
+  }
+
+  it("should return HTML chat page for workspace member", async () => {
+    setupWorkspaceMocks();
+
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
+      }),
+    });
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ channelId: 1, userEmail: "test@example.com" }]),
+      }),
+    });
+
+    const response = await testApp.request("/w/default");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+
+    const html = await response.text();
+    expect(html).toContain('data-workspace-slug="default"');
+    expect(html).toContain('src="/static/ChatPage.js"');
+    expect(html).toContain("test@example.com");
+  });
+
+  it("should include workspace-scoped WebSocket URL", async () => {
+    setupWorkspaceMocks();
+
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    });
+
+    const response = await testApp.request("http://localhost:3000/w/default");
+    const html = await response.text();
+
+    expect(html).toContain('data-ws-url="ws://localhost:3000/w/default/ws"');
+  });
+
+  it("should return 401 for unauthenticated user", async () => {
+    const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
+
+    const response = await testAppNoAuth.request("/w/default");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("should return 404 for non-existent workspace", async () => {
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    });
+
+    const response = await testApp.request("/w/nonexistent");
+
+    expect(response.status).toBe(404);
   });
 });

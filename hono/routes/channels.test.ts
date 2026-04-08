@@ -11,27 +11,67 @@ vi.mock("../db/index.js", () => ({
     insert: (...args: unknown[]) => mockInsert(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
   }),
-  channels: { id: "id", name: "name" },
+  channels: { id: "id", name: "name", workspaceId: "workspace_id" },
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
   users: { email: "email", name: "name" },
+  workspaces: { id: "id", slug: "slug" },
+  workspaceMembers: { workspaceId: "workspace_id", userEmail: "user_email" },
 }));
 
 const authenticatedUser = { email: "test@example.com", name: "Test User", picture: "test.jpg" };
 const CSRF_HEADERS = { Origin: "http://localhost" };
 
+const mockWorkspace = { id: 1, name: "Default", slug: "default", createdByEmail: "system", createdAt: "2025-01-01" };
+const mockWorkspaceMember = {
+  id: 1,
+  workspaceId: 1,
+  userEmail: "test@example.com",
+  role: "member",
+  joinedAt: "2025-01-01",
+};
+
+function setupWorkspaceMocks() {
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([mockWorkspace]),
+    }),
+  });
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([mockWorkspaceMember]),
+    }),
+  });
+}
+
 describe("Channels API", () => {
-  describe("GET /api/channels", () => {
-    it("should return channels for authenticated user", async () => {
+  describe("GET /w/:slug/api/channels", () => {
+    it("should return channels for authenticated workspace member", async () => {
+      setupWorkspaceMocks();
+
       const mockChannels = [
-        { id: 1, name: "general", createdByEmail: "system", createdAt: "2025-01-01T00:00:00.000Z" },
-        { id: 2, name: "random", createdByEmail: "test@example.com", createdAt: "2025-01-01T00:00:00.000Z" },
+        {
+          id: 1,
+          name: "general",
+          workspaceId: 1,
+          createdByEmail: "system",
+          createdAt: "2025-01-01T00:00:00.000Z",
+        },
+        {
+          id: 2,
+          name: "random",
+          workspaceId: 1,
+          createdByEmail: "test@example.com",
+          createdAt: "2025-01-01T00:00:00.000Z",
+        },
       ];
       mockSelect.mockReturnValue({
-        from: vi.fn().mockResolvedValue(mockChannels),
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(mockChannels),
+        }),
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels");
+      const response = await app.request("/w/default/api/channels");
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { channels: unknown[] };
@@ -41,7 +81,7 @@ describe("Channels API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("/api/channels");
+      const response = await app.request("/w/default/api/channels");
 
       expect(response.status).toBe(401);
       const body = await response.json();
@@ -49,16 +89,32 @@ describe("Channels API", () => {
     });
   });
 
-  describe("GET /api/channels/memberships", () => {
-    it("should return myChannels and otherChannels for authenticated user", async () => {
+  describe("GET /w/:slug/api/channels/memberships", () => {
+    it("should return myChannels and otherChannels for authenticated workspace member", async () => {
+      setupWorkspaceMocks();
+
       const mockAllChannels = [
-        { id: 1, name: "general", createdByEmail: "system", createdAt: "2025-01-01T00:00:00.000Z" },
-        { id: 2, name: "random", createdByEmail: "test@example.com", createdAt: "2025-01-01T00:00:00.000Z" },
+        {
+          id: 1,
+          name: "general",
+          workspaceId: 1,
+          createdByEmail: "system",
+          createdAt: "2025-01-01T00:00:00.000Z",
+        },
+        {
+          id: 2,
+          name: "random",
+          workspaceId: 1,
+          createdByEmail: "test@example.com",
+          createdAt: "2025-01-01T00:00:00.000Z",
+        },
       ];
       const mockMemberships = [{ channelId: 1 }];
 
       mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockResolvedValue(mockAllChannels),
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(mockAllChannels),
+        }),
       });
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
@@ -67,7 +123,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels/memberships");
+      const response = await app.request("/w/default/api/channels/memberships");
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { myChannels: unknown[]; otherChannels: unknown[] };
@@ -77,7 +133,7 @@ describe("Channels API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("/api/channels/memberships");
+      const response = await app.request("/w/default/api/channels/memberships");
 
       expect(response.status).toBe(401);
       const body = await response.json();
@@ -85,11 +141,13 @@ describe("Channels API", () => {
     });
   });
 
-  describe("GET /api/channels/:id/members", () => {
+  describe("GET /w/:slug/api/channels/:id/members", () => {
     it("should return members for a channel the user belongs to", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
+          where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
         }),
       });
       mockSelect.mockReturnValueOnce({
@@ -107,7 +165,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels/1/members");
+      const response = await app.request("/w/default/api/channels/1/members");
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { members: { email: string; name: string }[] };
@@ -115,9 +173,11 @@ describe("Channels API", () => {
     });
 
     it("should return 403 if user is not a member of the channel", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "secret" }]),
+          where: vi.fn().mockResolvedValue([{ id: 2, name: "secret", workspaceId: 1 }]),
         }),
       });
       mockSelect.mockReturnValueOnce({
@@ -127,7 +187,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels/2/members");
+      const response = await app.request("/w/default/api/channels/2/members");
 
       expect(response.status).toBe(403);
       const body = (await response.json()) as { error: string };
@@ -135,6 +195,8 @@ describe("Channels API", () => {
     });
 
     it("should return 404 for non-existent channel", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -142,31 +204,36 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels/999/members");
+      const response = await app.request("/w/default/api/channels/999/members");
 
       expect(response.status).toBe(404);
     });
 
     it("should return 400 for invalid channel ID", async () => {
+      setupWorkspaceMocks();
+
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels/abc/members");
+      const response = await app.request("/w/default/api/channels/abc/members");
 
       expect(response.status).toBe(400);
     });
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("/api/channels/1/members");
+      const response = await app.request("/w/default/api/channels/1/members");
 
       expect(response.status).toBe(401);
     });
   });
 
-  describe("POST /api/channels", () => {
+  describe("POST /w/:slug/api/channels", () => {
     it("should create a channel", async () => {
+      setupWorkspaceMocks();
+
       const created = {
         id: 3,
         name: "new-channel",
+        workspaceId: 1,
         createdByEmail: "test@example.com",
         createdAt: "2025-01-01T00:00:00.000Z",
       };
@@ -185,7 +252,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels", {
+      const response = await app.request("http://localhost/w/default/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
         body: JSON.stringify({ name: "new-channel" }),
@@ -197,8 +264,10 @@ describe("Channels API", () => {
     });
 
     it("should return 400 if name is missing", async () => {
+      setupWorkspaceMocks();
+
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels", {
+      const response = await app.request("http://localhost/w/default/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
         body: JSON.stringify({ name: "" }),
@@ -208,14 +277,16 @@ describe("Channels API", () => {
     });
 
     it("should return 409 if channel name already exists", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
+          where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
         }),
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels", {
+      const response = await app.request("http://localhost/w/default/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
         body: JSON.stringify({ name: "general" }),
@@ -226,7 +297,7 @@ describe("Channels API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("http://localhost/api/channels", {
+      const response = await app.request("http://localhost/w/default/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
         body: JSON.stringify({ name: "test" }),
@@ -236,11 +307,13 @@ describe("Channels API", () => {
     });
   });
 
-  describe("POST /api/channels/:id/join", () => {
+  describe("POST /w/:slug/api/channels/:id/join", () => {
     it("should join a channel", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "random" }]),
+          where: vi.fn().mockResolvedValue([{ id: 2, name: "random", workspaceId: 1 }]),
         }),
       });
       mockSelect.mockReturnValueOnce({
@@ -253,7 +326,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/2/join", {
+      const response = await app.request("http://localhost/w/default/api/channels/2/join", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -264,9 +337,11 @@ describe("Channels API", () => {
     });
 
     it("should return 200 if already a member", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "random" }]),
+          where: vi.fn().mockResolvedValue([{ id: 2, name: "random", workspaceId: 1 }]),
         }),
       });
       mockSelect.mockReturnValueOnce({
@@ -276,7 +351,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/2/join", {
+      const response = await app.request("http://localhost/w/default/api/channels/2/join", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -287,6 +362,8 @@ describe("Channels API", () => {
     });
 
     it("should return 404 for non-existent channel", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -294,7 +371,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/999/join", {
+      const response = await app.request("http://localhost/w/default/api/channels/999/join", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -304,7 +381,7 @@ describe("Channels API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("http://localhost/api/channels/1/join", {
+      const response = await app.request("http://localhost/w/default/api/channels/1/join", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -313,11 +390,13 @@ describe("Channels API", () => {
     });
   });
 
-  describe("POST /api/channels/:id/leave", () => {
+  describe("POST /w/:slug/api/channels/:id/leave", () => {
     it("should leave a channel", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "random" }]),
+          where: vi.fn().mockResolvedValue([{ id: 2, name: "random", workspaceId: 1 }]),
         }),
       });
       mockDelete.mockReturnValue({
@@ -325,7 +404,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/2/leave", {
+      const response = await app.request("http://localhost/w/default/api/channels/2/leave", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -336,14 +415,16 @@ describe("Channels API", () => {
     });
 
     it("should return 403 when leaving #general", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
+          where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
         }),
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/1/leave", {
+      const response = await app.request("http://localhost/w/default/api/channels/1/leave", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -354,6 +435,8 @@ describe("Channels API", () => {
     });
 
     it("should return 404 for non-existent channel", async () => {
+      setupWorkspaceMocks();
+
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -361,7 +444,7 @@ describe("Channels API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/999/leave", {
+      const response = await app.request("http://localhost/w/default/api/channels/999/leave", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
@@ -371,7 +454,7 @@ describe("Channels API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("http://localhost/api/channels/1/leave", {
+      const response = await app.request("http://localhost/w/default/api/channels/1/leave", {
         method: "POST",
         headers: CSRF_HEADERS,
       });
