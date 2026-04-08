@@ -4,7 +4,7 @@ Coding agent guide for the **mlack** repository — a real-time Slack-like chat 
 
 ## Build / Lint / Test Commands
 
-Package manager is **pnpm** (v10.12.4). Node 22.
+Package manager is **pnpm** (v10.12.4). Node 24.
 
 ```bash
 pnpm install                  # Install dependencies
