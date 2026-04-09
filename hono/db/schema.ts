@@ -106,5 +106,5 @@ export const pendingRegistrations = sqliteTable(
     expiresAt: text("expires_at").notNull(),
     createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
-  (table) => [index("pending_registrations_expires_at_idx").on(table.expiresAt)],
+  (table) => [index("pending_registrations_expires_at_index").on(table.expiresAt)],
 );

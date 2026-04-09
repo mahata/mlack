@@ -119,7 +119,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="2"
+                      strokeWidth="2"
                       role="img"
                       aria-label="Attach file"
                     >

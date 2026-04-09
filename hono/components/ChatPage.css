@@ -532,20 +532,6 @@ body {
   word-wrap: break-word;
 }
 
-/* Upload progress indicator */
-.upload-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 20px 4px;
-  font-size: 12px;
-  color: #ababad;
-}
-
-.upload-progress.hidden {
-  display: none;
-}
-
 #messageInput {
   flex: 1;
   padding: 10px 12px;

@@ -155,12 +155,18 @@
       const fileUrl = buildFileUrl(msg.attachmentKey);
 
       if (msg.attachmentType.startsWith("image/")) {
+        const imageLink = document.createElement("a");
+        imageLink.href = fileUrl;
+        imageLink.target = "_blank";
+        imageLink.rel = "noopener noreferrer";
+
         const img = document.createElement("img");
         img.src = fileUrl;
         img.alt = msg.attachmentName || "Image";
         img.loading = "lazy";
-        img.addEventListener("click", () => window.open(fileUrl, "_blank", "noopener,noreferrer"));
-        attachEl.appendChild(img);
+
+        imageLink.appendChild(img);
+        attachEl.appendChild(imageLink);
       } else if (msg.attachmentType.startsWith("video/")) {
         const video = document.createElement("video");
         video.src = fileUrl;

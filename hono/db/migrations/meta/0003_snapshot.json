@@ -308,8 +308,8 @@
           ],
           "isUnique": true
         },
-        "pending_registrations_expires_at_idx": {
-          "name": "pending_registrations_expires_at_idx",
+        "pending_registrations_expires_at_index": {
+          "name": "pending_registrations_expires_at_index",
           "columns": [
             "expires_at"
           ],
