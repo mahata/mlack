@@ -223,3 +223,6 @@ FodyWeavers.xsd
 *.msp
 
 .github/prompts/*.md
+
+# iOS / Swift Package Manager
+mobile/ios/App/CapApp-SPM/Package.resolved
