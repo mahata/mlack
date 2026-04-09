@@ -75,6 +75,10 @@ export const messages = sqliteTable(
     channelId: integer("channel_id")
       .notNull()
       .references(() => channels.id),
+    attachmentKey: text("attachment_key"),
+    attachmentName: text("attachment_name"),
+    attachmentType: text("attachment_type"),
+    attachmentSize: integer("attachment_size"),
     createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
   (table) => [
@@ -102,5 +106,5 @@ export const pendingRegistrations = sqliteTable(
     expiresAt: text("expires_at").notNull(),
     createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
-  (table) => [index("pending_registrations_expires_at_idx").on(table.expiresAt)],
+  (table) => [index("pending_registrations_expires_at_index").on(table.expiresAt)],
 );

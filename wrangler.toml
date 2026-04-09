@@ -13,6 +13,10 @@ database_name = "mlack-db"
 database_id = "local"
 migrations_dir = "hono/db/migrations"
 
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "mlack-uploads"
+
 [[durable_objects.bindings]]
 name = "CHAT_ROOM"
 class_name = "ChatRoom"
@@ -41,6 +45,10 @@ migrations_dir = "hono/db/migrations"
 [[env.production.durable_objects.bindings]]
 name = "CHAT_ROOM"
 class_name = "ChatRoom"
+
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "mlack-uploads"
 
 [[env.production.migrations]]
 tag = "v1"

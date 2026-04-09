@@ -6,6 +6,7 @@ import type { Env } from "./types.js";
 
 export function createTestApp(options?: {
   authenticatedUser?: { email: string; name: string; picture: string } | null;
+  storageMock?: R2Bucket;
 }) {
   const testSessionMiddleware: MiddlewareHandler<Env> = async (c, next) => {
     const mockSession = {
@@ -23,6 +24,11 @@ export function createTestApp(options?: {
     }
     if (!c.env.CHAT_ROOM) {
       c.env.CHAT_ROOM = {} as DurableObjectNamespace;
+    }
+    if (options?.storageMock) {
+      c.env.STORAGE = options.storageMock;
+    } else if (!c.env.STORAGE) {
+      c.env.STORAGE = {} as R2Bucket;
     }
     if (!c.env.NODE_ENV) {
       c.env.NODE_ENV = "test";

@@ -10,6 +10,7 @@ import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
 import { messagesRoute } from "./routes/messages.js";
 import { testAuth } from "./routes/testAuth.js";
+import { uploadsRoute } from "./routes/uploads.js";
 import { workspaceAdminRoute } from "./routes/workspaceAdmin.js";
 import { workspaceInviteRoute } from "./routes/workspaceInvite.js";
 import { workspacesRoute } from "./routes/workspaces.js";
@@ -67,6 +68,7 @@ export function createApp(options?: AppOptions) {
 
   app.route("/", channelsRoute);
   app.route("/", messagesRoute);
+  app.route("/", uploadsRoute);
   app.route("/", createWsRoute());
   app.route("/", workspaceAdminRoute);
   app.route("/", index);
