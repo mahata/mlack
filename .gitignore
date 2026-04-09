@@ -226,3 +226,7 @@ FodyWeavers.xsd
 
 # iOS / Swift Package Manager
 mobile/ios/App/CapApp-SPM/Package.resolved
+
+# macOS
+.DS_Store
+

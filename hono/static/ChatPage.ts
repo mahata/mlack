@@ -28,6 +28,11 @@
   const fileInput = document.getElementById("fileInput") as HTMLInputElement;
   const attachButton = document.getElementById("attachButton") as HTMLButtonElement;
   const attachmentPreview = document.getElementById("attachmentPreview") as HTMLDivElement;
+  const dmListEl = document.getElementById("dmList") as HTMLUListElement;
+  const dmComposeButton = document.getElementById("dmComposeButton") as HTMLButtonElement;
+  const dmComposeModal = document.getElementById("dmComposeModal") as HTMLDivElement;
+  const dmSearchInput = document.getElementById("dmSearchInput") as HTMLInputElement;
+  const dmMemberListEl = document.getElementById("dmMemberList") as HTMLUListElement;
 
   const STATUS_CLASS = "status";
   const CONNECTED_CLASS = "connected";
@@ -60,6 +65,15 @@
     name: string;
   };
 
+  type DmConversation = {
+    id: number;
+    otherUserEmail: string;
+    otherUserName: string;
+    createdAt: string | null;
+  };
+
+  type ViewMode = "channel" | "dm";
+
   let activeChannelId: number | null = null;
   const myChannelIds: Set<number> = new Set();
   let allChannels: Channel[] = [];
@@ -68,6 +82,10 @@
   let membersPanelVisible = true;
   let pendingFile: File | null = null;
   let isUploading = false;
+  let viewMode: ViewMode = "channel";
+  let activeDmConversationId: number | null = null;
+  let dmConversations: DmConversation[] = [];
+  let allWorkspaceMembers: Member[] = [];
 
   const MOBILE_BREAKPOINT = 768;
   const TABLET_BREAKPOINT = 1024;
@@ -260,8 +278,13 @@
     });
     for (const member of sorted) {
       const li = document.createElement("li");
-      li.className = `member-item${member.email === currentUserEmail ? " current-user" : ""}`;
+      const isDmClickable = member.email !== currentUserEmail && viewMode === "channel";
+      li.className = `member-item${member.email === currentUserEmail ? " current-user" : ""}${isDmClickable ? " dm-clickable" : ""}`;
       li.textContent = member.name;
+      if (isDmClickable) {
+        li.title = `Message ${member.name}`;
+        li.addEventListener("click", () => startDmWithUser(member.email));
+      }
       membersList.appendChild(li);
     }
   }
@@ -275,7 +298,7 @@
 
     for (const ch of myChannels) {
       const li = document.createElement("li");
-      li.className = `channel-item${ch.id === activeChannelId ? " active" : ""}`;
+      li.className = `channel-item${viewMode === "channel" && ch.id === activeChannelId ? " active" : ""}`;
 
       const nameSpan = document.createElement("span");
       nameSpan.className = "channel-item-name";
@@ -316,6 +339,170 @@
     }
   }
 
+  async function fetchDmConversations(): Promise<void> {
+    try {
+      const response = await fetch(`${apiBase}/dm/conversations`);
+      if (response.ok) {
+        const data = (await response.json()) as { conversations?: DmConversation[] };
+        dmConversations = data.conversations || [];
+      }
+    } catch (error) {
+      console.error("Error fetching DM conversations:", error);
+    }
+    renderDmList();
+  }
+
+  function renderDmList(): void {
+    dmListEl.innerHTML = "";
+    for (const conv of dmConversations) {
+      const li = document.createElement("li");
+      li.className = `dm-item${viewMode === "dm" && conv.id === activeDmConversationId ? " active" : ""}`;
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "dm-item-name";
+      nameSpan.textContent = conv.otherUserName;
+      li.appendChild(nameSpan);
+
+      li.addEventListener("click", () => switchToDm(conv.id, conv.otherUserName));
+      dmListEl.appendChild(li);
+    }
+  }
+
+  async function loadDmMessages(conversationId: number): Promise<void> {
+    clearMessages();
+    const controller = new AbortController();
+    const timeoutId = MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
+    try {
+      const response = await fetch(`${apiBase}/dm/conversations/${conversationId}/messages`, {
+        signal: controller.signal,
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { messages?: MessageData[] };
+        if (data.messages) {
+          for (const msg of data.messages) {
+            displayMessage(msg);
+          }
+        }
+      } else {
+        console.error("Failed to load DM messages:", response.status);
+      }
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        console.info("Loading DM messages was aborted (timeout).");
+        return;
+      }
+      console.error("Error loading DM messages:", error);
+    } finally {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  async function switchToDm(conversationId: number, otherUserName: string): Promise<void> {
+    if (viewMode === "dm" && conversationId === activeDmConversationId) {
+      if (isMobileView()) closeSidebar();
+      return;
+    }
+    viewMode = "dm";
+    activeDmConversationId = conversationId;
+    channelNameHeader.textContent = otherUserName;
+    membersPanel.classList.add("hidden");
+    toggleMembersButton.classList.add("hidden");
+    renderChannelLists();
+    renderDmList();
+    if (isMobileView()) closeSidebar();
+    await loadDmMessages(conversationId);
+    messageInput.focus();
+  }
+
+  function switchBackToChannel(): void {
+    viewMode = "channel";
+    activeDmConversationId = null;
+    toggleMembersButton.classList.remove("hidden");
+    if (membersPanelVisible) {
+      membersPanel.classList.remove("hidden");
+    }
+    renderDmList();
+  }
+
+  async function openDmCompose(): Promise<void> {
+    dmComposeModal.classList.remove("hidden");
+    dmSearchInput.value = "";
+    dmSearchInput.focus();
+
+    try {
+      const response = await fetch(`${apiBase}/dm/workspace-members`);
+      if (response.ok) {
+        const data = (await response.json()) as { members?: Member[] };
+        allWorkspaceMembers = data.members || [];
+      }
+    } catch (error) {
+      console.error("Error fetching workspace members for DM compose:", error);
+    }
+
+    renderDmMemberList("");
+  }
+
+  function closeDmCompose(): void {
+    dmComposeModal.classList.add("hidden");
+  }
+
+  function renderDmMemberList(filter: string): void {
+    dmMemberListEl.innerHTML = "";
+    const lowerFilter = filter.toLowerCase();
+    const filtered = allWorkspaceMembers.filter(
+      (m) => m.name.toLowerCase().includes(lowerFilter) || m.email.toLowerCase().includes(lowerFilter),
+    );
+
+    for (const member of filtered) {
+      const li = document.createElement("li");
+      li.className = "dm-member-item";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "dm-member-item-name";
+      nameSpan.textContent = member.name;
+      li.appendChild(nameSpan);
+
+      const emailSpan = document.createElement("span");
+      emailSpan.className = "dm-member-item-email";
+      emailSpan.textContent = member.email;
+      li.appendChild(emailSpan);
+
+      li.addEventListener("click", () => {
+        closeDmCompose();
+        startDmWithUser(member.email);
+      });
+      dmMemberListEl.appendChild(li);
+    }
+  }
+
+  async function startDmWithUser(targetEmail: string): Promise<void> {
+    try {
+      const response = await fetch(`${apiBase}/dm/conversations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetEmail }),
+      });
+      if (response.ok || response.status === 201) {
+        const data = (await response.json()) as { conversation: DmConversation };
+        const conv = data.conversation;
+
+        const existingIndex = dmConversations.findIndex((c) => c.id === conv.id);
+        if (existingIndex === -1) {
+          dmConversations.unshift(conv);
+        }
+
+        await switchToDm(conv.id, conv.otherUserName);
+      } else {
+        const data = (await response.json()) as { error?: string };
+        console.error("Error starting DM:", data.error);
+      }
+    } catch (error) {
+      console.error("Error starting DM:", error);
+    }
+  }
+
   async function initChannels(): Promise<void> {
     await fetchMemberships();
 
@@ -332,6 +519,7 @@
     }
 
     renderChannelLists();
+    await fetchDmConversations();
 
     if (activeChannelId) {
       await loadMessagesForChannel(activeChannelId);
@@ -340,13 +528,17 @@
   }
 
   async function switchChannel(channelId: number, channelName: string): Promise<void> {
-    if (channelId === activeChannelId) {
+    if (viewMode === "channel" && channelId === activeChannelId) {
       if (isMobileView()) closeSidebar();
       return;
+    }
+    if (viewMode === "dm") {
+      switchBackToChannel();
     }
     activeChannelId = channelId;
     channelNameHeader.textContent = `#${channelName}`;
     renderChannelLists();
+    renderDmList();
     if (isMobileView()) closeSidebar();
     await loadMessagesForChannel(channelId);
     await fetchChannelMembers(channelId);
@@ -458,6 +650,18 @@
         createChannelModal.classList.add("hidden");
         createChannel(name);
       }
+    }
+  });
+
+  dmComposeButton.addEventListener("click", () => openDmCompose());
+
+  dmSearchInput.addEventListener("input", () => {
+    renderDmMemberList(dmSearchInput.value.trim());
+  });
+
+  dmComposeModal.addEventListener("click", (e: MouseEvent) => {
+    if (e.target === dmComposeModal) {
+      closeDmCompose();
     }
   });
 
@@ -593,6 +797,8 @@
     if (e.key === "Escape") {
       if (sidebar.classList.contains("open")) {
         closeSidebar();
+      } else if (!dmComposeModal.classList.contains("hidden")) {
+        closeDmCompose();
       } else if (!createWorkspaceModal.classList.contains("hidden")) {
         closeWorkspaceModal();
       } else if (!createChannelModal.classList.contains("hidden")) {
@@ -654,7 +860,8 @@
       try {
         const data = JSON.parse(event.data as string) as {
           type: string;
-          channelId: number;
+          channelId?: number;
+          conversationId?: number;
           userName?: string;
           userEmail: string;
           content: string;
@@ -663,8 +870,17 @@
           attachmentType?: string | null;
           attachmentSize?: number | null;
         };
-        if (data.type === "message" && data.channelId === activeChannelId) {
+        if (data.type === "message" && viewMode === "channel" && data.channelId === activeChannelId) {
           displayMessage(data);
+        }
+        if (data.type === "dm" && viewMode === "dm" && data.conversationId === activeDmConversationId) {
+          displayMessage(data);
+        }
+        if (data.type === "dm") {
+          const existingConv = dmConversations.find((c) => c.id === data.conversationId);
+          if (!existingConv) {
+            fetchDmConversations();
+          }
         }
         if ((data.type === "memberJoin" || data.type === "memberLeave") && data.channelId === activeChannelId) {
           fetchChannelMembers(data.channelId);
@@ -772,7 +988,11 @@
   async function uploadFile(file: File): Promise<{ key: string; name: string; type: string; size: number } | null> {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("channelId", String(activeChannelId));
+    if (viewMode === "dm" && activeDmConversationId !== null) {
+      formData.append("conversationId", String(activeDmConversationId));
+    } else {
+      formData.append("channelId", String(activeChannelId));
+    }
 
     try {
       const response = await fetch(`${apiBase}/upload`, {
@@ -798,17 +1018,18 @@
     const hasMessage = Boolean(message);
     const hasFile = Boolean(pendingFile);
 
-    if ((!hasMessage && !hasFile) || ws.readyState !== WebSocket.OPEN || activeChannelId === null) {
-      return;
-    }
+    if (!hasMessage && !hasFile) return;
+    if (ws.readyState !== WebSocket.OPEN) return;
+
+    if (viewMode === "channel" && activeChannelId === null) return;
+    if (viewMode === "dm" && activeDmConversationId === null) return;
 
     if (isUploading) return;
 
-    const wsPayload: Record<string, unknown> = {
-      type: "message",
-      channelId: activeChannelId,
-      content: message,
-    };
+    const wsPayload: Record<string, unknown> =
+      viewMode === "channel"
+        ? { type: "message", channelId: activeChannelId, content: message }
+        : { type: "dm", conversationId: activeDmConversationId, content: message };
 
     if (hasFile && pendingFile) {
       isUploading = true;

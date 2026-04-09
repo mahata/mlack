@@ -30,6 +30,14 @@ export type Channel = {
   createdAt: string | null;
 };
 
+export type DirectConversation = {
+  id: number;
+  workspaceId: number;
+  user1Email: string;
+  user2Email: string;
+  createdAt: string | null;
+};
+
 export type Bindings = {
   DB: D1Database;
   STORAGE: R2Bucket;

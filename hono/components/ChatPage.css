@@ -764,6 +764,83 @@ body {
   cursor: not-allowed;
 }
 
+/* DM list */
+.dm-list {
+  margin-bottom: 8px;
+}
+
+.dm-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #ababad;
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.dm-item:hover {
+  background-color: #35373b;
+  color: #fff;
+}
+
+.dm-item.active {
+  background-color: #1164a3;
+  color: #fff;
+}
+
+.dm-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* DM compose modal member list */
+.dm-member-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dm-member-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #d1d2d3;
+  border-radius: 4px;
+}
+
+.dm-member-item:hover {
+  background-color: #35373b;
+  color: #fff;
+}
+
+.dm-member-item-name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.dm-member-item-email {
+  font-size: 12px;
+  color: #ababad;
+}
+
+/* Member item clickable for DM */
+.member-item.dm-clickable {
+  cursor: pointer;
+}
+
+.member-item.dm-clickable:hover {
+  background-color: #35373b;
+  color: #fff;
+}
+
 /* Safe area insets for notch/Dynamic Island devices */
 @supports (padding: env(safe-area-inset-top)) {
   .sidebar {

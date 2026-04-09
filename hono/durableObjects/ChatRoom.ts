@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
-import { and, eq } from "drizzle-orm";
-import { channelMembers, getDb, messages } from "../db/index.js";
+import { and, eq, or } from "drizzle-orm";
+import { channelMembers, directConversations, directMessages, getDb, messages } from "../db/index.js";
 import type { Bindings } from "../types.js";
 
 type SessionAttachment = {
@@ -11,6 +11,16 @@ type SessionAttachment = {
 type IncomingMessage = {
   type: string;
   channelId: number;
+  content: string;
+  attachmentKey?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  attachmentSize?: number;
+};
+
+type IncomingDm = {
+  type: string;
+  conversationId: number;
   content: string;
   attachmentKey?: string;
   attachmentName?: string;
@@ -59,7 +69,7 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     const rawStr = typeof message === "string" ? message : new TextDecoder().decode(message);
 
-    let parsed: IncomingMessage | MembershipEvent;
+    let parsed: IncomingMessage | IncomingDm | MembershipEvent;
     try {
       parsed = JSON.parse(rawStr);
     } catch {
@@ -68,6 +78,11 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     if (parsed.type === "memberJoin" || parsed.type === "memberLeave") {
       await this.handleMembershipEvent(parsed as MembershipEvent);
+      return;
+    }
+
+    if (parsed.type === "dm") {
+      await this.handleDirectMessage(ws, attachment, parsed as IncomingDm);
       return;
     }
 
@@ -145,6 +160,90 @@ export class ChatRoom extends DurableObject<Bindings> {
       }
     } catch (error) {
       console.error("Error broadcasting message:", error);
+    }
+  }
+
+  private async handleDirectMessage(ws: WebSocket, sender: SessionAttachment, dm: IncomingDm): Promise<void> {
+    if (!dm.conversationId) {
+      return;
+    }
+
+    const hasContent = Boolean(dm.content?.trim());
+    const hasAttachment = Boolean(dm.attachmentKey);
+    if (!hasContent && !hasAttachment) {
+      return;
+    }
+
+    const trimmedContent = dm.content?.trim() || "";
+    const db = getDb(this.env.DB);
+
+    const conversation = await db
+      .select()
+      .from(directConversations)
+      .where(
+        and(
+          eq(directConversations.id, dm.conversationId),
+          or(
+            eq(directConversations.user1Email, sender.userEmail),
+            eq(directConversations.user2Email, sender.userEmail),
+          ),
+        ),
+      );
+
+    if (conversation.length === 0) {
+      try {
+        ws.send(JSON.stringify({ type: "error", error: "Not a participant in this conversation" }));
+      } catch {
+        // Socket may be closed
+      }
+      return;
+    }
+
+    const conv = conversation[0];
+
+    try {
+      await db.insert(directMessages).values({
+        content: trimmedContent,
+        userEmail: sender.userEmail,
+        userName: sender.userName,
+        conversationId: dm.conversationId,
+        attachmentKey: dm.attachmentKey || null,
+        attachmentName: dm.attachmentName || null,
+        attachmentType: dm.attachmentType || null,
+        attachmentSize: dm.attachmentSize || null,
+      });
+    } catch (error) {
+      console.error("Error saving DM to database:", error);
+    }
+
+    const outgoing = JSON.stringify({
+      type: "dm",
+      conversationId: dm.conversationId,
+      content: trimmedContent,
+      userName: sender.userName,
+      userEmail: sender.userEmail,
+      attachmentKey: dm.attachmentKey || null,
+      attachmentName: dm.attachmentName || null,
+      attachmentType: dm.attachmentType || null,
+      attachmentSize: dm.attachmentSize || null,
+    });
+
+    try {
+      const participantEmails = new Set([conv.user1Email, conv.user2Email]);
+      const allSockets = this.ctx.getWebSockets();
+
+      for (const socket of allSockets) {
+        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
+        if (socketAttachment && participantEmails.has(socketAttachment.userEmail)) {
+          try {
+            socket.send(outgoing);
+          } catch {
+            // Socket may have been closed between iteration and send
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error broadcasting DM:", error);
     }
   }
 

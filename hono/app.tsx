@@ -5,6 +5,7 @@ import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { requireWorkspaceMember } from "./auth/requireWorkspaceMember.js";
 import { auth } from "./routes/auth.js";
 import { channelsRoute } from "./routes/channels.js";
+import { directMessagesRoute } from "./routes/directMessages.js";
 import { emailAuth } from "./routes/emailAuth.js";
 import { health } from "./routes/health.js";
 import { index } from "./routes/index.js";
@@ -67,6 +68,7 @@ export function createApp(options?: AppOptions) {
   app.use("/w/:slug", requireWorkspaceMember);
 
   app.route("/", channelsRoute);
+  app.route("/", directMessagesRoute);
   app.route("/", messagesRoute);
   app.route("/", uploadsRoute);
   app.route("/", createWsRoute());
