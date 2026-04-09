@@ -69,7 +69,7 @@
     id: number;
     otherUserEmail: string;
     otherUserName: string;
-    createdAt: string;
+    createdAt: string | null;
   };
 
   type ViewMode = "channel" | "dm";

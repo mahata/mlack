@@ -1,4 +1,4 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { directConversations, directMessages, getDb, users, workspaceMembers } from "../db/index.js";
 import type { Env } from "../types.js";
@@ -27,10 +27,7 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
 
     const otherUsers =
       otherEmails.length > 0
-        ? await db
-            .select({ email: users.email, name: users.name })
-            .from(users)
-            .where(or(...otherEmails.map((email) => eq(users.email, email))))
+        ? await db.select({ email: users.email, name: users.name }).from(users).where(inArray(users.email, otherEmails))
         : [];
 
     const userMap = new Map(otherUsers.map((u) => [u.email, u.name]));
@@ -107,14 +104,46 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
       });
     }
 
-    const [created] = await db
-      .insert(directConversations)
-      .values({
-        workspaceId: workspace.id,
-        user1Email,
-        user2Email,
-      })
-      .returning();
+    let created: (typeof existing)[0];
+    try {
+      [created] = await db
+        .insert(directConversations)
+        .values({
+          workspaceId: workspace.id,
+          user1Email,
+          user2Email,
+        })
+        .returning();
+    } catch (insertError) {
+      const raceExisting = await db
+        .select()
+        .from(directConversations)
+        .where(
+          and(
+            eq(directConversations.workspaceId, workspace.id),
+            eq(directConversations.user1Email, user1Email),
+            eq(directConversations.user2Email, user2Email),
+          ),
+        );
+
+      if (raceExisting.length > 0) {
+        const conv = raceExisting[0];
+        const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
+        const targetUser = await db.select({ name: users.name }).from(users).where(eq(users.email, otherEmail));
+        const otherUserName = targetUser.length > 0 ? targetUser[0].name : otherEmail;
+
+        return c.json({
+          conversation: {
+            id: conv.id,
+            otherUserEmail: otherEmail,
+            otherUserName,
+            createdAt: conv.createdAt,
+          },
+        });
+      }
+
+      throw insertError;
+    }
 
     const otherEmail = created.user1Email === user.email ? created.user2Email : created.user1Email;
     const targetUser = await db.select({ name: users.name }).from(users).where(eq(users.email, otherEmail));
@@ -194,7 +223,7 @@ directMessagesRoute.get("/w/:slug/api/dm/workspace-members", async (c) => {
         ? await db
             .select({ email: users.email, name: users.name })
             .from(users)
-            .where(or(...memberEmails.map((email) => eq(users.email, email))))
+            .where(inArray(users.email, memberEmails))
         : [];
 
     return c.json({ members: memberUsers });
