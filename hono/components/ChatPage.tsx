@@ -100,11 +100,39 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
               <div className="chat-messages-area">
                 <div id="messages"></div>
                 <div className="input-container">
+                  <input
+                    type="file"
+                    id="fileInput"
+                    accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+                    style={{ display: "none" }}
+                  />
+                  <button
+                    type="button"
+                    id="attachButton"
+                    className="attach-button"
+                    title="Attach image or video"
+                    disabled
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      role="img"
+                      aria-label="Attach file"
+                    >
+                      <title>Attach file</title>
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                    </svg>
+                  </button>
                   <input type="text" id="messageInput" placeholder="Type your message..." disabled />
                   <button type="button" id="sendButton" disabled>
                     Send
                   </button>
                 </div>
+                <div id="attachmentPreview" className="attachment-preview hidden"></div>
               </div>
               <aside id="membersPanel" className="members-panel">
                 <div className="members-panel-header">

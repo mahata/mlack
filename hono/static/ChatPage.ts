@@ -25,6 +25,9 @@
   const sidebar = document.getElementById("sidebar") as HTMLElement;
   const sidebarOverlay = document.getElementById("sidebarOverlay") as HTMLDivElement;
   const sidebarToggle = document.getElementById("sidebarToggle") as HTMLButtonElement;
+  const fileInput = document.getElementById("fileInput") as HTMLInputElement;
+  const attachButton = document.getElementById("attachButton") as HTMLButtonElement;
+  const attachmentPreview = document.getElementById("attachmentPreview") as HTMLDivElement;
 
   const STATUS_CLASS = "status";
   const CONNECTED_CLASS = "connected";
@@ -37,6 +40,9 @@
   const MAX_RECONNECT_DELAY_MS = 30000;
   const BACKOFF_MULTIPLIER = 2;
   const UNAUTHORIZED_CLOSE_CODE = 1008;
+  const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+  const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm"]);
 
   const container = document.querySelector("[data-ws-url]") as HTMLElement;
   const wsUrl = container.getAttribute("data-ws-url") as string;
@@ -60,6 +66,8 @@
   let currentMembers: Member[] = [];
   let currentUserEmail = "";
   let membersPanelVisible = true;
+  let pendingFile: File | null = null;
+  let isUploading = false;
 
   const MOBILE_BREAKPOINT = 768;
   const TABLET_BREAKPOINT = 1024;
@@ -103,10 +111,67 @@
     }
   }
 
-  function displayMessage(messageText: string): void {
+  type MessageData = {
+    content: string;
+    userEmail: string;
+    userName?: string;
+    attachmentKey?: string | null;
+    attachmentName?: string | null;
+    attachmentType?: string | null;
+    attachmentSize?: number | null;
+  };
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function buildFileUrl(key: string): string {
+    return `${apiBase}/files/${key}`;
+  }
+
+  function displayMessage(msg: MessageData): void {
     const messageElement = document.createElement("div");
     messageElement.className = MESSAGE_CLASS;
-    messageElement.textContent = messageText;
+
+    const senderName = msg.userName || msg.userEmail;
+
+    if (msg.content) {
+      const textEl = document.createElement("div");
+      textEl.className = "message-text";
+      textEl.textContent = `${senderName}: ${msg.content}`;
+      messageElement.appendChild(textEl);
+    } else {
+      const textEl = document.createElement("div");
+      textEl.className = "message-text";
+      textEl.textContent = `${senderName}:`;
+      messageElement.appendChild(textEl);
+    }
+
+    if (msg.attachmentKey && msg.attachmentType) {
+      const attachEl = document.createElement("div");
+      attachEl.className = "message-attachment";
+      const fileUrl = buildFileUrl(msg.attachmentKey);
+
+      if (msg.attachmentType.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.src = fileUrl;
+        img.alt = msg.attachmentName || "Image";
+        img.loading = "lazy";
+        img.addEventListener("click", () => window.open(fileUrl, "_blank", "noopener,noreferrer"));
+        attachEl.appendChild(img);
+      } else if (msg.attachmentType.startsWith("video/")) {
+        const video = document.createElement("video");
+        video.src = fileUrl;
+        video.controls = true;
+        video.preload = "metadata";
+        attachEl.appendChild(video);
+      }
+
+      messageElement.appendChild(attachEl);
+    }
+
     messagesDiv.appendChild(messageElement);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
@@ -123,12 +188,11 @@
       const response = await fetch(`${apiBase}/messages?channelId=${channelId}`, { signal: controller.signal });
       if (response.ok) {
         const data = (await response.json()) as {
-          messages?: { content: string; userEmail: string; userName?: string }[];
+          messages?: MessageData[];
         };
         if (data.messages) {
           data.messages.forEach((msg) => {
-            const formattedMessage = `${msg.userName || msg.userEmail}: ${msg.content}`;
-            displayMessage(formattedMessage);
+            displayMessage(msg);
           });
         }
       } else {
@@ -576,6 +640,7 @@
       statusDiv.className = `${STATUS_CLASS} ${CONNECTED_CLASS}`;
       messageInput.disabled = false;
       sendButton.disabled = false;
+      attachButton.disabled = false;
     };
 
     socket.onmessage = (event: MessageEvent) => {
@@ -587,10 +652,13 @@
           userName?: string;
           userEmail: string;
           content: string;
+          attachmentKey?: string | null;
+          attachmentName?: string | null;
+          attachmentType?: string | null;
+          attachmentSize?: number | null;
         };
         if (data.type === "message" && data.channelId === activeChannelId) {
-          const formattedMessage = `${data.userName || data.userEmail}: ${data.content}`;
-          displayMessage(formattedMessage);
+          displayMessage(data);
         }
         if ((data.type === "memberJoin" || data.type === "memberLeave") && data.channelId === activeChannelId) {
           fetchChannelMembers(data.channelId);
@@ -605,6 +673,7 @@
       console.log("Disconnected from WebSocket");
       messageInput.disabled = true;
       sendButton.disabled = true;
+      attachButton.disabled = true;
 
       if (event.code === UNAUTHORIZED_CLOSE_CODE) {
         statusDiv.textContent = "Disconnected (unauthorized)";
@@ -621,20 +690,158 @@
     };
   }
 
-  function sendMessage(): void {
-    const message = messageInput.value.trim();
-    if (message && ws.readyState === WebSocket.OPEN && activeChannelId !== null) {
-      ws.send(JSON.stringify({ type: "message", channelId: activeChannelId, content: message }));
-      messageInput.value = "";
+  let previewObjectUrl: string | null = null;
+
+  function showAttachmentPreview(file: File): void {
+    if (previewObjectUrl) {
+      URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = null;
+    }
+    attachmentPreview.innerHTML = "";
+    attachmentPreview.classList.remove("hidden");
+
+    if (file.type.startsWith("image/")) {
+      const thumb = document.createElement("img");
+      thumb.className = "attachment-preview-thumb";
+      previewObjectUrl = URL.createObjectURL(file);
+      thumb.src = previewObjectUrl;
+      thumb.alt = file.name;
+      attachmentPreview.appendChild(thumb);
+    } else {
+      const iconEl = document.createElement("div");
+      iconEl.className = "attachment-preview-video-icon";
+      iconEl.textContent = "\u25B6";
+      attachmentPreview.appendChild(iconEl);
+    }
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "attachment-preview-name";
+    nameEl.textContent = file.name;
+    attachmentPreview.appendChild(nameEl);
+
+    const sizeEl = document.createElement("span");
+    sizeEl.className = "attachment-preview-size";
+    sizeEl.textContent = formatFileSize(file.size);
+    attachmentPreview.appendChild(sizeEl);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "attachment-preview-remove";
+    removeBtn.textContent = "\u00D7";
+    removeBtn.type = "button";
+    removeBtn.addEventListener("click", clearPendingFile);
+    attachmentPreview.appendChild(removeBtn);
+  }
+
+  function clearPendingFile(): void {
+    if (previewObjectUrl) {
+      URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = null;
+    }
+    pendingFile = null;
+    fileInput.value = "";
+    attachmentPreview.innerHTML = "";
+    attachmentPreview.classList.add("hidden");
+  }
+
+  function handleFileSelect(): void {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_TYPES.has(file.type)) {
+      alert("File type not allowed. Supported: JPEG, PNG, GIF, WebP, MP4, WebM");
+      fileInput.value = "";
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File too large. Maximum size is 25 MB.");
+      fileInput.value = "";
+      return;
+    }
+
+    pendingFile = file;
+    showAttachmentPreview(file);
+  }
+
+  async function uploadFile(file: File): Promise<{ key: string; name: string; type: string; size: number } | null> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("channelId", String(activeChannelId));
+
+    try {
+      const response = await fetch(`${apiBase}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error?: string };
+        console.error("Upload failed:", errorData.error);
+        return null;
+      }
+
+      return (await response.json()) as { key: string; name: string; type: string; size: number };
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      return null;
     }
   }
 
-  sendButton.addEventListener("click", sendMessage);
+  async function sendMessage(): Promise<void> {
+    const message = messageInput.value.trim();
+    const hasMessage = Boolean(message);
+    const hasFile = Boolean(pendingFile);
+
+    if ((!hasMessage && !hasFile) || ws.readyState !== WebSocket.OPEN || activeChannelId === null) {
+      return;
+    }
+
+    if (isUploading) return;
+
+    const wsPayload: Record<string, unknown> = {
+      type: "message",
+      channelId: activeChannelId,
+      content: message,
+    };
+
+    if (hasFile && pendingFile) {
+      isUploading = true;
+      sendButton.disabled = true;
+      attachButton.disabled = true;
+      sendButton.textContent = "Uploading...";
+
+      const result = await uploadFile(pendingFile);
+
+      isUploading = false;
+      sendButton.disabled = false;
+      attachButton.disabled = false;
+      sendButton.textContent = "Send";
+
+      if (!result) {
+        alert("Failed to upload file. Please try again.");
+        return;
+      }
+
+      wsPayload.attachmentKey = result.key;
+      wsPayload.attachmentName = result.name;
+      wsPayload.attachmentType = result.type;
+      wsPayload.attachmentSize = result.size;
+      clearPendingFile();
+    }
+
+    ws.send(JSON.stringify(wsPayload));
+    messageInput.value = "";
+  }
+
+  sendButton.addEventListener("click", () => sendMessage());
   messageInput.addEventListener("keypress", (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       sendMessage();
     }
   });
+
+  attachButton.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", handleFileSelect);
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {

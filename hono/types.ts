@@ -32,6 +32,7 @@ export type Channel = {
 
 export type Bindings = {
   DB: D1Database;
+  STORAGE: R2Bucket;
   CHAT_ROOM: DurableObjectNamespace;
   SESSION_SECRET: string;
   NODE_ENV: string;

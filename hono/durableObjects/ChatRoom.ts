@@ -12,6 +12,10 @@ type IncomingMessage = {
   type: string;
   channelId: number;
   content: string;
+  attachmentKey?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  attachmentSize?: number;
 };
 
 type MembershipEvent = {
@@ -68,12 +72,18 @@ export class ChatRoom extends DurableObject<Bindings> {
     }
 
     const msg = parsed as IncomingMessage;
-    if (msg.type !== "message" || !msg.channelId || !msg.content?.trim()) {
+    if (msg.type !== "message" || !msg.channelId) {
+      return;
+    }
+
+    const hasContent = Boolean(msg.content?.trim());
+    const hasAttachment = Boolean(msg.attachmentKey);
+    if (!hasContent && !hasAttachment) {
       return;
     }
 
     const channelId = msg.channelId;
-    const trimmedMessage = msg.content.trim();
+    const trimmedMessage = msg.content?.trim() || "";
 
     const db = getDb(this.env.DB);
 
@@ -97,6 +107,10 @@ export class ChatRoom extends DurableObject<Bindings> {
         userEmail: attachment.userEmail,
         userName: attachment.userName,
         channelId,
+        attachmentKey: msg.attachmentKey || null,
+        attachmentName: msg.attachmentName || null,
+        attachmentType: msg.attachmentType || null,
+        attachmentSize: msg.attachmentSize || null,
       });
     } catch (error) {
       console.error("Error saving message to database:", error);
@@ -108,6 +122,10 @@ export class ChatRoom extends DurableObject<Bindings> {
       content: trimmedMessage,
       userName: attachment.userName,
       userEmail: attachment.userEmail,
+      attachmentKey: msg.attachmentKey || null,
+      attachmentName: msg.attachmentName || null,
+      attachmentType: msg.attachmentType || null,
+      attachmentSize: msg.attachmentSize || null,
     });
 
     try {
