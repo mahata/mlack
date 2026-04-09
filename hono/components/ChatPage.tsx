@@ -76,6 +76,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                   title="Toggle sidebar"
                   aria-label="Toggle sidebar"
                   aria-controls="sidebar"
+                  aria-expanded="false"
                 >
                   <span className="sidebar-toggle-icon"></span>
                 </button>

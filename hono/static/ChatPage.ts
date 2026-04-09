@@ -62,19 +62,26 @@
   let membersPanelVisible = true;
 
   const MOBILE_BREAKPOINT = 768;
+  const TABLET_BREAKPOINT = 1024;
 
   function isMobileView(): boolean {
     return window.innerWidth <= MOBILE_BREAKPOINT;
   }
 
+  function isTabletView(): boolean {
+    return window.innerWidth <= TABLET_BREAKPOINT;
+  }
+
   function openSidebar(): void {
     sidebar.classList.add("open");
     sidebarOverlay.classList.remove("hidden");
+    sidebarToggle.setAttribute("aria-expanded", "true");
   }
 
   function closeSidebar(): void {
     sidebar.classList.remove("open");
     sidebarOverlay.classList.add("hidden");
+    sidebarToggle.setAttribute("aria-expanded", "false");
   }
 
   function toggleSidebar(): void {
@@ -643,10 +650,11 @@
 
   window.addEventListener("load", () => {
     detectCurrentUserEmail();
-    if (isMobileView()) {
+    if (isTabletView()) {
       membersPanelVisible = false;
       membersPanel.classList.add("hidden");
       toggleMembersButton.classList.remove("active");
+      toggleMembersButton.setAttribute("aria-expanded", "false");
     } else {
       toggleMembersButton.classList.add("active");
     }
