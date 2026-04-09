@@ -146,7 +146,7 @@ describe("Upload API endpoint", () => {
     expect(response.status).toBe(400);
 
     const body = (await response.json()) as { error: string };
-    expect(body.error).toBe("channelId is required");
+    expect(body.error).toBe("channelId or conversationId is required");
     expect(mockPut).not.toHaveBeenCalled();
   });
 

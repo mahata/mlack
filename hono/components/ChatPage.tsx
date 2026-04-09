@@ -52,6 +52,19 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
               <span>Browse</span>
             </div>
             <ul id="browseChannelList" className="channel-list browse-list"></ul>
+            <div className="sidebar-section-header">
+              <span>Direct Messages</span>
+              <button
+                type="button"
+                id="dmComposeButton"
+                className="create-channel-button"
+                title="New direct message"
+                aria-label="New direct message"
+              >
+                +
+              </button>
+            </div>
+            <ul id="dmList" className="channel-list dm-list"></ul>
             <div className="sidebar-user">
               {user?.picture && <img src={user.picture} alt="Profile" className="profile-picture" />}
               <span className="user-email">{user?.email}</span>
@@ -191,6 +204,20 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                 Create
               </button>
             </div>
+          </div>
+        </div>
+
+        <div
+          id="dmComposeModal"
+          className="modal hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dmComposeTitle"
+        >
+          <div className="modal-content">
+            <h3 id="dmComposeTitle">New Direct Message</h3>
+            <input type="text" id="dmSearchInput" placeholder="Search members..." />
+            <ul id="dmMemberList" className="dm-member-list"></ul>
           </div>
         </div>
 

@@ -87,6 +87,48 @@ export const messages = sqliteTable(
   ],
 );
 
+export const directConversations = sqliteTable(
+  "direct_conversations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    workspaceId: integer("workspace_id")
+      .notNull()
+      .references(() => workspaces.id),
+    user1Email: text("user1_email").notNull(),
+    user2Email: text("user2_email").notNull(),
+    createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => [
+    uniqueIndex("direct_conversations_workspace_users_unique").on(
+      table.workspaceId,
+      table.user1Email,
+      table.user2Email,
+    ),
+  ],
+);
+
+export const directMessages = sqliteTable(
+  "direct_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    content: text("content").notNull(),
+    userEmail: text("user_email").notNull(),
+    userName: text("user_name"),
+    conversationId: integer("conversation_id")
+      .notNull()
+      .references(() => directConversations.id),
+    attachmentKey: text("attachment_key"),
+    attachmentName: text("attachment_name"),
+    attachmentType: text("attachment_type"),
+    attachmentSize: integer("attachment_size"),
+    createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => [
+    index("direct_messages_created_at_idx").on(table.createdAt),
+    index("direct_messages_conversation_id_created_at_idx").on(table.conversationId, table.createdAt),
+  ],
+);
+
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
