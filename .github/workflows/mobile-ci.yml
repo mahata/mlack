@@ -1,0 +1,120 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".node-version"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".node-version"
+      - ".github/workflows/mobile-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Capacitor Android project
+        run: pnpm run --filter mlack-mobile cap:sync
+        env:
+          CAP_PLATFORM: android
+          NODE_ENV: production
+
+      - name: Build Android debug APK
+        run: ./gradlew --no-daemon assembleDebug
+        working-directory: mobile/android
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: android-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Capacitor iOS project
+        run: pnpm run --filter mlack-mobile cap:sync
+        env:
+          CAP_PLATFORM: ios
+          NODE_ENV: production
+
+      - name: Build iOS app for simulator
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -scheme App \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
+        working-directory: mobile/ios/App
