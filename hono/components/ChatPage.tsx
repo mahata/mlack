@@ -8,7 +8,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
     <html lang="en">
       <head>
         <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <title>{workspaceName} - MLack</title>
         <link rel="stylesheet" href="/components/ChatPage.css" />
       </head>
@@ -18,7 +18,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
           data-ws-url={wsUrl || "ws://localhost:3000/w/default/ws"}
           data-workspace-slug={slug}
         >
-          <aside className="sidebar">
+          <aside id="sidebar" className="sidebar">
             <div className="sidebar-header">
               <a href="/" className="workspace-back-link" title="All workspaces">
                 <h2>{workspaceName}</h2>
@@ -63,10 +63,22 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
             </div>
           </aside>
 
+          <div id="sidebarOverlay" className="sidebar-overlay hidden"></div>
+
           <main className="chat-main">
             <div className="chat-header">
               <h1>Hello, world!</h1>
               <div className="chat-header-row">
+                <button
+                  type="button"
+                  id="sidebarToggle"
+                  className="sidebar-toggle"
+                  title="Toggle sidebar"
+                  aria-label="Toggle sidebar"
+                  aria-controls="sidebar"
+                >
+                  <span className="sidebar-toggle-icon"></span>
+                </button>
                 <h2 id="channelName">#general</h2>
                 <button
                   type="button"

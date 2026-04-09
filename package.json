@@ -5,7 +5,7 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "pnpm run build:assets && wrangler dev",
+    "dev": "pnpm run build:client && pnpm run build:assets && wrangler dev",
     "build": "rm -rf dist public && pnpm run build:client && pnpm run build:assets && tsc --project tsconfig.prod.json",
     "build:client": "tsc --project tsconfig.client.json",
     "build:client:watch": "tsc --project tsconfig.client.json --watch",

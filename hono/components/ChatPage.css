@@ -10,6 +10,7 @@ body {
   background-color: #1a1d21;
   color: #d1d2d3;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -17,6 +18,7 @@ body {
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* Sidebar */
@@ -27,6 +29,76 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid #35373b;
+}
+
+/* Sidebar toggle button (hidden on desktop) */
+.sidebar-toggle {
+  display: none;
+  background: none;
+  border: 1px solid #ababad;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 6px;
+}
+
+.sidebar-toggle:hover {
+  background-color: #35373b;
+  border-color: #fff;
+}
+
+.sidebar-toggle-icon,
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background-color: #ababad;
+  border-radius: 1px;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 18px;
+}
+
+.sidebar-toggle-icon::before {
+  top: -6px;
+}
+
+.sidebar-toggle-icon::after {
+  top: 6px;
+}
+
+.sidebar-toggle:hover .sidebar-toggle-icon,
+.sidebar-toggle:hover .sidebar-toggle-icon::before,
+.sidebar-toggle:hover .sidebar-toggle-icon::after {
+  background-color: #fff;
+}
+
+/* Sidebar overlay (hidden on desktop, used as backdrop on mobile) */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 49;
+}
+
+.sidebar-overlay.hidden {
+  display: none !important;
 }
 
 .sidebar-header {
@@ -555,4 +627,108 @@ body {
   background-color: #35373b;
   color: #ababad;
   cursor: not-allowed;
+}
+
+/* Safe area insets for notch/Dynamic Island devices */
+@supports (padding: env(safe-area-inset-top)) {
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .chat-header {
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+
+  .input-container {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+
+  #messages {
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* Tablet: sidebar visible, members panel toggled on demand */
+@media (max-width: 1024px) {
+  .members-panel {
+    display: none;
+  }
+
+  .members-panel:not(.hidden) {
+    display: flex;
+    width: 180px;
+    min-width: 180px;
+  }
+}
+
+/* Phone: sidebar as overlay drawer */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    min-width: 280px;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    border-right: 1px solid #35373b;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  .chat-header-row {
+    gap: 8px;
+  }
+
+  .chat-main {
+    width: 100%;
+  }
+
+  .chat-header {
+    padding: 8px 12px;
+  }
+
+  #messages {
+    padding: 12px;
+  }
+
+  .input-container {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  #sendButton {
+    padding: 10px 14px;
+  }
+
+  .members-panel:not(.hidden) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 240px;
+    min-width: 240px;
+    z-index: 50;
+    border-left: 1px solid #35373b;
+  }
+
+  .modal-content {
+    width: calc(100vw - 32px);
+  }
 }

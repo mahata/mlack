@@ -22,6 +22,9 @@
   const createWorkspaceError = document.getElementById("createWorkspaceError") as HTMLParagraphElement;
   const cancelCreateWorkspace = document.getElementById("cancelCreateWorkspace") as HTMLButtonElement;
   const confirmCreateWorkspace = document.getElementById("confirmCreateWorkspace") as HTMLButtonElement;
+  const sidebar = document.getElementById("sidebar") as HTMLElement;
+  const sidebarOverlay = document.getElementById("sidebarOverlay") as HTMLDivElement;
+  const sidebarToggle = document.getElementById("sidebarToggle") as HTMLButtonElement;
 
   const STATUS_CLASS = "status";
   const CONNECTED_CLASS = "connected";
@@ -57,6 +60,30 @@
   let currentMembers: Member[] = [];
   let currentUserEmail = "";
   let membersPanelVisible = true;
+
+  const MOBILE_BREAKPOINT = 768;
+
+  function isMobileView(): boolean {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
+
+  function openSidebar(): void {
+    sidebar.classList.add("open");
+    sidebarOverlay.classList.remove("hidden");
+  }
+
+  function closeSidebar(): void {
+    sidebar.classList.remove("open");
+    sidebarOverlay.classList.add("hidden");
+  }
+
+  function toggleSidebar(): void {
+    if (sidebar.classList.contains("open")) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
 
   let ws: WebSocket;
   let reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
@@ -236,10 +263,14 @@
   }
 
   async function switchChannel(channelId: number, channelName: string): Promise<void> {
-    if (channelId === activeChannelId) return;
+    if (channelId === activeChannelId) {
+      if (isMobileView()) closeSidebar();
+      return;
+    }
     activeChannelId = channelId;
     channelNameHeader.textContent = `#${channelName}`;
     renderChannelLists();
+    if (isMobileView()) closeSidebar();
     await loadMessagesForChannel(channelId);
     await fetchChannelMembers(channelId);
     messageInput.focus();
@@ -309,6 +340,10 @@
       console.error("Error creating channel:", error);
     }
   }
+
+  sidebarToggle.addEventListener("click", toggleSidebar);
+
+  sidebarOverlay.addEventListener("click", closeSidebar);
 
   toggleMembersButton.addEventListener("click", () => {
     membersPanelVisible = !membersPanelVisible;
@@ -479,7 +514,9 @@
 
   document.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.key === "Escape") {
-      if (!createWorkspaceModal.classList.contains("hidden")) {
+      if (sidebar.classList.contains("open")) {
+        closeSidebar();
+      } else if (!createWorkspaceModal.classList.contains("hidden")) {
         closeWorkspaceModal();
       } else if (!createChannelModal.classList.contains("hidden")) {
         createChannelModal.classList.add("hidden");
@@ -606,7 +643,13 @@
 
   window.addEventListener("load", () => {
     detectCurrentUserEmail();
-    toggleMembersButton.classList.add("active");
+    if (isMobileView()) {
+      membersPanelVisible = false;
+      membersPanel.classList.add("hidden");
+      toggleMembersButton.classList.remove("active");
+    } else {
+      toggleMembersButton.classList.add("active");
+    }
     messageInput.focus();
     initChannels();
   });
