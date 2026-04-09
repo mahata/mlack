@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "cap:sync": "cap sync",
+    "cap:sync:android": "cap sync android",
+    "cap:sync:ios": "cap sync ios",
     "cap:open:ios": "cap open ios",
     "cap:open:android": "cap open android",
     "cap:run:ios": "cap run ios",

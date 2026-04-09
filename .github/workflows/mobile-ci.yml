@@ -61,9 +61,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Sync Capacitor Android project
-        run: pnpm run --filter mlack-mobile cap:sync
+        run: pnpm run --filter mlack-mobile cap:sync:android
         env:
-          CAP_PLATFORM: android
           NODE_ENV: production
 
       - name: Build Android debug APK
@@ -104,16 +103,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Sync Capacitor iOS project
-        run: pnpm run --filter mlack-mobile cap:sync
+        run: pnpm run --filter mlack-mobile cap:sync:ios
         env:
-          CAP_PLATFORM: ios
           NODE_ENV: production
 
       - name: Build iOS app for simulator
         run: |
           xcodebuild build \
             -project App.xcodeproj \
-            -scheme App \
+            -target App \
             -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
