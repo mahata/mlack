@@ -114,7 +114,7 @@ jobs:
           xcodebuild build \
             -project App.xcodeproj \
             -scheme App \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
         working-directory: mobile/ios/App
