@@ -1,7 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const IS_DEV = process.env.NODE_ENV === "development";
-const DEV_HOST = process.env.CAP_PLATFORM === "ios" ? "localhost" : "10.0.2.2";
+const IS_ANDROID = process.env.CAP_PLATFORM === "android";
+const DEV_HOST = IS_ANDROID ? "10.0.2.2" : "localhost";
 const APP_URL = IS_DEV ? `http://${DEV_HOST}:8787` : "https://mlack.uk";
 
 const config: CapacitorConfig = {
@@ -11,7 +12,7 @@ const config: CapacitorConfig = {
   server: {
     url: APP_URL,
     cleartext: IS_DEV,
-    allowNavigation: ["mlack.uk", "localhost:8787", "10.0.2.2:8787"],
+    allowNavigation: IS_DEV ? ["mlack.uk", "localhost:8787", "10.0.2.2:8787"] : ["mlack.uk"],
   },
   ios: {
     contentInset: "automatic",
