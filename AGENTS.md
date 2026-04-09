@@ -30,6 +30,8 @@ pnpm db:migrate               # Apply migrations
 
 CI runs: `pnpm test:run` then `pnpm lint` then `pnpm build`. All three must pass.
 
+Task completion order: `pnpm test:run` → `pnpm lint` → `pnpm build` → Copilot CLI review → commit.
+
 ## Project Structure
 
 ```
@@ -152,18 +154,25 @@ routeHandler.get("/path", async (c) => {
 - Use `loginWithMock(page)` helper for authentication.
 - Selectors: CSS classes (`.user-email`) and IDs (`#messageInput`).
 
-## Copilot CLI Reviews
+## Copilot CLI Reviews (MANDATORY)
 
-After completing a task (not after every individual file edit), you must run:
+**DO NOT commit or consider a task complete without running Copilot reviews first.**
+
+After completing a task (not after every individual file edit), run the following for **each file that was created or modified**:
 
 ```shell
 copilot -p 'Review @path/to/file for security, efficiency, and readability. Suggest specific improvements.' --model gpt-5.4 -s
 ```
 
-Replace `path/to/file` with the actual file path (for example, `hono/routes/health.ts`). Run this for each file that was created or modified during the task. If Copilot finds issues, refactor the code and repeat the review for the affected files.
+Replace `path/to/file` with the actual file path (for example, `hono/routes/health.ts`).
+
+- Run reviews **after tests and lint pass**, but **before committing**.
+- If Copilot finds issues, refactor the code, re-run tests, and repeat the review for affected files.
+- Do not skip this step. Do not assume the tool is unavailable — verify by running it.
 
 ## Git Conventions
 
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, etc.
 - Do not commit unless tests pass (both unit and E2E). Write tests alongside implementation.
+- Do not commit unless: tests pass, lint passes, build passes, **and** Copilot CLI reviews have been run for all modified files.
 - Delete code and files that become unnecessary after changes.

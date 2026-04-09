@@ -17,6 +17,7 @@
     "@capacitor/android": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
+    "tslib": "^2.8.1",
     "typescript": "^5.9.3"
   }
 }
