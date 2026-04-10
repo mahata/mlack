@@ -629,6 +629,7 @@
     huddleOtherUserName = "";
     huddleMuted = false;
     huddleMuteButton.classList.remove("muted");
+    huddleMuteButton.setAttribute("aria-pressed", "false");
 
     hideHuddleBar();
     hideIncomingBanner();
@@ -749,7 +750,12 @@
 
   async function handleHuddleAnswer(conversationId: number, answer: RTCSessionDescriptionInit): Promise<void> {
     if (!huddlePeerConnection || !huddleActive || huddleConversationId !== conversationId) return;
-    await huddlePeerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    try {
+      await huddlePeerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (error) {
+      console.error("Failed to set remote description:", error);
+      endHuddle();
+    }
   }
 
   async function handleHuddleIceCandidate(conversationId: number, candidate: RTCIceCandidateInit): Promise<void> {
@@ -779,6 +785,7 @@
     for (const track of huddleLocalStream.getAudioTracks()) {
       track.enabled = !huddleMuted;
     }
+    huddleMuteButton.setAttribute("aria-pressed", String(huddleMuted));
     if (huddleMuted) {
       huddleMuteButton.classList.add("muted");
     } else {

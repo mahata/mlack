@@ -150,7 +150,14 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                 </span>
               </div>
               <div className="huddle-bar-controls">
-                <button type="button" id="huddleMuteButton" className="huddle-control-button" title="Toggle mute">
+                <button
+                  type="button"
+                  id="huddleMuteButton"
+                  className="huddle-control-button"
+                  title="Toggle mute"
+                  aria-label="Toggle mute"
+                  aria-pressed="false"
+                >
                   <svg
                     id="huddleMuteIcon"
                     width="16"
@@ -178,9 +185,8 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                   End
                 </button>
               </div>
-              <audio id="remoteAudio" autoplay={true}>
-                <track kind="captions" default={false} />
-              </audio>
+              {/* biome-ignore lint/a11y/useMediaCaption: audio-only huddle stream has no captions */}
+              <audio id="remoteAudio" autoplay={true} />
             </div>
             <div id="status" className="status disconnected">
               Connecting to {wsUrl}...
