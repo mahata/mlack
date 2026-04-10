@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { directConversations, directMessages, getDb, users, workspaceMembers } from "../db/index.js";
+import { getWorkspace } from "../helpers/getWorkspace.js";
 import type { Env } from "../types.js";
 
 const directMessagesRoute = new Hono<Env>();
@@ -9,7 +10,7 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const conversations = await db
       .select()
@@ -53,7 +54,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const body = await c.req.json();
     const targetEmail = body.targetEmail?.trim();
@@ -170,7 +171,7 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations/:id/messages", async (c) 
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const conversationId = Number(c.req.param("id"));
     if (Number.isNaN(conversationId)) {
@@ -209,7 +210,7 @@ directMessagesRoute.get("/w/:slug/api/dm/workspace-members", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const members = await db
       .select({ userEmail: workspaceMembers.userEmail })

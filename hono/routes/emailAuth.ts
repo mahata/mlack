@@ -14,7 +14,7 @@ import { getDb, pendingRegistrations, users } from "../db/index.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Bindings, Env } from "../types.js";
 
-const emailAuth = new Hono<Env>();
+const emailAuthRoute = new Hono<Env>();
 
 async function sendOrLogVerificationEmail(
   env: Bindings,
@@ -28,7 +28,7 @@ async function sendOrLogVerificationEmail(
   return sendVerificationEmail(env.RESEND_API_KEY, env.RESEND_FROM_EMAIL, email, verificationCode);
 }
 
-emailAuth.get("/auth/login", async (c) => {
+emailAuthRoute.get("/auth/login", async (c) => {
   const error = c.req.query("error");
   let errorMessage: string | undefined;
   if (error === "invalid_credentials") {
@@ -39,7 +39,7 @@ emailAuth.get("/auth/login", async (c) => {
   return renderPage(c, LoginPage(errorMessage));
 });
 
-emailAuth.post("/auth/login", async (c) => {
+emailAuthRoute.post("/auth/login", async (c) => {
   try {
     const body = await c.req.parseBody();
     const email = body.email as string;
@@ -74,7 +74,7 @@ emailAuth.post("/auth/login", async (c) => {
   }
 });
 
-emailAuth.get("/auth/register", async (c) => {
+emailAuthRoute.get("/auth/register", async (c) => {
   const error = c.req.query("error");
   let errorMessage: string | undefined;
   if (error === "email_exists") {
@@ -85,7 +85,7 @@ emailAuth.get("/auth/register", async (c) => {
   return renderPage(c, RegisterPage(errorMessage));
 });
 
-emailAuth.post("/auth/register", async (c) => {
+emailAuthRoute.post("/auth/register", async (c) => {
   try {
     const body = await c.req.parseBody();
     const name = body.name as string;
@@ -132,7 +132,7 @@ emailAuth.post("/auth/register", async (c) => {
   }
 });
 
-emailAuth.get("/auth/verify-email", async (c) => {
+emailAuthRoute.get("/auth/verify-email", async (c) => {
   const email = c.req.query("email");
   if (!email) {
     return c.redirect("/auth/register");
@@ -140,7 +140,7 @@ emailAuth.get("/auth/verify-email", async (c) => {
   return renderPage(c, VerifyEmailPage({ email }));
 });
 
-emailAuth.post("/auth/verify-email", async (c) => {
+emailAuthRoute.post("/auth/verify-email", async (c) => {
   try {
     const body = await c.req.parseBody();
     const email = body.email as string;
@@ -201,7 +201,7 @@ emailAuth.post("/auth/verify-email", async (c) => {
   }
 });
 
-emailAuth.post("/auth/resend-code", async (c) => {
+emailAuthRoute.post("/auth/resend-code", async (c) => {
   try {
     const body = await c.req.parseBody();
     const email = body.email as string;
@@ -251,4 +251,4 @@ emailAuth.post("/auth/resend-code", async (c) => {
   }
 });
 
-export { emailAuth };
+export { emailAuthRoute };

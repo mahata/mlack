@@ -3,14 +3,14 @@ import { csrf } from "hono/csrf";
 import type { MiddlewareHandler } from "hono/types";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
 import { requireWorkspaceMember } from "./auth/requireWorkspaceMember.js";
-import { auth } from "./routes/auth.js";
+import { authRoute } from "./routes/auth.js";
 import { channelsRoute } from "./routes/channels.js";
 import { directMessagesRoute } from "./routes/directMessages.js";
-import { emailAuth } from "./routes/emailAuth.js";
-import { health } from "./routes/health.js";
-import { index } from "./routes/index.js";
+import { emailAuthRoute } from "./routes/emailAuth.js";
+import { healthRoute } from "./routes/health.js";
+import { indexRoute } from "./routes/index.js";
 import { messagesRoute } from "./routes/messages.js";
-import { testAuth } from "./routes/testAuth.js";
+import { testAuthRoute } from "./routes/testAuth.js";
 import { uploadsRoute } from "./routes/uploads.js";
 import { workspaceAdminRoute } from "./routes/workspaceAdmin.js";
 import { workspaceInviteRoute } from "./routes/workspaceInvite.js";
@@ -55,15 +55,16 @@ export function createApp(options?: AppOptions) {
 
   app.use("*", csrf());
 
-  app.route("/", health);
-  app.route("/", auth);
-  app.route("/", emailAuth);
-  app.route("/", testAuth);
+  app.route("/", healthRoute);
+  app.route("/", authRoute);
+  app.route("/", emailAuthRoute);
+  app.route("/", testAuthRoute);
 
   app.route("/", workspacesRoute);
   app.route("/", workspaceInviteRoute);
 
   app.use("/w/:slug/api/*", requireWorkspaceMember);
+  app.use("/w/:slug/admin/*", requireWorkspaceMember);
   app.use("/w/:slug/ws", requireWorkspaceMember);
   app.use("/w/:slug", requireWorkspaceMember);
 
@@ -73,7 +74,7 @@ export function createApp(options?: AppOptions) {
   app.route("/", uploadsRoute);
   app.route("/", createWsRoute());
   app.route("/", workspaceAdminRoute);
-  app.route("/", index);
+  app.route("/", indexRoute);
 
   return { app };
 }

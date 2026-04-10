@@ -4,12 +4,12 @@ export async function LoginPage(error?: string) {
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Login - MLack</title>
+        <title>Login - Mlack</title>
         <link rel="stylesheet" href="/components/AuthPage.css" />
       </head>
       <body>
         <div className="auth-container">
-          <h1 className="page-title">Login to MLack</h1>
+          <h1 className="page-title">Login to Mlack</h1>
 
           {error && <div className="error-message">{error}</div>}
 

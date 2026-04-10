@@ -1,7 +1,7 @@
 {
   "name": "mlack-desktop",
   "version": "1.0.0",
-  "description": "MLack desktop client",
+  "description": "Mlack desktop client",
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "build": {
     "appId": "com.mlack.desktop",
-    "productName": "MLack",
+    "productName": "Mlack",
     "publish": null,
     "directories": {
       "output": "release"

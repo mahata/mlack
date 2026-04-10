@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Env } from "../types.js";
 
-const auth = new Hono<Env>();
+const authRoute = new Hono<Env>();
 
 const googleOAuthMiddleware = createMiddleware<Env>(async (c, next) => {
   const handler = googleAuth({
@@ -15,7 +15,7 @@ const googleOAuthMiddleware = createMiddleware<Env>(async (c, next) => {
   return handler(c, next);
 });
 
-auth.get("/auth/google", googleOAuthMiddleware, async (c) => {
+authRoute.get("/auth/google", googleOAuthMiddleware, async (c) => {
   const token = c.get("token");
   const user = c.get("user-google");
 
@@ -40,7 +40,7 @@ auth.get("/auth/google", googleOAuthMiddleware, async (c) => {
   }
 });
 
-auth.get("/debug/session", async (c) => {
+authRoute.get("/debug/session", async (c) => {
   if (c.env.NODE_ENV !== "development") {
     return c.json({ error: "Debug endpoint only available in development" }, 403);
   }
@@ -52,10 +52,10 @@ auth.get("/debug/session", async (c) => {
   });
 });
 
-auth.post("/auth/logout", async (c) => {
+authRoute.post("/auth/logout", async (c) => {
   const session = c.get("session");
   session.deleteSession();
   return c.redirect("/");
 });
 
-export { auth };
+export { authRoute };

@@ -1,7 +1,7 @@
 {
   "name": "mlack-mobile",
   "version": "1.0.0",
-  "description": "MLack mobile client",
+  "description": "Mlack mobile client",
   "type": "module",
   "scripts": {
     "cap:sync": "cap sync",

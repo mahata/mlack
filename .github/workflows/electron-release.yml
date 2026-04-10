@@ -140,7 +140,7 @@ jobs:
           gh release create "$TAG_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "MLack Desktop v${VERSION}" \
+            --title "Mlack Desktop v${VERSION}" \
             --generate-notes \
             artifacts/mac/*.dmg \
             artifacts/win/*.exe \

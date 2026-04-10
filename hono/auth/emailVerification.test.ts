@@ -70,7 +70,7 @@ describe("sendVerificationEmail", () => {
     const body = JSON.parse(options.body);
     expect(body.from).toBe("noreply@example.com");
     expect(body.to).toEqual(["user@example.com"]);
-    expect(body.subject).toBe("MLack - Verify your email");
+    expect(body.subject).toBe("Mlack - Verify your email");
     expect(body.html).toContain("123456");
 
     vi.unstubAllGlobals();

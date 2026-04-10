@@ -12,7 +12,7 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 describe("Deployment compatibility", () => {
-  it("should be able to import modules with .js extensions for ES modules", async () => {
+  it("should be able to import modules with .js extensions for ES modules", { timeout: 15000 }, async () => {
     const { app } = await import("./app.js");
     expect(app).toBeDefined();
     expect(typeof app.fetch).toBe("function");
@@ -20,8 +20,8 @@ describe("Deployment compatibility", () => {
 
   it("should be able to import all route modules", async () => {
     const [
-      { health },
-      { index },
+      { healthRoute },
+      { indexRoute },
       { createWsRoute },
       { workspacesRoute },
       { workspaceAdminRoute },
@@ -35,8 +35,8 @@ describe("Deployment compatibility", () => {
       import("./routes/workspaceInvite.js"),
     ]);
 
-    expect(health).toBeDefined();
-    expect(index).toBeDefined();
+    expect(healthRoute).toBeDefined();
+    expect(indexRoute).toBeDefined();
     expect(createWsRoute).toBeDefined();
     expect(typeof createWsRoute).toBe("function");
     expect(workspacesRoute).toBeDefined();

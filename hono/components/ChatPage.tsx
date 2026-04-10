@@ -1,15 +1,16 @@
 import type { User, Workspace } from "../types.js";
+import { CreateWorkspaceModal } from "./CreateWorkspaceModal.js";
 
 export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspace) {
   const slug = workspace?.slug || "default";
-  const workspaceName = workspace?.name || "MLack";
+  const workspaceName = workspace?.name || "Mlack";
 
   return (
     <html lang="en">
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        <title>{workspaceName} - MLack</title>
+        <title>{workspaceName} - Mlack</title>
         <link rel="stylesheet" href="/components/ChatPage.css" />
       </head>
       <body>
@@ -172,40 +173,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
           </div>
         </div>
 
-        <div
-          id="createWorkspaceModal"
-          className="modal hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="createWorkspaceTitle"
-        >
-          <div className="modal-content">
-            <h3 id="createWorkspaceTitle">Create Workspace</h3>
-            <label className="modal-label" htmlFor="workspaceName">
-              Name
-            </label>
-            <input type="text" id="workspaceName" placeholder="My Workspace" />
-            <label className="modal-label" htmlFor="workspaceSlug">
-              Slug
-            </label>
-            <input type="text" id="workspaceSlug" placeholder="my-workspace" />
-            <p className="slug-preview">
-              Your workspace URL will be:{" "}
-              <span className="slug-preview-value" id="slugPreviewValue">
-                ...
-              </span>
-            </p>
-            <p id="createWorkspaceError" className="modal-error hidden"></p>
-            <div className="modal-actions">
-              <button type="button" id="cancelCreateWorkspace">
-                Cancel
-              </button>
-              <button type="button" id="confirmCreateWorkspace">
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
+        {await CreateWorkspaceModal()}
 
         <div
           id="dmComposeModal"
@@ -221,6 +189,7 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
           </div>
         </div>
 
+        <script src="/static/workspaceModal.js"></script>
         <script src="/static/ChatPage.js"></script>
       </body>
     </html>

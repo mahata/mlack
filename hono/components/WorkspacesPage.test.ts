@@ -107,7 +107,7 @@ describe("WorkspacesPage component", () => {
     const jsxElement = await WorkspacesPage(mockUser, []);
     const html = jsxElement.toString();
 
-    expect(html).toContain('id="slugPreview"');
+    expect(html).toContain("slug-preview");
     expect(html).toContain('id="slugPreviewValue"');
   });
 

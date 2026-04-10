@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import type { Env } from "../types.js";
 
-const testAuth = new Hono<Env>();
+const testAuthRoute = new Hono<Env>();
 
-testAuth.post("/test/login", async (c) => {
+testAuthRoute.post("/test/login", async (c) => {
   if (c.env.NODE_ENV !== "development") {
     return c.json({ error: "Test login only available in development" }, 403);
   }
@@ -22,7 +22,7 @@ testAuth.post("/test/login", async (c) => {
   return c.json({ success: true, user: testUser });
 });
 
-testAuth.post("/test/logout", async (c) => {
+testAuthRoute.post("/test/logout", async (c) => {
   if (c.env.NODE_ENV !== "development") {
     return c.json({ error: "Test logout only available in development" }, 403);
   }
@@ -33,4 +33,4 @@ testAuth.post("/test/logout", async (c) => {
   return c.json({ success: true });
 });
 
-export { testAuth };
+export { testAuthRoute };
