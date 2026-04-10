@@ -18,7 +18,10 @@ export async function CreateWorkspaceModal() {
         </label>
         <input type="text" id="workspaceSlug" placeholder="my-workspace" />
         <p className="slug-preview">
-          URL: /w/<span id="slugPreviewValue">...</span>
+          URL: /w/
+          <span id="slugPreviewValue" className="slug-preview-value">
+            ...
+          </span>
         </p>
         <p id="createWorkspaceError" className="modal-error hidden"></p>
         <div className="modal-actions">
