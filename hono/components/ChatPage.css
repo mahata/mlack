@@ -841,6 +841,200 @@ body {
   color: #fff;
 }
 
+/* Huddle: Start button in header */
+.start-huddle-button {
+  background: none;
+  border: 1px solid #ababad;
+  color: #ababad;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.start-huddle-button:hover {
+  background-color: #35373b;
+  color: #fff;
+  border-color: #fff;
+}
+
+.start-huddle-button.hidden {
+  display: none;
+}
+
+/* Huddle: Incoming call banner */
+.huddle-incoming-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background-color: #1164a3;
+  color: #fff;
+  font-size: 14px;
+  animation: huddle-pulse 2s ease-in-out infinite;
+}
+
+.huddle-incoming-banner.hidden {
+  display: none;
+}
+
+@keyframes huddle-pulse {
+  0%, 100% { background-color: #1164a3; }
+  50% { background-color: #0d5289; }
+}
+
+.huddle-incoming-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.huddle-caller-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.huddle-incoming-label {
+  white-space: nowrap;
+}
+
+.huddle-incoming-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.huddle-accept-button {
+  padding: 6px 14px;
+  background-color: #007a5a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.huddle-accept-button:hover {
+  background-color: #005e46;
+}
+
+.huddle-decline-button {
+  padding: 6px 14px;
+  background-color: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.huddle-decline-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #fff;
+}
+
+/* Huddle: Active bar */
+.huddle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background-color: #0d2e25;
+  border-bottom: 1px solid #007a5a;
+  font-size: 13px;
+}
+
+.huddle-bar.hidden {
+  display: none;
+}
+
+.huddle-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.huddle-bar-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #007a5a;
+  flex-shrink: 0;
+  animation: huddle-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes huddle-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.huddle-bar-status {
+  color: #007a5a;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.huddle-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.huddle-control-button {
+  background: none;
+  border: 1px solid #ababad;
+  color: #ababad;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+}
+
+.huddle-control-button:hover {
+  background-color: #35373b;
+  color: #fff;
+  border-color: #fff;
+}
+
+.huddle-control-button.muted {
+  background-color: #e0143c;
+  border-color: #e0143c;
+  color: #fff;
+}
+
+.huddle-end-button {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0143c;
+  border-color: #e0143c;
+}
+
+.huddle-end-button:hover {
+  background-color: #e0143c;
+  color: #fff;
+  border-color: #e0143c;
+}
+
 /* Safe area insets for notch/Dynamic Island devices */
 @supports (padding: env(safe-area-inset-top)) {
   .sidebar {
