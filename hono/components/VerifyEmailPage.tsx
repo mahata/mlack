@@ -10,7 +10,7 @@ export async function VerifyEmailPage({ email, error, success }: VerifyEmailPage
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Verify Email - MLack</title>
+        <title>Verify Email - Mlack</title>
         <link rel="stylesheet" href="/components/AuthPage.css" />
       </head>
       <body>

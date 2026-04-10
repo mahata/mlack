@@ -9,7 +9,7 @@ describe("VerifyEmailPage component", () => {
     const html = jsxElement.toString();
 
     expect(html).toContain('<html lang="en">');
-    expect(html).toContain("<title>Verify Email - MLack</title>");
+    expect(html).toContain("<title>Verify Email - Mlack</title>");
     expect(html).toContain('class="auth-container"');
     expect(html).toContain('class="page-title"');
   });

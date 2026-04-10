@@ -7,7 +7,7 @@ const APP_URL = IS_DEV ? `http://${DEV_HOST}:8787` : "https://mlack.uk";
 
 const config: CapacitorConfig = {
   appId: "uk.mlack.app",
-  appName: "MLack",
+  appName: "Mlack",
   webDir: "www",
   server: {
     url: APP_URL,

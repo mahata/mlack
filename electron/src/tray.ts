@@ -20,11 +20,11 @@ export function createTray(mainWindow: BrowserWindow): void {
   }
 
   tray = new Tray(trayIcon);
-  tray.setToolTip("MLack");
+  tray.setToolTip("Mlack");
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Open MLack",
+      label: "Open Mlack",
       click: () => {
         mainWindow.show();
         mainWindow.focus();

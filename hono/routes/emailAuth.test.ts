@@ -76,7 +76,7 @@ describe("Email Auth routes", () => {
       expect(response.status).toBe(200);
 
       const html = await response.text();
-      expect(html).toContain("Login to MLack");
+      expect(html).toContain("Login to Mlack");
       expect(html).toContain('action="/auth/login"');
       expect(html).toContain('name="email"');
       expect(html).toContain('name="password"');

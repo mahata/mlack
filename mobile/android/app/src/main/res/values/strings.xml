@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">MLack</string>
-    <string name="title_activity_main">MLack</string>
+    <string name="app_name">Mlack</string>
+    <string name="title_activity_main">Mlack</string>
     <string name="package_name">uk.mlack.app</string>
     <string name="custom_url_scheme">uk.mlack.app</string>
 </resources>

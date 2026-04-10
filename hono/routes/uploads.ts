@@ -1,6 +1,7 @@
 import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { channelMembers, channels, directConversations, getDb } from "../db/index.js";
+import { getWorkspace } from "../helpers/getWorkspace.js";
 import type { Env } from "../types.js";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -27,7 +28,7 @@ const uploadsRoute = new Hono<Env>();
 
 uploadsRoute.post("/w/:slug/api/upload", async (c) => {
   try {
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
     const user = c.get("user");
 
     const formData = await c.req.formData();
@@ -122,7 +123,7 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
 
 uploadsRoute.get("/w/:slug/api/files/*", async (c) => {
   try {
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
     const user = c.get("user");
     const fullPath = c.req.path;
     const prefix = `/w/${c.req.param("slug")}/api/files/`;

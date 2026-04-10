@@ -16,12 +16,29 @@
   const toggleMembersButton = document.getElementById("toggleMembersButton") as HTMLButtonElement;
   const createWorkspaceButton = document.getElementById("createWorkspaceButton") as HTMLButtonElement;
   const createWorkspaceModal = document.getElementById("createWorkspaceModal") as HTMLDivElement;
-  const workspaceNameInput = document.getElementById("workspaceName") as HTMLInputElement;
-  const workspaceSlugInput = document.getElementById("workspaceSlug") as HTMLInputElement;
-  const slugPreviewValue = document.getElementById("slugPreviewValue") as HTMLSpanElement;
-  const createWorkspaceError = document.getElementById("createWorkspaceError") as HTMLParagraphElement;
-  const cancelCreateWorkspace = document.getElementById("cancelCreateWorkspace") as HTMLButtonElement;
-  const confirmCreateWorkspace = document.getElementById("confirmCreateWorkspace") as HTMLButtonElement;
+  const workspaceModal = (
+    window as unknown as {
+      initWorkspaceModal: (elements: {
+        createWorkspaceModal: HTMLDivElement;
+        workspaceNameInput: HTMLInputElement;
+        workspaceSlugInput: HTMLInputElement;
+        slugPreviewValue: HTMLSpanElement;
+        createWorkspaceError: HTMLParagraphElement;
+        cancelCreateWorkspace: HTMLButtonElement;
+        confirmCreateWorkspace: HTMLButtonElement;
+        createWorkspaceButton: HTMLButtonElement;
+      }) => { closeModal: () => void; isModalVisible: () => boolean };
+    }
+  ).initWorkspaceModal({
+    createWorkspaceModal,
+    workspaceNameInput: document.getElementById("workspaceName") as HTMLInputElement,
+    workspaceSlugInput: document.getElementById("workspaceSlug") as HTMLInputElement,
+    slugPreviewValue: document.getElementById("slugPreviewValue") as HTMLSpanElement,
+    createWorkspaceError: document.getElementById("createWorkspaceError") as HTMLParagraphElement,
+    cancelCreateWorkspace: document.getElementById("cancelCreateWorkspace") as HTMLButtonElement,
+    confirmCreateWorkspace: document.getElementById("confirmCreateWorkspace") as HTMLButtonElement,
+    createWorkspaceButton,
+  });
   const sidebar = document.getElementById("sidebar") as HTMLElement;
   const sidebarOverlay = document.getElementById("sidebarOverlay") as HTMLDivElement;
   const sidebarToggle = document.getElementById("sidebarToggle") as HTMLButtonElement;
@@ -665,142 +682,14 @@
     }
   });
 
-  let slugManuallyEdited = false;
-
-  function generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40)
-      .replace(/^-+|-+$/g, "");
-  }
-
-  function updateSlugPreview(): void {
-    const slug = workspaceSlugInput.value.trim();
-    slugPreviewValue.textContent = slug || "...";
-  }
-
-  function showWorkspaceError(message: string): void {
-    createWorkspaceError.textContent = message;
-    createWorkspaceError.classList.remove("hidden");
-  }
-
-  function hideWorkspaceError(): void {
-    createWorkspaceError.textContent = "";
-    createWorkspaceError.classList.add("hidden");
-  }
-
-  function resetWorkspaceConfirmButton(): void {
-    confirmCreateWorkspace.disabled = false;
-    confirmCreateWorkspace.textContent = "Create";
-  }
-
-  function openWorkspaceModal(): void {
-    createWorkspaceModal.classList.remove("hidden");
-    workspaceNameInput.value = "";
-    workspaceSlugInput.value = "";
-    slugManuallyEdited = false;
-    hideWorkspaceError();
-    resetWorkspaceConfirmButton();
-    updateSlugPreview();
-    workspaceNameInput.focus();
-  }
-
-  function closeWorkspaceModal(): void {
-    createWorkspaceModal.classList.add("hidden");
-    resetWorkspaceConfirmButton();
-  }
-
-  async function createWorkspace(): Promise<void> {
-    if (confirmCreateWorkspace.disabled) return;
-
-    const name = workspaceNameInput.value.trim();
-    const slug = workspaceSlugInput.value.trim();
-
-    if (!name) {
-      showWorkspaceError("Workspace name is required.");
-      workspaceNameInput.focus();
-      return;
-    }
-
-    if (!slug) {
-      showWorkspaceError("Workspace slug is required.");
-      workspaceSlugInput.focus();
-      return;
-    }
-
-    hideWorkspaceError();
-    confirmCreateWorkspace.disabled = true;
-    confirmCreateWorkspace.textContent = "Creating...";
-
-    try {
-      const response = await fetch("/api/workspaces", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, slug }),
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as { workspace: { slug: string } };
-        window.location.href = `/w/${data.workspace.slug}`;
-      } else {
-        const data = (await response.json()) as { error?: string };
-        showWorkspaceError(data.error || "Failed to create workspace.");
-        resetWorkspaceConfirmButton();
-      }
-    } catch {
-      showWorkspaceError("Network error. Please try again.");
-      resetWorkspaceConfirmButton();
-    }
-  }
-
-  createWorkspaceButton.addEventListener("click", openWorkspaceModal);
-
-  cancelCreateWorkspace.addEventListener("click", closeWorkspaceModal);
-
-  createWorkspaceModal.addEventListener("click", (e: MouseEvent) => {
-    if (e.target === createWorkspaceModal) {
-      closeWorkspaceModal();
-    }
-  });
-
-  confirmCreateWorkspace.addEventListener("click", () => {
-    createWorkspace();
-  });
-
-  workspaceNameInput.addEventListener("input", () => {
-    if (!slugManuallyEdited) {
-      workspaceSlugInput.value = generateSlug(workspaceNameInput.value);
-      updateSlugPreview();
-    }
-  });
-
-  workspaceSlugInput.addEventListener("input", () => {
-    slugManuallyEdited = workspaceSlugInput.value !== "";
-    updateSlugPreview();
-  });
-
-  workspaceNameInput.addEventListener("keypress", (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      createWorkspace();
-    }
-  });
-
-  workspaceSlugInput.addEventListener("keypress", (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      createWorkspace();
-    }
-  });
-
   document.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       if (sidebar.classList.contains("open")) {
         closeSidebar();
       } else if (!dmComposeModal.classList.contains("hidden")) {
         closeDmCompose();
-      } else if (!createWorkspaceModal.classList.contains("hidden")) {
-        closeWorkspaceModal();
+      } else if (workspaceModal.isModalVisible()) {
+        workspaceModal.closeModal();
       } else if (!createChannelModal.classList.contains("hidden")) {
         createChannelModal.classList.add("hidden");
       }

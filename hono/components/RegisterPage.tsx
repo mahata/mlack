@@ -4,7 +4,7 @@ export async function RegisterPage(error?: string) {
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Register - MLack</title>
+        <title>Register - Mlack</title>
         <link rel="stylesheet" href="/components/AuthPage.css" />
       </head>
       <body>

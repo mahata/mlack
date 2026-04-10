@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Coding agent guide for the **mlack** repository — a real-time Slack-like chat app built with Hono, TypeScript, and PostgreSQL.
+Coding agent guide for the **mlack** repository — a real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare D1 (SQLite).
 
 ## Build / Lint / Test Commands
 
@@ -59,7 +59,7 @@ e2e/                    # Playwright E2E tests
 ### Imports
 
 - **Always use `.js` extensions** in local imports (ESM requirement):
-  `import { auth } from "./routes/auth.js";`
+  `import { authRoute } from "./routes/auth.js";`
 - Use `import type` for type-only imports (`verbatimModuleSyntax` is enforced):
   `import type { User, Variables } from "../types.js";`
 - Exception: E2E tests in `e2e/` do not use `.js` extensions (Playwright resolves them).
@@ -87,7 +87,7 @@ e2e/                    # Playwright E2E tests
 | Constants           | UPPER_SNAKE | `SALT_LENGTH`, `KEY_LENGTH`                 |
 | Types               | PascalCase  | `User`, `Variables`, `AppOptions`           |
 | JSX components      | PascalCase  | `ChatPage()`, `LoginPage()`                |
-| Route instances     | camelCase   | `const auth = new Hono(...)` exported as `{ auth }` |
+| Route instances     | camelCase + `Route` suffix | `const authRoute = new Hono(...)` exported as `{ authRoute }` |
 
 ### Comments
 

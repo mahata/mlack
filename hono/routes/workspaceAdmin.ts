@@ -1,18 +1,18 @@
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireWorkspaceAdmin } from "../auth/requireWorkspaceAdmin.js";
-import { requireWorkspaceMember } from "../auth/requireWorkspaceMember.js";
 import { getDb, workspaceInvites, workspaceMembers } from "../db/index.js";
+import { getWorkspace } from "../helpers/getWorkspace.js";
 import type { Env } from "../types.js";
 
 const INVITE_EXPIRY_MS = 60 * 60 * 1000;
 
 const workspaceAdminRoute = new Hono<Env>();
 
-workspaceAdminRoute.post("/w/:slug/admin/invites", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
+workspaceAdminRoute.post("/w/:slug/admin/invites", requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
     const user = c.get("user");
 
     const code = crypto.randomUUID();
@@ -43,10 +43,10 @@ workspaceAdminRoute.post("/w/:slug/admin/invites", requireWorkspaceMember, requi
   }
 });
 
-workspaceAdminRoute.get("/w/:slug/admin/invites", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
+workspaceAdminRoute.get("/w/:slug/admin/invites", requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const invites = await db.select().from(workspaceInvites).where(eq(workspaceInvites.workspaceId, workspace.id));
 
@@ -60,10 +60,10 @@ workspaceAdminRoute.get("/w/:slug/admin/invites", requireWorkspaceMember, requir
   }
 });
 
-workspaceAdminRoute.delete("/w/:slug/admin/invites/:code", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
+workspaceAdminRoute.delete("/w/:slug/admin/invites/:code", requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
     const code = c.req.param("code");
 
     const deleted = await db
@@ -82,10 +82,10 @@ workspaceAdminRoute.delete("/w/:slug/admin/invites/:code", requireWorkspaceMembe
   }
 });
 
-workspaceAdminRoute.get("/w/:slug/admin/members", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
+workspaceAdminRoute.get("/w/:slug/admin/members", requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const members = await db.select().from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspace.id));
 
@@ -96,10 +96,10 @@ workspaceAdminRoute.get("/w/:slug/admin/members", requireWorkspaceMember, requir
   }
 });
 
-workspaceAdminRoute.patch("/w/:slug/admin/members/:email", requireWorkspaceMember, requireWorkspaceAdmin, async (c) => {
+workspaceAdminRoute.patch("/w/:slug/admin/members/:email", requireWorkspaceAdmin, async (c) => {
   try {
     const db = getDb(c.env.DB);
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
     const email = c.req.param("email");
 
     const body = await c.req.json();

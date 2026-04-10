@@ -1,6 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { channelMembers, channels, getDb, messages } from "../db/index.js";
+import { getWorkspace } from "../helpers/getWorkspace.js";
 import type { Env } from "../types.js";
 
 const messagesRoute = new Hono<Env>();
@@ -19,7 +20,7 @@ messagesRoute.get("/w/:slug/api/messages", async (c) => {
 
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = c.get("workspace")!;
+    const workspace = getWorkspace(c);
 
     const channel = await db
       .select()

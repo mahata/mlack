@@ -20,7 +20,7 @@ function createWindow(): BrowserWindow {
     height: 800,
     minWidth: 800,
     minHeight: 500,
-    title: "MLack",
+    title: "Mlack",
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,

@@ -34,7 +34,7 @@ export async function sendVerificationEmail(
     body: JSON.stringify({
       from: fromEmail,
       to: [toEmail],
-      subject: "MLack - Verify your email",
+      subject: "Mlack - Verify your email",
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #333;">Verify your email</h2>

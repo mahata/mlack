@@ -4,12 +4,13 @@ import { AboutPage } from "../components/AboutPage.js";
 import { ChatPage } from "../components/ChatPage.js";
 import { WorkspacesPage } from "../components/WorkspacesPage.js";
 import { channelMembers, channels, getDb, workspaceMembers, workspaces } from "../db/index.js";
+import { getWorkspace } from "../helpers/getWorkspace.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Env, User } from "../types.js";
 
-const index = new Hono<Env>();
+const indexRoute = new Hono<Env>();
 
-index.get("/", async (c) => {
+indexRoute.get("/", async (c) => {
   const session = c.get("session");
   const user = session.get("user") as User | undefined;
 
@@ -72,9 +73,9 @@ index.get("/", async (c) => {
   }
 });
 
-index.get("/w/:slug", async (c) => {
+indexRoute.get("/w/:slug", async (c) => {
   const user = c.get("user");
-  const workspace = c.get("workspace")!;
+  const workspace = getWorkspace(c);
 
   const protoHeader = c.req.header("x-forwarded-proto");
   const protocol = protoHeader === "https" ? "wss:" : "ws:";
@@ -108,8 +109,8 @@ index.get("/w/:slug", async (c) => {
   return renderPage(c, ChatPage(wsUrl, user, workspace));
 });
 
-index.get("/about", async (c) => {
+indexRoute.get("/about", async (c) => {
   return renderPage(c, AboutPage());
 });
 
-export { index };
+export { indexRoute };

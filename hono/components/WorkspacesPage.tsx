@@ -1,4 +1,5 @@
 import type { User, Workspace } from "../types.js";
+import { CreateWorkspaceModal } from "./CreateWorkspaceModal.js";
 
 type WorkspaceWithRole = Workspace & { role: string };
 
@@ -8,13 +9,13 @@ export async function WorkspacesPage(user: User, workspaceList: WorkspaceWithRol
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Workspaces - MLack</title>
+        <title>Workspaces - Mlack</title>
         <link rel="stylesheet" href="/components/WorkspacesPage.css" />
       </head>
       <body>
         <div className="workspaces-container">
           <div className="workspaces-header">
-            <h1>MLack Workspaces</h1>
+            <h1>Mlack Workspaces</h1>
             <div className="user-info">
               {user.picture && <img src={user.picture} alt="Profile" className="profile-picture" />}
               <span className="user-email">{user.email}</span>
@@ -50,38 +51,9 @@ export async function WorkspacesPage(user: User, workspaceList: WorkspaceWithRol
           )}
         </div>
 
-        <div
-          id="createWorkspaceModal"
-          className="modal hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="createWorkspaceTitle"
-        >
-          <div className="modal-content">
-            <h3 id="createWorkspaceTitle">Create Workspace</h3>
-            <label className="modal-label" htmlFor="workspaceName">
-              Name
-            </label>
-            <input type="text" id="workspaceName" placeholder="My Workspace" />
-            <label className="modal-label" htmlFor="workspaceSlug">
-              Slug
-            </label>
-            <input type="text" id="workspaceSlug" placeholder="my-workspace" />
-            <p className="slug-preview" id="slugPreview">
-              URL: /w/<span id="slugPreviewValue">...</span>
-            </p>
-            <p className="modal-error hidden" id="createWorkspaceError" />
-            <div className="modal-actions">
-              <button type="button" id="cancelCreateWorkspace">
-                Cancel
-              </button>
-              <button type="button" id="confirmCreateWorkspace">
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
+        {await CreateWorkspaceModal()}
 
+        <script src="/static/workspaceModal.js"></script>
         <script src="/static/WorkspacesPage.js"></script>
       </body>
     </html>
