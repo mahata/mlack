@@ -97,6 +97,27 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                 <h2 id="channelName">#general</h2>
                 <button
                   type="button"
+                  id="startHuddleButton"
+                  className="start-huddle-button hidden"
+                  title="Start a huddle"
+                  aria-label="Start a huddle"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    role="img"
+                    aria-label="Huddle"
+                  >
+                    <title>Huddle</title>
+                    <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94M1 15.42V21a1 1 0 0 0 1 1h5.58a2 2 0 0 0 1.45-.63l8.58-9.59a2 2 0 0 0-.04-2.72L13.2 4.52a2 2 0 0 0-2.72-.04L1.63 13.97a2 2 0 0 0-.63 1.45z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
                   id="toggleMembersButton"
                   className="toggle-members-button"
                   title="Toggle members panel"
@@ -106,6 +127,66 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
                   Members
                 </button>
               </div>
+            </div>
+            <div id="huddleIncomingBanner" className="huddle-incoming-banner hidden">
+              <div className="huddle-incoming-info">
+                <span id="huddleCallerName" className="huddle-caller-name"></span>
+                <span className="huddle-incoming-label">is starting a huddle</span>
+              </div>
+              <div className="huddle-incoming-actions">
+                <button type="button" id="huddleAcceptButton" className="huddle-accept-button">
+                  Accept
+                </button>
+                <button type="button" id="huddleDeclineButton" className="huddle-decline-button">
+                  Decline
+                </button>
+              </div>
+            </div>
+            <div id="huddleBar" className="huddle-bar hidden">
+              <div className="huddle-bar-info">
+                <span className="huddle-bar-indicator"></span>
+                <span id="huddleStatus" className="huddle-bar-status">
+                  Huddle
+                </span>
+              </div>
+              <div className="huddle-bar-controls">
+                <button
+                  type="button"
+                  id="huddleMuteButton"
+                  className="huddle-control-button"
+                  title="Toggle mute"
+                  aria-label="Toggle mute"
+                  aria-pressed="false"
+                >
+                  <svg
+                    id="huddleMuteIcon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    role="img"
+                    aria-label="Microphone"
+                  >
+                    <title>Microphone</title>
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  id="huddleEndButton"
+                  className="huddle-control-button huddle-end-button"
+                  title="End huddle"
+                >
+                  End
+                </button>
+              </div>
+              {/* biome-ignore lint/a11y/useMediaCaption: audio-only huddle stream has no captions */}
+              <audio id="remoteAudio" autoplay={true} />
             </div>
             <div id="status" className="status disconnected">
               Connecting to {wsUrl}...

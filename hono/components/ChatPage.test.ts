@@ -136,4 +136,59 @@ describe("ChatPage component", () => {
     expect(html).toContain('id="createWorkspaceError"');
     expect(html).toContain("modal-error hidden");
   });
+
+  it("should include start huddle button hidden by default", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="startHuddleButton"');
+    expect(html).toContain("start-huddle-button hidden");
+    expect(html).toContain('title="Start a huddle"');
+  });
+
+  it("should include huddle incoming call banner hidden by default", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="huddleIncomingBanner"');
+    expect(html).toContain("huddle-incoming-banner hidden");
+    expect(html).toContain('id="huddleCallerName"');
+    expect(html).toContain("is starting a huddle");
+  });
+
+  it("should include huddle accept and decline buttons", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="huddleAcceptButton"');
+    expect(html).toContain("huddle-accept-button");
+    expect(html).toContain('id="huddleDeclineButton"');
+    expect(html).toContain("huddle-decline-button");
+  });
+
+  it("should include huddle bar hidden by default", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="huddleBar"');
+    expect(html).toContain("huddle-bar hidden");
+    expect(html).toContain('id="huddleStatus"');
+  });
+
+  it("should include huddle mute and end buttons", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="huddleMuteButton"');
+    expect(html).toContain('id="huddleEndButton"');
+    expect(html).toContain("huddle-end-button");
+  });
+
+  it("should include remote audio element for huddle", async () => {
+    const jsxElement = await ChatPage();
+
+    const html = jsxElement.toString();
+    expect(html).toContain('id="remoteAudio"');
+    expect(html).toContain("autoplay");
+  });
 });

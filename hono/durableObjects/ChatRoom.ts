@@ -35,7 +35,19 @@ type MembershipEvent = {
   userName: string;
 };
 
+type IncomingHuddleSignal = {
+  type: string;
+  conversationId: number;
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+};
+
+const HUDDLE_TYPES = new Set(["huddle-offer", "huddle-answer", "huddle-ice-candidate", "huddle-end"]);
+
 export class ChatRoom extends DurableObject<Bindings> {
+  private dmAuthCache = new Map<string, string>();
+
   constructor(ctx: DurableObjectState, env: Bindings) {
     super(ctx, env);
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
@@ -69,7 +81,7 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     const rawStr = typeof message === "string" ? message : new TextDecoder().decode(message);
 
-    let parsed: IncomingMessage | IncomingDm | MembershipEvent;
+    let parsed: IncomingMessage | IncomingDm | MembershipEvent | IncomingHuddleSignal;
     try {
       parsed = JSON.parse(rawStr);
     } catch {
@@ -83,6 +95,11 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     if (parsed.type === "dm") {
       await this.handleDirectMessage(ws, attachment, parsed as IncomingDm);
+      return;
+    }
+
+    if (HUDDLE_TYPES.has(parsed.type)) {
+      await this.handleHuddleSignal(ws, attachment, parsed as IncomingHuddleSignal);
       return;
     }
 
@@ -244,6 +261,78 @@ export class ChatRoom extends DurableObject<Bindings> {
       }
     } catch (error) {
       console.error("Error broadcasting DM:", error);
+    }
+  }
+
+  private async handleHuddleSignal(
+    ws: WebSocket,
+    sender: SessionAttachment,
+    signal: IncomingHuddleSignal,
+  ): Promise<void> {
+    if (!signal.conversationId) {
+      return;
+    }
+
+    if (signal.type === "huddle-offer" && !signal.offer) return;
+    if (signal.type === "huddle-answer" && !signal.answer) return;
+    if (signal.type === "huddle-ice-candidate" && !signal.candidate) return;
+
+    const cacheKey = `${sender.userEmail}:${signal.conversationId}`;
+    let otherEmail = this.dmAuthCache.get(cacheKey);
+
+    if (!otherEmail) {
+      const db = getDb(this.env.DB);
+
+      const conversation = await db
+        .select()
+        .from(directConversations)
+        .where(
+          and(
+            eq(directConversations.id, signal.conversationId),
+            or(
+              eq(directConversations.user1Email, sender.userEmail),
+              eq(directConversations.user2Email, sender.userEmail),
+            ),
+          ),
+        );
+
+      if (conversation.length === 0) {
+        try {
+          ws.send(JSON.stringify({ type: "error", error: "Not a participant in this conversation" }));
+        } catch {
+          // Socket may be closed
+        }
+        return;
+      }
+
+      const conv = conversation[0];
+      otherEmail = conv.user1Email === sender.userEmail ? conv.user2Email : conv.user1Email;
+      if (this.dmAuthCache.size >= 1000) {
+        this.dmAuthCache.clear();
+      }
+      this.dmAuthCache.set(cacheKey, otherEmail);
+    }
+
+    const outgoing = JSON.stringify({
+      ...signal,
+      userEmail: sender.userEmail,
+      userName: sender.userName,
+    });
+
+    try {
+      const allSockets = this.ctx.getWebSockets();
+      for (const socket of allSockets) {
+        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
+        if (socketAttachment && socketAttachment.userEmail === otherEmail) {
+          try {
+            socket.send(outgoing);
+          } catch {
+            // Socket may have been closed
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error relaying huddle signal:", error);
     }
   }
 

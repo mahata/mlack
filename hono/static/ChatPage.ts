@@ -50,6 +50,16 @@
   const dmComposeModal = document.getElementById("dmComposeModal") as HTMLDivElement;
   const dmSearchInput = document.getElementById("dmSearchInput") as HTMLInputElement;
   const dmMemberListEl = document.getElementById("dmMemberList") as HTMLUListElement;
+  const startHuddleButton = document.getElementById("startHuddleButton") as HTMLButtonElement;
+  const huddleIncomingBanner = document.getElementById("huddleIncomingBanner") as HTMLDivElement;
+  const huddleCallerName = document.getElementById("huddleCallerName") as HTMLSpanElement;
+  const huddleAcceptButton = document.getElementById("huddleAcceptButton") as HTMLButtonElement;
+  const huddleDeclineButton = document.getElementById("huddleDeclineButton") as HTMLButtonElement;
+  const huddleBar = document.getElementById("huddleBar") as HTMLDivElement;
+  const huddleStatus = document.getElementById("huddleStatus") as HTMLSpanElement;
+  const huddleMuteButton = document.getElementById("huddleMuteButton") as HTMLButtonElement;
+  const huddleEndButton = document.getElementById("huddleEndButton") as HTMLButtonElement;
+  const remoteAudio = document.getElementById("remoteAudio") as HTMLAudioElement;
 
   const STATUS_CLASS = "status";
   const CONNECTED_CLASS = "connected";
@@ -103,6 +113,20 @@
   let activeDmConversationId: number | null = null;
   let dmConversations: DmConversation[] = [];
   let allWorkspaceMembers: Member[] = [];
+
+  let huddleActive = false;
+  let huddlePeerConnection: RTCPeerConnection | null = null;
+  let huddleLocalStream: MediaStream | null = null;
+  let huddleConversationId: number | null = null;
+  let huddleOtherUserName = "";
+  let huddleMuted = false;
+  let pendingHuddleOffer: RTCSessionDescriptionInit | null = null;
+  let pendingHuddleCallerName = "";
+  let pendingHuddleConversationId: number | null = null;
+
+  const STUN_CONFIG: RTCConfiguration = {
+    iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
+  };
 
   const MOBILE_BREAKPOINT = 768;
   const TABLET_BREAKPOINT = 1024;
@@ -426,6 +450,7 @@
     channelNameHeader.textContent = otherUserName;
     membersPanel.classList.add("hidden");
     toggleMembersButton.classList.add("hidden");
+    updateHuddleButtonVisibility();
     renderChannelLists();
     renderDmList();
     if (isMobileView()) closeSidebar();
@@ -437,6 +462,7 @@
     viewMode = "channel";
     activeDmConversationId = null;
     toggleMembersButton.classList.remove("hidden");
+    updateHuddleButtonVisibility();
     if (membersPanelVisible) {
       membersPanel.classList.remove("hidden");
     }
@@ -518,6 +544,260 @@
     } catch (error) {
       console.error("Error starting DM:", error);
     }
+  }
+
+  function updateHuddleButtonVisibility(): void {
+    if (viewMode === "dm" && !huddleActive) {
+      startHuddleButton.classList.remove("hidden");
+    } else {
+      startHuddleButton.classList.add("hidden");
+    }
+  }
+
+  function createPeerConnection(): RTCPeerConnection {
+    const pc = new RTCPeerConnection(STUN_CONFIG);
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && ws.readyState === WebSocket.OPEN && huddleConversationId !== null) {
+        ws.send(
+          JSON.stringify({
+            type: "huddle-ice-candidate",
+            conversationId: huddleConversationId,
+            candidate: event.candidate.toJSON(),
+          }),
+        );
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (event.streams[0]) {
+        remoteAudio.srcObject = event.streams[0];
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === "connected") {
+        huddleStatus.textContent = `Huddle with ${huddleOtherUserName}`;
+      } else if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
+        if (huddleConversationId !== null && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "huddle-end", conversationId: huddleConversationId }));
+        }
+        cleanupHuddle();
+      }
+    };
+
+    return pc;
+  }
+
+  function showHuddleBar(): void {
+    huddleBar.classList.remove("hidden");
+    startHuddleButton.classList.add("hidden");
+  }
+
+  function hideHuddleBar(): void {
+    huddleBar.classList.add("hidden");
+    huddleStatus.textContent = "Huddle";
+    updateHuddleButtonVisibility();
+  }
+
+  function showIncomingBanner(callerName: string): void {
+    huddleCallerName.textContent = callerName;
+    huddleIncomingBanner.classList.remove("hidden");
+  }
+
+  function hideIncomingBanner(): void {
+    huddleIncomingBanner.classList.add("hidden");
+    huddleCallerName.textContent = "";
+  }
+
+  function cleanupHuddle(): void {
+    if (huddleLocalStream) {
+      for (const track of huddleLocalStream.getTracks()) {
+        track.stop();
+      }
+      huddleLocalStream = null;
+    }
+
+    if (huddlePeerConnection) {
+      huddlePeerConnection.close();
+      huddlePeerConnection = null;
+    }
+
+    remoteAudio.srcObject = null;
+    huddleActive = false;
+    huddleConversationId = null;
+    huddleOtherUserName = "";
+    huddleMuted = false;
+    huddleMuteButton.classList.remove("muted");
+    huddleMuteButton.setAttribute("aria-pressed", "false");
+
+    hideHuddleBar();
+    hideIncomingBanner();
+  }
+
+  async function startHuddle(): Promise<void> {
+    if (huddleActive || viewMode !== "dm" || activeDmConversationId === null) return;
+    if (ws.readyState !== WebSocket.OPEN) return;
+
+    const activeConv = dmConversations.find((c) => c.id === activeDmConversationId);
+    if (!activeConv) return;
+
+    try {
+      huddleLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      console.error("Failed to get audio:", error);
+      return;
+    }
+
+    huddleActive = true;
+    huddleConversationId = activeDmConversationId;
+    huddleOtherUserName = activeConv.otherUserName;
+    huddleStatus.textContent = `Calling ${huddleOtherUserName}...`;
+    showHuddleBar();
+
+    try {
+      huddlePeerConnection = createPeerConnection();
+
+      for (const track of huddleLocalStream.getTracks()) {
+        huddlePeerConnection.addTrack(track, huddleLocalStream);
+      }
+
+      const offer = await huddlePeerConnection.createOffer();
+      await huddlePeerConnection.setLocalDescription(offer);
+
+      ws.send(
+        JSON.stringify({
+          type: "huddle-offer",
+          conversationId: huddleConversationId,
+          offer,
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to start huddle:", error);
+      cleanupHuddle();
+    }
+  }
+
+  function handleHuddleOffer(conversationId: number, offer: RTCSessionDescriptionInit, callerName: string): void {
+    if (huddleActive) {
+      ws.send(JSON.stringify({ type: "huddle-end", conversationId }));
+      return;
+    }
+
+    pendingHuddleOffer = offer;
+    pendingHuddleCallerName = callerName;
+    pendingHuddleConversationId = conversationId;
+    showIncomingBanner(callerName);
+  }
+
+  async function acceptHuddle(): Promise<void> {
+    if (!pendingHuddleOffer || pendingHuddleConversationId === null) return;
+
+    hideIncomingBanner();
+
+    try {
+      huddleLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      console.error("Failed to get audio:", error);
+      pendingHuddleOffer = null;
+      pendingHuddleConversationId = null;
+      return;
+    }
+
+    huddleActive = true;
+    huddleConversationId = pendingHuddleConversationId;
+    huddleOtherUserName = pendingHuddleCallerName;
+    huddleStatus.textContent = `Huddle with ${huddleOtherUserName}`;
+    showHuddleBar();
+
+    try {
+      huddlePeerConnection = createPeerConnection();
+
+      for (const track of huddleLocalStream.getTracks()) {
+        huddlePeerConnection.addTrack(track, huddleLocalStream);
+      }
+
+      await huddlePeerConnection.setRemoteDescription(new RTCSessionDescription(pendingHuddleOffer));
+
+      const answer = await huddlePeerConnection.createAnswer();
+      await huddlePeerConnection.setLocalDescription(answer);
+
+      ws.send(
+        JSON.stringify({
+          type: "huddle-answer",
+          conversationId: huddleConversationId,
+          answer,
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to accept huddle:", error);
+      cleanupHuddle();
+    }
+
+    pendingHuddleOffer = null;
+    pendingHuddleConversationId = null;
+  }
+
+  function declineHuddle(): void {
+    if (pendingHuddleConversationId !== null && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "huddle-end", conversationId: pendingHuddleConversationId }));
+    }
+    pendingHuddleOffer = null;
+    pendingHuddleCallerName = "";
+    pendingHuddleConversationId = null;
+    hideIncomingBanner();
+  }
+
+  async function handleHuddleAnswer(conversationId: number, answer: RTCSessionDescriptionInit): Promise<void> {
+    if (!huddlePeerConnection || !huddleActive || huddleConversationId !== conversationId) return;
+    try {
+      await huddlePeerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (error) {
+      console.error("Failed to set remote description:", error);
+      endHuddle();
+    }
+  }
+
+  async function handleHuddleIceCandidate(conversationId: number, candidate: RTCIceCandidateInit): Promise<void> {
+    if (!huddlePeerConnection || huddleConversationId !== conversationId) return;
+    try {
+      await huddlePeerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      console.error("Error adding ICE candidate:", error);
+    }
+  }
+
+  function handleHuddleEnd(conversationId: number): void {
+    if (huddleActive && huddleConversationId === conversationId) {
+      cleanupHuddle();
+      return;
+    }
+    if (pendingHuddleConversationId === conversationId) {
+      pendingHuddleOffer = null;
+      pendingHuddleConversationId = null;
+      hideIncomingBanner();
+    }
+  }
+
+  function toggleMute(): void {
+    if (!huddleLocalStream) return;
+    huddleMuted = !huddleMuted;
+    for (const track of huddleLocalStream.getAudioTracks()) {
+      track.enabled = !huddleMuted;
+    }
+    huddleMuteButton.setAttribute("aria-pressed", String(huddleMuted));
+    if (huddleMuted) {
+      huddleMuteButton.classList.add("muted");
+    } else {
+      huddleMuteButton.classList.remove("muted");
+    }
+  }
+
+  function endHuddle(): void {
+    if (huddleConversationId !== null && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "huddle-end", conversationId: huddleConversationId }));
+    }
+    cleanupHuddle();
   }
 
   async function initChannels(): Promise<void> {
@@ -682,6 +962,12 @@
     }
   });
 
+  startHuddleButton.addEventListener("click", () => startHuddle());
+  huddleAcceptButton.addEventListener("click", () => acceptHuddle());
+  huddleDeclineButton.addEventListener("click", () => declineHuddle());
+  huddleMuteButton.addEventListener("click", () => toggleMute());
+  huddleEndButton.addEventListener("click", () => endHuddle());
+
   document.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       if (sidebar.classList.contains("open")) {
@@ -758,6 +1044,9 @@
           attachmentName?: string | null;
           attachmentType?: string | null;
           attachmentSize?: number | null;
+          offer?: RTCSessionDescriptionInit;
+          answer?: RTCSessionDescriptionInit;
+          candidate?: RTCIceCandidateInit;
         };
         if (data.type === "message" && viewMode === "channel" && data.channelId === activeChannelId) {
           displayMessage(data);
@@ -774,6 +1063,18 @@
         if ((data.type === "memberJoin" || data.type === "memberLeave") && data.channelId === activeChannelId) {
           fetchChannelMembers(data.channelId);
         }
+        if (data.type === "huddle-offer" && data.conversationId && data.offer) {
+          handleHuddleOffer(data.conversationId, data.offer, data.userName || data.userEmail);
+        }
+        if (data.type === "huddle-answer" && data.conversationId && data.answer) {
+          handleHuddleAnswer(data.conversationId, data.answer);
+        }
+        if (data.type === "huddle-ice-candidate" && data.conversationId && data.candidate) {
+          handleHuddleIceCandidate(data.conversationId, data.candidate);
+        }
+        if (data.type === "huddle-end" && data.conversationId) {
+          handleHuddleEnd(data.conversationId);
+        }
       } catch {
         // Ignore non-JSON messages
       }
@@ -785,6 +1086,10 @@
       messageInput.disabled = true;
       sendButton.disabled = true;
       attachButton.disabled = true;
+
+      if (huddleActive) {
+        cleanupHuddle();
+      }
 
       if (event.code === UNAUTHORIZED_CLOSE_CODE) {
         statusDiv.textContent = "Disconnected (unauthorized)";
