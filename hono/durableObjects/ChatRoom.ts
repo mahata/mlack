@@ -47,6 +47,8 @@ const HUDDLE_TYPES = new Set(["huddle-offer", "huddle-answer", "huddle-ice-candi
 
 const MAX_MESSAGE_LENGTH = 4096;
 const MAX_WEBSOCKET_PAYLOAD_BYTES = 65536;
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 export class ChatRoom extends DurableObject<Bindings> {
   private dmAuthCache = new Map<string, string>();
@@ -82,8 +84,7 @@ export class ChatRoom extends DurableObject<Bindings> {
       return;
     }
 
-    const payloadBytes =
-      typeof message === "string" ? new TextEncoder().encode(message).byteLength : message.byteLength;
+    const payloadBytes = typeof message === "string" ? textEncoder.encode(message).byteLength : message.byteLength;
     if (payloadBytes > MAX_WEBSOCKET_PAYLOAD_BYTES) {
       try {
         ws.send(JSON.stringify({ type: "error", error: "Message payload too large" }));
@@ -93,7 +94,7 @@ export class ChatRoom extends DurableObject<Bindings> {
       return;
     }
 
-    const rawStr = typeof message === "string" ? message : new TextDecoder().decode(message);
+    const rawStr = typeof message === "string" ? message : textDecoder.decode(message);
 
     let parsed: IncomingMessage | IncomingDm | MembershipEvent | IncomingHuddleSignal;
     try {

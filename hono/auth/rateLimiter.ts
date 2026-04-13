@@ -4,6 +4,7 @@ import type { Env } from "../types.js";
 type RateLimitOptions = {
   windowMs: number;
   maxRequests: number;
+  onLimitExceeded?: (c: Context<Env>) => Response | Promise<Response>;
 };
 
 type RequestRecord = {
@@ -30,12 +31,23 @@ export function createRateLimiter(storeKey: string, options: RateLimitOptions): 
     throw new Error("windowMs and maxRequests must be positive");
   }
 
-  const { windowMs, maxRequests } = options;
+  const { windowMs, maxRequests, onLimitExceeded } = options;
   const store = getStore(storeKey);
+  let lastCleanup = Date.now();
 
   return async (c, next) => {
     const ip = getClientIp(c);
     const now = Date.now();
+
+    if (now - lastCleanup > windowMs) {
+      for (const [key, rec] of store) {
+        rec.timestamps = rec.timestamps.filter((ts) => now - ts < windowMs);
+        if (rec.timestamps.length === 0) {
+          store.delete(key);
+        }
+      }
+      lastCleanup = now;
+    }
 
     const record = store.get(ip);
     if (!record) {
@@ -46,7 +58,16 @@ export function createRateLimiter(storeKey: string, options: RateLimitOptions): 
 
     record.timestamps = record.timestamps.filter((ts) => now - ts < windowMs);
 
+    if (record.timestamps.length === 0) {
+      record.timestamps.push(now);
+      await next();
+      return;
+    }
+
     if (record.timestamps.length >= maxRequests) {
+      if (onLimitExceeded) {
+        return onLimitExceeded(c);
+      }
       return c.json({ error: "Too many requests. Please try again later." }, 429);
     }
 

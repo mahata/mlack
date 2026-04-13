@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../types.js";
 import { _resetStores, createRateLimiter } from "./rateLimiter.js";
 
@@ -19,6 +19,7 @@ function makeRequest(app: Hono<Env>, ip = "1.2.3.4") {
 
 afterEach(() => {
   _resetStores();
+  vi.useRealTimers();
 });
 
 describe("createRateLimiter", () => {
@@ -72,8 +73,6 @@ describe("createRateLimiter", () => {
 
     const res2 = await makeRequest(app);
     expect(res2.status).toBe(200);
-
-    vi.useRealTimers();
   });
 
   it("should fall back to x-forwarded-for when cf-connecting-ip is absent", async () => {
@@ -119,5 +118,49 @@ describe("createRateLimiter", () => {
     expect(() => createRateLimiter("bad-max", { windowMs: 1000, maxRequests: -1 })).toThrow(
       "windowMs and maxRequests must be positive",
     );
+  });
+
+  it("should use custom onLimitExceeded handler when provided", async () => {
+    const app = new Hono<Env>();
+    app.use(
+      "/test",
+      createRateLimiter("test-custom-handler", {
+        windowMs: 60_000,
+        maxRequests: 1,
+        onLimitExceeded: (c) => c.html("<h1>Rate limited</h1>", 429),
+      }),
+    );
+    app.post("/test", (c) => c.json({ ok: true }));
+
+    const res1 = await app.request("/test", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "1.2.3.4" },
+    });
+    expect(res1.status).toBe(200);
+
+    const res2 = await app.request("/test", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "1.2.3.4" },
+    });
+    expect(res2.status).toBe(429);
+    const body = await res2.text();
+    expect(body).toContain("Rate limited");
+  });
+
+  it("should clean up stale entries after the window passes", async () => {
+    vi.useFakeTimers();
+    const app = createTestApp("test-cleanup", 1, 1000);
+
+    await makeRequest(app, "10.0.0.1");
+    await makeRequest(app, "10.0.0.2");
+    await makeRequest(app, "10.0.0.3");
+
+    const blockedRes = await makeRequest(app, "10.0.0.1");
+    expect(blockedRes.status).toBe(429);
+
+    await vi.advanceTimersByTimeAsync(1001);
+
+    const afterWindowRes = await makeRequest(app, "10.0.0.1");
+    expect(afterWindowRes.status).toBe(200);
   });
 });

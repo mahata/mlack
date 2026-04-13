@@ -17,11 +17,34 @@ import { renderPage } from "../helpers/renderPage.js";
 import type { Bindings, Env } from "../types.js";
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MESSAGE = "Too many attempts. Please try again later.";
 
-const loginRateLimiter = createRateLimiter("auth-login", { windowMs: RATE_LIMIT_WINDOW_MS, maxRequests: 10 });
-const registerRateLimiter = createRateLimiter("auth-register", { windowMs: RATE_LIMIT_WINDOW_MS, maxRequests: 5 });
-const verifyRateLimiter = createRateLimiter("auth-verify", { windowMs: RATE_LIMIT_WINDOW_MS, maxRequests: 10 });
-const resendRateLimiter = createRateLimiter("auth-resend", { windowMs: RATE_LIMIT_WINDOW_MS, maxRequests: 5 });
+const loginRateLimiter = createRateLimiter("auth-login", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 10,
+  onLimitExceeded: (c) => renderPage(c, LoginPage(RATE_LIMIT_MESSAGE), 429),
+});
+const registerRateLimiter = createRateLimiter("auth-register", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 5,
+  onLimitExceeded: (c) => renderPage(c, RegisterPage(RATE_LIMIT_MESSAGE), 429),
+});
+const verifyRateLimiter = createRateLimiter("auth-verify", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 10,
+  onLimitExceeded: (c) => {
+    const email = c.req.query("email") || "";
+    return renderPage(c, VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
+  },
+});
+const resendRateLimiter = createRateLimiter("auth-resend", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 5,
+  onLimitExceeded: (c) => {
+    const email = c.req.query("email") || "";
+    return renderPage(c, VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
+  },
+});
 
 const emailAuthRoute = new Hono<Env>();
 
