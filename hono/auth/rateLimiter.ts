@@ -11,6 +11,8 @@ type RequestRecord = {
   timestamps: number[];
 };
 
+const MAX_ENTRIES_PER_STORE = 10_000;
+
 const stores = new Map<string, Map<string, RequestRecord>>();
 
 function getStore(storeKey: string): Map<string, RequestRecord> {
@@ -49,6 +51,19 @@ export function createRateLimiter(storeKey: string, options: RateLimitOptions): 
       lastCleanup = now;
     }
 
+    if (store.size >= MAX_ENTRIES_PER_STORE) {
+      let oldest = now;
+      let oldestKey = "";
+      for (const [key, rec] of store) {
+        const earliestTs = rec.timestamps[0] ?? now;
+        if (earliestTs < oldest) {
+          oldest = earliestTs;
+          oldestKey = key;
+        }
+      }
+      if (oldestKey) store.delete(oldestKey);
+    }
+
     const record = store.get(ip);
     if (!record) {
       store.set(ip, { timestamps: [now] });
@@ -59,7 +74,8 @@ export function createRateLimiter(storeKey: string, options: RateLimitOptions): 
     record.timestamps = record.timestamps.filter((ts) => now - ts < windowMs);
 
     if (record.timestamps.length === 0) {
-      record.timestamps.push(now);
+      store.delete(ip);
+      store.set(ip, { timestamps: [now] });
       await next();
       return;
     }
@@ -79,3 +95,5 @@ export function createRateLimiter(storeKey: string, options: RateLimitOptions): 
 export function _resetStores(): void {
   stores.clear();
 }
+
+export { MAX_ENTRIES_PER_STORE };

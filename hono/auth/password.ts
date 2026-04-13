@@ -7,7 +7,7 @@ export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_LENGTH).toString("hex");
   const hash = await new Promise<string>((resolve, reject) => {
     scrypt(password, salt, KEY_LENGTH, (err, derivedKey) => {
-      if (err) reject(err);
+      if (err) return reject(err);
       resolve(derivedKey.toString("hex"));
     });
   });
@@ -16,15 +16,18 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
   const [salt, hash] = storedHash.split(":");
-  if (!salt || !hash) return false;
+  const effectiveSalt = salt || randomBytes(SALT_LENGTH).toString("hex");
 
   const derivedKey = await new Promise<Buffer>((resolve, reject) => {
-    scrypt(password, salt, KEY_LENGTH, (err, derivedKey) => {
-      if (err) reject(err);
+    scrypt(password, effectiveSalt, KEY_LENGTH, (err, derivedKey) => {
+      if (err) return reject(err);
       resolve(derivedKey);
     });
   });
 
+  if (!salt || !hash) return false;
+
   const storedBuffer = Buffer.from(hash, "hex");
+  if (derivedKey.length !== storedBuffer.length) return false;
   return timingSafeEqual(derivedKey, storedBuffer);
 }

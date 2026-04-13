@@ -1,7 +1,8 @@
-import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
-import { channelMembers, channels, directConversations, getDb } from "../db/index.js";
+import { getDb } from "../db/index.js";
+import { getChannelInWorkspace, getConversationForParticipant, isChannelMember } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
+import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -18,10 +19,6 @@ function getExtension(mimeType: string): string {
     "video/webm": "webm",
   };
   return map[mimeType] || "bin";
-}
-
-function isPositiveInteger(value: number): boolean {
-  return Number.isInteger(value) && value > 0;
 }
 
 const uploadsRoute = new Hono<Env>();
@@ -57,48 +54,30 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
     let key: string;
 
     if (conversationIdParam) {
-      const conversationId = Number(conversationIdParam);
-      if (!isPositiveInteger(conversationId)) {
+      const conversationId = parsePositiveInt(conversationIdParam);
+      if (!conversationId) {
         return c.json({ error: "Invalid conversationId" }, 400);
       }
 
-      const conversation = await db
-        .select()
-        .from(directConversations)
-        .where(
-          and(
-            eq(directConversations.id, conversationId),
-            eq(directConversations.workspaceId, workspace.id),
-            or(eq(directConversations.user1Email, user.email), eq(directConversations.user2Email, user.email)),
-          ),
-        )
-        .limit(1);
-      if (conversation.length === 0) {
+      const conversation = await getConversationForParticipant(db, conversationId, user.email, workspace.id);
+      if (!conversation) {
         return c.json({ error: "Conversation not found" }, 404);
       }
 
       key = `${workspace.slug}/dm/${conversationId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
     } else {
-      const channelId = Number(channelIdParam);
-      if (!isPositiveInteger(channelId)) {
+      const channelId = parsePositiveInt(channelIdParam);
+      if (!channelId) {
         return c.json({ error: "Invalid channelId" }, 400);
       }
 
-      const channel = await db
-        .select()
-        .from(channels)
-        .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspace.id)))
-        .limit(1);
-      if (channel.length === 0) {
+      const channel = await getChannelInWorkspace(db, channelId, workspace.id);
+      if (!channel) {
         return c.json({ error: "Channel not found in this workspace" }, 404);
       }
 
-      const membership = await db
-        .select()
-        .from(channelMembers)
-        .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email)))
-        .limit(1);
-      if (membership.length === 0) {
+      const isMember = await isChannelMember(db, channelId, user.email);
+      if (!isMember) {
         return c.json({ error: "Not a member of this channel" }, 403);
       }
 
@@ -144,37 +123,23 @@ uploadsRoute.get("/w/:slug/api/files/*", async (c) => {
       if (keyParts.length < 4) {
         return c.json({ error: "File not found" }, 404);
       }
-      const conversationId = Number(keyParts[2]);
-      if (!isPositiveInteger(conversationId)) {
+      const conversationId = parsePositiveInt(keyParts[2]);
+      if (!conversationId) {
         return c.json({ error: "File not found" }, 404);
       }
 
-      const conversation = await db
-        .select()
-        .from(directConversations)
-        .where(
-          and(
-            eq(directConversations.id, conversationId),
-            eq(directConversations.workspaceId, workspace.id),
-            or(eq(directConversations.user1Email, user.email), eq(directConversations.user2Email, user.email)),
-          ),
-        )
-        .limit(1);
-      if (conversation.length === 0) {
+      const conversation = await getConversationForParticipant(db, conversationId, user.email, workspace.id);
+      if (!conversation) {
         return c.json({ error: "File not found" }, 404);
       }
     } else {
-      const channelId = Number(keyParts[1]);
-      if (!isPositiveInteger(channelId)) {
+      const channelId = parsePositiveInt(keyParts[1]);
+      if (!channelId) {
         return c.json({ error: "File not found" }, 404);
       }
 
-      const membership = await db
-        .select()
-        .from(channelMembers)
-        .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, user.email)))
-        .limit(1);
-      if (membership.length === 0) {
+      const isMember = await isChannelMember(db, channelId, user.email);
+      if (!isMember) {
         return c.json({ error: "File not found" }, 404);
       }
     }

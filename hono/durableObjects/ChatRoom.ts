@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
-import { and, eq, or } from "drizzle-orm";
-import { channelMembers, directConversations, directMessages, getDb, messages } from "../db/index.js";
+import { directMessages, getDb, messages } from "../db/index.js";
+import { getChannelMemberEmails, getConversationForParticipant, isChannelMember } from "../db/queries/index.js";
 import type { Bindings } from "../types.js";
 
 type SessionAttachment = {
@@ -143,12 +143,9 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     const db = getDb(this.env.DB);
 
-    const membership = await db
-      .select()
-      .from(channelMembers)
-      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userEmail, attachment.userEmail)));
+    const isMember = await isChannelMember(db, channelId, attachment.userEmail);
 
-    if (membership.length === 0) {
+    if (!isMember) {
       try {
         ws.send(JSON.stringify({ type: "error", error: "Not a member of this channel" }));
       } catch {
@@ -185,8 +182,8 @@ export class ChatRoom extends DurableObject<Bindings> {
     });
 
     try {
-      const members = await db.select().from(channelMembers).where(eq(channelMembers.channelId, channelId));
-      const memberEmails = new Set(members.map((m) => m.userEmail));
+      const memberEmailsList = await getChannelMemberEmails(db, channelId);
+      const memberEmails = new Set(memberEmailsList);
       const allSockets = this.ctx.getWebSockets();
 
       for (const socket of allSockets) {
@@ -227,20 +224,9 @@ export class ChatRoom extends DurableObject<Bindings> {
     const trimmedContent = dm.content?.trim() || "";
     const db = getDb(this.env.DB);
 
-    const conversation = await db
-      .select()
-      .from(directConversations)
-      .where(
-        and(
-          eq(directConversations.id, dm.conversationId),
-          or(
-            eq(directConversations.user1Email, sender.userEmail),
-            eq(directConversations.user2Email, sender.userEmail),
-          ),
-        ),
-      );
+    const conv = await getConversationForParticipant(db, dm.conversationId, sender.userEmail);
 
-    if (conversation.length === 0) {
+    if (!conv) {
       try {
         ws.send(JSON.stringify({ type: "error", error: "Not a participant in this conversation" }));
       } catch {
@@ -248,8 +234,6 @@ export class ChatRoom extends DurableObject<Bindings> {
       }
       return;
     }
-
-    const conv = conversation[0];
 
     try {
       await db.insert(directMessages).values({
@@ -316,20 +300,9 @@ export class ChatRoom extends DurableObject<Bindings> {
     if (!otherEmail) {
       const db = getDb(this.env.DB);
 
-      const conversation = await db
-        .select()
-        .from(directConversations)
-        .where(
-          and(
-            eq(directConversations.id, signal.conversationId),
-            or(
-              eq(directConversations.user1Email, sender.userEmail),
-              eq(directConversations.user2Email, sender.userEmail),
-            ),
-          ),
-        );
+      const conv = await getConversationForParticipant(db, signal.conversationId, sender.userEmail);
 
-      if (conversation.length === 0) {
+      if (!conv) {
         try {
           ws.send(JSON.stringify({ type: "error", error: "Not a participant in this conversation" }));
         } catch {
@@ -338,7 +311,6 @@ export class ChatRoom extends DurableObject<Bindings> {
         return;
       }
 
-      const conv = conversation[0];
       otherEmail = conv.user1Email === sender.userEmail ? conv.user2Email : conv.user1Email;
       if (this.dmAuthCache.size >= 1000) {
         this.dmAuthCache.clear();
@@ -379,8 +351,8 @@ export class ChatRoom extends DurableObject<Bindings> {
 
     try {
       const db = getDb(this.env.DB);
-      const members = await db.select().from(channelMembers).where(eq(channelMembers.channelId, event.channelId));
-      const memberEmails = new Set(members.map((m) => m.userEmail));
+      const memberEmailsList = await getChannelMemberEmails(db, event.channelId);
+      const memberEmails = new Set(memberEmailsList);
 
       if (event.type === "memberJoin") {
         memberEmails.add(event.userEmail);
