@@ -3,9 +3,31 @@ import { Hono } from "hono";
 import { directConversations, directMessages, getDb, workspaceMembers } from "../db/index.js";
 import { getUserNameByEmail, getUsersByEmails, getWorkspaceMember } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
+import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
 const directMessagesRoute = new Hono<Env>();
+
+type ConversationResponse = {
+  id: number;
+  otherUserEmail: string;
+  otherUserName: string;
+  createdAt: string | null;
+};
+
+function formatConversation(
+  conv: { id: number; user1Email: string; user2Email: string; createdAt: string | null },
+  currentUserEmail: string,
+  otherUserName: string,
+): ConversationResponse {
+  const otherEmail = conv.user1Email === currentUserEmail ? conv.user2Email : conv.user1Email;
+  return {
+    id: conv.id,
+    otherUserEmail: otherEmail,
+    otherUserName,
+    createdAt: conv.createdAt,
+  };
+}
 
 directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
   try {
@@ -33,12 +55,7 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
 
     const result = conversations.map((conv) => {
       const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
-      return {
-        id: conv.id,
-        otherUserEmail: otherEmail,
-        otherUserName: userMap.get(otherEmail) || otherEmail,
-        createdAt: conv.createdAt,
-      };
+      return formatConversation(conv, user.email, userMap.get(otherEmail) || otherEmail);
     });
 
     return c.json({ conversations: result });
@@ -89,14 +106,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
       const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
       const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
 
-      return c.json({
-        conversation: {
-          id: conv.id,
-          otherUserEmail: otherEmail,
-          otherUserName,
-          createdAt: conv.createdAt,
-        },
-      });
+      return c.json({ conversation: formatConversation(conv, user.email, otherUserName) });
     }
 
     let created: (typeof existing)[0];
@@ -126,14 +136,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
         const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
         const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
 
-        return c.json({
-          conversation: {
-            id: conv.id,
-            otherUserEmail: otherEmail,
-            otherUserName,
-            createdAt: conv.createdAt,
-          },
-        });
+        return c.json({ conversation: formatConversation(conv, user.email, otherUserName) });
       }
 
       throw insertError;
@@ -142,17 +145,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
     const otherEmail = created.user1Email === user.email ? created.user2Email : created.user1Email;
     const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
 
-    return c.json(
-      {
-        conversation: {
-          id: created.id,
-          otherUserEmail: otherEmail,
-          otherUserName,
-          createdAt: created.createdAt,
-        },
-      },
-      201,
-    );
+    return c.json({ conversation: formatConversation(created, user.email, otherUserName) }, 201);
   } catch (error) {
     console.error("Error creating DM conversation:", error);
     return c.json({ error: "Failed to create conversation" }, 500);
@@ -165,8 +158,8 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations/:id/messages", async (c) 
     const user = c.get("user");
     const workspace = getWorkspace(c);
 
-    const conversationId = Number(c.req.param("id"));
-    if (Number.isNaN(conversationId)) {
+    const conversationId = parsePositiveInt(c.req.param("id"));
+    if (!conversationId) {
       return c.json({ error: "Invalid conversation ID" }, 400);
     }
 

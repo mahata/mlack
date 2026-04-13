@@ -1,4 +1,5 @@
 export {
+  ensureGeneralChannelMembership,
   getChannelByNameInWorkspace,
   getChannelInWorkspace,
   getChannelMemberEmails,

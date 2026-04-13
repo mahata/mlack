@@ -34,3 +34,17 @@ export async function getChannelMemberEmails(db: Database, channelId: number): P
   const members = await db.select().from(channelMembers).where(eq(channelMembers.channelId, channelId));
   return members.map((m) => m.userEmail);
 }
+
+export async function ensureGeneralChannelMembership(
+  db: Database,
+  workspaceId: number,
+  userEmail: string,
+): Promise<void> {
+  const generalChannel = await getChannelByNameInWorkspace(db, workspaceId, "general");
+  if (!generalChannel) return;
+
+  const alreadyMember = await isChannelMember(db, generalChannel.id, userEmail);
+  if (!alreadyMember) {
+    await insertChannelMember(db, generalChannel.id, userEmail);
+  }
+}

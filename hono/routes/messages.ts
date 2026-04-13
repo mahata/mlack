@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { getDb, messages } from "../db/index.js";
 import { getChannelInWorkspace, isChannelMember } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
+import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
 const messagesRoute = new Hono<Env>();
@@ -14,8 +15,8 @@ messagesRoute.get("/w/:slug/api/messages", async (c) => {
       return c.json({ error: "channelId query parameter is required" }, 400);
     }
 
-    const channelId = Number(channelIdParam);
-    if (Number.isNaN(channelId)) {
+    const channelId = parsePositiveInt(channelIdParam);
+    if (!channelId) {
       return c.json({ error: "Invalid channelId" }, 400);
     }
 

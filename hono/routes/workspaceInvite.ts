@@ -3,12 +3,7 @@ import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
 import { InvitePage } from "../components/InvitePage.js";
 import { getDb, workspaceInvites, workspaceMembers, workspaces } from "../db/index.js";
-import {
-  getChannelByNameInWorkspace,
-  getWorkspaceMember,
-  insertChannelMember,
-  isChannelMember,
-} from "../db/queries/index.js";
+import { ensureGeneralChannelMembership, getWorkspaceMember } from "../db/queries/index.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Env } from "../types.js";
 
@@ -86,15 +81,7 @@ workspaceInviteRoute.post("/w/:slug/invite/:code", requireUser, async (c) => {
         role: "member",
       });
 
-      const generalChannel = await getChannelByNameInWorkspace(db, workspace.id, "general");
-
-      if (generalChannel) {
-        const alreadyMember = await isChannelMember(db, generalChannel.id, user.email);
-
-        if (!alreadyMember) {
-          await insertChannelMember(db, generalChannel.id, user.email);
-        }
-      }
+      await ensureGeneralChannelMembership(db, workspace.id, user.email);
     }
 
     return c.redirect(`/w/${workspace.slug}`);

@@ -8,6 +8,7 @@ import {
   isChannelMember,
 } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
+import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
 const channelsRoute = new Hono<Env>();
@@ -55,8 +56,8 @@ channelsRoute.get("/w/:slug/api/channels/:id/members", async (c) => {
     const user = c.get("user");
     const workspace = getWorkspace(c);
 
-    const channelId = Number(c.req.param("id"));
-    if (Number.isNaN(channelId)) {
+    const channelId = parsePositiveInt(c.req.param("id"));
+    if (!channelId) {
       return c.json({ error: "Invalid channel ID" }, 400);
     }
 
@@ -65,15 +66,15 @@ channelsRoute.get("/w/:slug/api/channels/:id/members", async (c) => {
       return c.json({ error: "Channel not found" }, 404);
     }
 
+    const isMember = await isChannelMember(db, channelId, user.email);
+    if (!isMember) {
+      return c.json({ error: "Not a member of this channel" }, 403);
+    }
+
     const memberships = await db
       .select({ userEmail: channelMembers.userEmail })
       .from(channelMembers)
       .where(eq(channelMembers.channelId, channelId));
-
-    const isMember = memberships.some((m) => m.userEmail === user.email);
-    if (!isMember) {
-      return c.json({ error: "Not a member of this channel" }, 403);
-    }
 
     const memberEmails = memberships.map((m) => m.userEmail);
     const memberUsers =
@@ -129,8 +130,8 @@ channelsRoute.post("/w/:slug/api/channels/:id/join", async (c) => {
     const user = c.get("user");
     const workspace = getWorkspace(c);
 
-    const channelId = Number(c.req.param("id"));
-    if (Number.isNaN(channelId)) {
+    const channelId = parsePositiveInt(c.req.param("id"));
+    if (!channelId) {
       return c.json({ error: "Invalid channel ID" }, 400);
     }
 
@@ -160,8 +161,8 @@ channelsRoute.post("/w/:slug/api/channels/:id/leave", async (c) => {
     const user = c.get("user");
     const workspace = getWorkspace(c);
 
-    const channelId = Number(c.req.param("id"));
-    if (Number.isNaN(channelId)) {
+    const channelId = parsePositiveInt(c.req.param("id"));
+    if (!channelId) {
       return c.json({ error: "Invalid channel ID" }, 400);
     }
 

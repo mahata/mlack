@@ -4,7 +4,7 @@ import { AboutPage } from "../components/AboutPage.js";
 import { ChatPage } from "../components/ChatPage.js";
 import { WorkspacesPage } from "../components/WorkspacesPage.js";
 import { getDb, workspaceMembers, workspaces } from "../db/index.js";
-import { getChannelByNameInWorkspace, insertChannelMember, isChannelMember } from "../db/queries/index.js";
+import { ensureGeneralChannelMembership } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Env, User } from "../types.js";
@@ -85,15 +85,7 @@ indexRoute.get("/w/:slug", async (c) => {
 
   try {
     const db = getDb(c.env.DB);
-    const generalChannel = await getChannelByNameInWorkspace(db, workspace.id, "general");
-
-    if (generalChannel) {
-      const alreadyMember = await isChannelMember(db, generalChannel.id, user.email);
-
-      if (!alreadyMember) {
-        await insertChannelMember(db, generalChannel.id, user.email);
-      }
-    }
+    await ensureGeneralChannelMembership(db, workspace.id, user.email);
   } catch (error) {
     console.error("Error auto-joining #general:", error);
   }

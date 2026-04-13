@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { getDb } from "../db/index.js";
 import { getChannelInWorkspace, getConversationForParticipant, isChannelMember } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
+import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -18,10 +19,6 @@ function getExtension(mimeType: string): string {
     "video/webm": "webm",
   };
   return map[mimeType] || "bin";
-}
-
-function isPositiveInteger(value: number): boolean {
-  return Number.isInteger(value) && value > 0;
 }
 
 const uploadsRoute = new Hono<Env>();
@@ -57,8 +54,8 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
     let key: string;
 
     if (conversationIdParam) {
-      const conversationId = Number(conversationIdParam);
-      if (!isPositiveInteger(conversationId)) {
+      const conversationId = parsePositiveInt(conversationIdParam);
+      if (!conversationId) {
         return c.json({ error: "Invalid conversationId" }, 400);
       }
 
@@ -69,8 +66,8 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
 
       key = `${workspace.slug}/dm/${conversationId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
     } else {
-      const channelId = Number(channelIdParam);
-      if (!isPositiveInteger(channelId)) {
+      const channelId = parsePositiveInt(channelIdParam);
+      if (!channelId) {
         return c.json({ error: "Invalid channelId" }, 400);
       }
 
@@ -126,8 +123,8 @@ uploadsRoute.get("/w/:slug/api/files/*", async (c) => {
       if (keyParts.length < 4) {
         return c.json({ error: "File not found" }, 404);
       }
-      const conversationId = Number(keyParts[2]);
-      if (!isPositiveInteger(conversationId)) {
+      const conversationId = parsePositiveInt(keyParts[2]);
+      if (!conversationId) {
         return c.json({ error: "File not found" }, 404);
       }
 
@@ -136,8 +133,8 @@ uploadsRoute.get("/w/:slug/api/files/*", async (c) => {
         return c.json({ error: "File not found" }, 404);
       }
     } else {
-      const channelId = Number(keyParts[1]);
-      if (!isPositiveInteger(channelId)) {
+      const channelId = parsePositiveInt(keyParts[1]);
+      if (!channelId) {
         return c.json({ error: "File not found" }, 404);
       }
 

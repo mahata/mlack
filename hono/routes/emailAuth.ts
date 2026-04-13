@@ -75,7 +75,7 @@ emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
   try {
     const body = await c.req.parseBody();
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    const password = body.password as string;
+    const password = typeof body.password === "string" ? body.password : "";
 
     if (!email || !password) {
       return renderPage(c, LoginPage("Email and password are required."), 400);
@@ -122,7 +122,7 @@ emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
     const body = await c.req.parseBody();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    const password = body.password as string;
+    const password = typeof body.password === "string" ? body.password : "";
 
     if (!name || !email || !password) {
       return renderPage(c, RegisterPage("All fields are required."), 400);
@@ -173,9 +173,10 @@ emailAuthRoute.get("/auth/verify-email", async (c) => {
 });
 
 emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
+  let email = "";
   try {
     const body = await c.req.parseBody();
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const code = typeof body.code === "string" ? body.code.trim() : "";
 
     if (!email || !code) {
@@ -231,16 +232,15 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
     return c.redirect("/");
   } catch (error) {
     console.error("Verification error:", error);
-    const body = await c.req.parseBody().catch(() => ({}));
-    const email = (body as Record<string, string>).email || "";
     return renderPage(c, VerifyEmailPage({ email, error: "Verification failed. Please try again." }), 500);
   }
 });
 
 emailAuthRoute.post("/auth/resend-code", resendRateLimiter, async (c) => {
+  let email = "";
   try {
     const body = await c.req.parseBody();
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
     if (!email) {
       return c.redirect("/auth/register");
@@ -281,8 +281,6 @@ emailAuthRoute.post("/auth/resend-code", resendRateLimiter, async (c) => {
     return renderPage(c, VerifyEmailPage({ email, success: "A new verification code has been sent." }));
   } catch (error) {
     console.error("Resend code error:", error);
-    const body = await c.req.parseBody().catch(() => ({}));
-    const email = (body as Record<string, string>).email || "";
     return renderPage(c, VerifyEmailPage({ email, error: "Failed to resend code. Please try again." }), 500);
   }
 });

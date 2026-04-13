@@ -152,6 +152,11 @@ describe("Channels API", () => {
       });
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ channelId: 1, userEmail: "test@example.com" }]),
+        }),
+      });
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ userEmail: "test@example.com" }, { userEmail: "other@example.com" }]),
         }),
       });
@@ -182,7 +187,7 @@ describe("Channels API", () => {
       });
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ userEmail: "other@example.com" }]),
+          where: vi.fn().mockResolvedValue([]),
         }),
       });
 

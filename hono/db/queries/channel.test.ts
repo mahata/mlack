@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ensureGeneralChannelMembership,
   getChannelByNameInWorkspace,
   getChannelInWorkspace,
   getChannelMemberEmails,
@@ -112,5 +113,34 @@ describe("getChannelMemberEmails", () => {
     const result = await getChannelMemberEmails(mockDb, 1);
 
     expect(result).toEqual([]);
+  });
+});
+
+describe("ensureGeneralChannelMembership", () => {
+  it("should join general channel when not already a member", async () => {
+    mockWhere.mockResolvedValueOnce([{ id: 5, name: "general", workspaceId: 1 }]);
+    mockWhere.mockResolvedValueOnce([]);
+    mockOnConflictDoNothing.mockResolvedValue(undefined);
+
+    await ensureGeneralChannelMembership(mockDb, 1, "user@example.com");
+
+    expect(mockDb.insert).toHaveBeenCalled();
+  });
+
+  it("should skip insert when already a member", async () => {
+    mockWhere.mockResolvedValueOnce([{ id: 5, name: "general", workspaceId: 1 }]);
+    mockWhere.mockResolvedValueOnce([{ channelId: 5, userEmail: "user@example.com" }]);
+
+    await ensureGeneralChannelMembership(mockDb, 1, "user@example.com");
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("should do nothing when general channel does not exist", async () => {
+    mockWhere.mockResolvedValueOnce([]);
+
+    await ensureGeneralChannelMembership(mockDb, 1, "user@example.com");
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
   });
 });

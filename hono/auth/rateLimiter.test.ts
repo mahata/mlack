@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../types.js";
-import { _resetStores, createRateLimiter } from "./rateLimiter.js";
+import { _resetStores, createRateLimiter, MAX_ENTRIES_PER_STORE } from "./rateLimiter.js";
 
 function createTestApp(storeKey: string, maxRequests: number, windowMs: number) {
   const app = new Hono<Env>();
@@ -162,5 +162,17 @@ describe("createRateLimiter", () => {
 
     const afterWindowRes = await makeRequest(app, "10.0.0.1");
     expect(afterWindowRes.status).toBe(200);
+  });
+
+  it("should evict oldest entry when store exceeds max entries", async () => {
+    const app = createTestApp("test-eviction", MAX_ENTRIES_PER_STORE + 1, 60_000);
+
+    for (let i = 0; i < MAX_ENTRIES_PER_STORE; i++) {
+      const res = await makeRequest(app, `10.0.${Math.floor(i / 256)}.${i % 256}`);
+      expect(res.status).toBe(200);
+    }
+
+    const res = await makeRequest(app, "99.99.99.99");
+    expect(res.status).toBe(200);
   });
 });
