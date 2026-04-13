@@ -67,6 +67,13 @@ vi.mock("../auth/emailVerification.js", () => ({
   sendVerificationEmail: mockSendVerificationEmail,
 }));
 
+vi.mock("../auth/rateLimiter.js", () => ({
+  createRateLimiter: () => {
+    const passthrough: import("hono").MiddlewareHandler = async (_c, next) => next();
+    return passthrough;
+  },
+}));
+
 describe("Email Auth routes", () => {
   describe("GET /auth/login", () => {
     it("should return the login page", async () => {

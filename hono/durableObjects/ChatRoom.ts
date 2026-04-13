@@ -45,6 +45,11 @@ type IncomingHuddleSignal = {
 
 const HUDDLE_TYPES = new Set(["huddle-offer", "huddle-answer", "huddle-ice-candidate", "huddle-end"]);
 
+const MAX_MESSAGE_LENGTH = 4096;
+const MAX_WEBSOCKET_PAYLOAD_BYTES = 65536;
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
 export class ChatRoom extends DurableObject<Bindings> {
   private dmAuthCache = new Map<string, string>();
 
@@ -79,7 +84,17 @@ export class ChatRoom extends DurableObject<Bindings> {
       return;
     }
 
-    const rawStr = typeof message === "string" ? message : new TextDecoder().decode(message);
+    const payloadBytes = typeof message === "string" ? textEncoder.encode(message).byteLength : message.byteLength;
+    if (payloadBytes > MAX_WEBSOCKET_PAYLOAD_BYTES) {
+      try {
+        ws.send(JSON.stringify({ type: "error", error: "Message payload too large" }));
+      } catch {
+        // Socket may be closed
+      }
+      return;
+    }
+
+    const rawStr = typeof message === "string" ? message : textDecoder.decode(message);
 
     let parsed: IncomingMessage | IncomingDm | MembershipEvent | IncomingHuddleSignal;
     try {
@@ -111,6 +126,15 @@ export class ChatRoom extends DurableObject<Bindings> {
     const hasContent = Boolean(msg.content?.trim());
     const hasAttachment = Boolean(msg.attachmentKey);
     if (!hasContent && !hasAttachment) {
+      return;
+    }
+
+    if (msg.content && msg.content.length > MAX_MESSAGE_LENGTH) {
+      try {
+        ws.send(JSON.stringify({ type: "error", error: "Message too long" }));
+      } catch {
+        // Socket may be closed
+      }
       return;
     }
 
@@ -188,6 +212,15 @@ export class ChatRoom extends DurableObject<Bindings> {
     const hasContent = Boolean(dm.content?.trim());
     const hasAttachment = Boolean(dm.attachmentKey);
     if (!hasContent && !hasAttachment) {
+      return;
+    }
+
+    if (dm.content && dm.content.length > MAX_MESSAGE_LENGTH) {
+      try {
+        ws.send(JSON.stringify({ type: "error", error: "Message too long" }));
+      } catch {
+        // Socket may be closed
+      }
       return;
     }
 

@@ -48,7 +48,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: `pnpm build:client && pnpm run build:assets && wrangler dev --port 3015 --var E2E_GMAIL_ACCOUNT:${process.env.E2E_GMAIL_ACCOUNT ?? "test@example.com"}`,
+    command: `pnpm build:client && pnpm run build:assets && wrangler dev --port 3015 --var E2E_GMAIL_ACCOUNT:${process.env.E2E_GMAIL_ACCOUNT ?? "test@example.com"} --var SESSION_SECRET:${process.env.SESSION_SECRET || "e2e-test-session-secret-key"}`,
     url: "http://localhost:3015",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

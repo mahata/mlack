@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { eq, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import {
@@ -7,12 +8,43 @@ import {
   sendVerificationEmail,
 } from "../auth/emailVerification.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
+import { createRateLimiter } from "../auth/rateLimiter.js";
 import { LoginPage } from "../components/LoginPage.js";
 import { RegisterPage } from "../components/RegisterPage.js";
 import { VerifyEmailPage } from "../components/VerifyEmailPage.js";
 import { getDb, pendingRegistrations, users } from "../db/index.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Bindings, Env } from "../types.js";
+
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MESSAGE = "Too many attempts. Please try again later.";
+
+const loginRateLimiter = createRateLimiter("auth-login", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 10,
+  onLimitExceeded: (c) => renderPage(c, LoginPage(RATE_LIMIT_MESSAGE), 429),
+});
+const registerRateLimiter = createRateLimiter("auth-register", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 5,
+  onLimitExceeded: (c) => renderPage(c, RegisterPage(RATE_LIMIT_MESSAGE), 429),
+});
+const verifyRateLimiter = createRateLimiter("auth-verify", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 10,
+  onLimitExceeded: (c) => {
+    const email = c.req.query("email") || "";
+    return renderPage(c, VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
+  },
+});
+const resendRateLimiter = createRateLimiter("auth-resend", {
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 5,
+  onLimitExceeded: (c) => {
+    const email = c.req.query("email") || "";
+    return renderPage(c, VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
+  },
+});
 
 const emailAuthRoute = new Hono<Env>();
 
@@ -39,10 +71,10 @@ emailAuthRoute.get("/auth/login", async (c) => {
   return renderPage(c, LoginPage(errorMessage));
 });
 
-emailAuthRoute.post("/auth/login", async (c) => {
+emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
   try {
     const body = await c.req.parseBody();
-    const email = body.email as string;
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = body.password as string;
 
     if (!email || !password) {
@@ -85,11 +117,11 @@ emailAuthRoute.get("/auth/register", async (c) => {
   return renderPage(c, RegisterPage(errorMessage));
 });
 
-emailAuthRoute.post("/auth/register", async (c) => {
+emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
   try {
     const body = await c.req.parseBody();
-    const name = body.name as string;
-    const email = body.email as string;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = body.password as string;
 
     if (!name || !email || !password) {
@@ -140,11 +172,11 @@ emailAuthRoute.get("/auth/verify-email", async (c) => {
   return renderPage(c, VerifyEmailPage({ email }));
 });
 
-emailAuthRoute.post("/auth/verify-email", async (c) => {
+emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
   try {
     const body = await c.req.parseBody();
-    const email = body.email as string;
-    const code = body.code as string;
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const code = typeof body.code === "string" ? body.code.trim() : "";
 
     if (!email || !code) {
       return renderPage(c, VerifyEmailPage({ email: email || "", error: "Email and code are required." }), 400);
@@ -174,7 +206,11 @@ emailAuthRoute.post("/auth/verify-email", async (c) => {
       );
     }
 
-    if (pending.verificationCode !== code) {
+    const storedCodeBuffer = Buffer.from(pending.verificationCode);
+    const submittedCodeBuffer = Buffer.from(code);
+    const codeMatches =
+      storedCodeBuffer.length === submittedCodeBuffer.length && timingSafeEqual(storedCodeBuffer, submittedCodeBuffer);
+    if (!codeMatches) {
       return renderPage(c, VerifyEmailPage({ email, error: "Invalid verification code." }), 400);
     }
 
@@ -201,10 +237,10 @@ emailAuthRoute.post("/auth/verify-email", async (c) => {
   }
 });
 
-emailAuthRoute.post("/auth/resend-code", async (c) => {
+emailAuthRoute.post("/auth/resend-code", resendRateLimiter, async (c) => {
   try {
     const body = await c.req.parseBody();
-    const email = body.email as string;
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
     if (!email) {
       return c.redirect("/auth/register");

@@ -27,9 +27,12 @@ function createLazySessionMiddleware(): MiddlewareHandler<Env> {
   return async (c, next) => {
     if (!cached) {
       const store = new CookieStore();
+      if (!c.env.SESSION_SECRET) {
+        throw new Error("SESSION_SECRET environment variable is required");
+      }
       cached = sessionMiddleware({
         store,
-        encryptionKey: c.env.SESSION_SECRET || "your-super-secret-key-change-in-production",
+        encryptionKey: c.env.SESSION_SECRET,
         expireAfterSeconds: 3600,
         cookieOptions: {
           httpOnly: true,
