@@ -50,6 +50,7 @@ export type Bindings = {
   E2E_GMAIL_ACCOUNT: string;
   RESEND_API_KEY: string;
   RESEND_FROM_EMAIL: string;
+  SITE_ADMIN_EMAIL: string;
 };
 
 export type Variables = {

@@ -43,6 +43,13 @@
       "when": 1776060614536,
       "tag": "0005_add_user_email_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1776200000000,
+      "tag": "0006_add_user_feature_flags",
+      "breakpoints": true
     }
   ]
 }

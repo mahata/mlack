@@ -3,6 +3,7 @@ import { getDb } from "../db/index.js";
 import {
   getChannelInWorkspace,
   getConversationForParticipant,
+  getUserFeatureFlag,
   getUserTotalUploadSize,
   isChannelMember,
 } from "../db/queries/index.js";
@@ -92,8 +93,12 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
     }
 
     const currentUsage = await getUserTotalUploadSize(db, user.email);
-    if (currentUsage + file.size > MAX_TOTAL_UPLOAD_SIZE) {
-      return c.json({ error: "Storage quota exceeded. Maximum total upload size is 10 GB" }, 413);
+    const customLimit = await getUserFeatureFlag(db, user.email, "maxTotalUploadBytes");
+    const parsedCustomLimit = customLimit ? parsePositiveInt(customLimit) : null;
+    const effectiveLimit = parsedCustomLimit ?? MAX_TOTAL_UPLOAD_SIZE;
+    if (currentUsage + file.size > effectiveLimit) {
+      const limitInGb = Math.round(effectiveLimit / (1024 * 1024 * 1024));
+      return c.json({ error: `Storage quota exceeded. Maximum total upload size is ${limitInGb} GB` }, 413);
     }
 
     await c.env.STORAGE.put(key, file.stream(), {

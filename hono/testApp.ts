@@ -42,6 +42,9 @@ export function createTestApp(options?: {
     if (!c.env.RESEND_FROM_EMAIL) {
       c.env.RESEND_FROM_EMAIL = "noreply@test.com";
     }
+    if (!c.env.SITE_ADMIN_EMAIL) {
+      c.env.SITE_ADMIN_EMAIL = "";
+    }
     await next();
   };
 

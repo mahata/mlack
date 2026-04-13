@@ -76,6 +76,14 @@ function setupQuotaMocks(channelUsageBytes = 0, dmUsageBytes = 0) {
   });
 }
 
+function setupFeatureFlagMock(flagValue: string | null = null) {
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(flagValue ? [{ flagValue }] : []),
+    }),
+  });
+}
+
 function createTestFile(name: string, type: string, sizeBytes: number): File {
   const buffer = new ArrayBuffer(sizeBytes);
   return new File([buffer], name, { type });
@@ -97,6 +105,7 @@ describe("Upload API endpoint", () => {
     setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks();
+    setupFeatureFlagMock();
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
 
@@ -268,6 +277,7 @@ describe("Upload API endpoint", () => {
     setupChannelMocks();
     const almostFullUsage = 10 * 1024 * 1024 * 1024 - 512;
     setupQuotaMocks(almostFullUsage, 0);
+    setupFeatureFlagMock();
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("photo.jpg", "image/jpeg", 1024);
@@ -284,6 +294,7 @@ describe("Upload API endpoint", () => {
     setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks(5 * 1024 * 1024 * 1024, 0);
+    setupFeatureFlagMock();
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
 
@@ -300,6 +311,7 @@ describe("Upload API endpoint", () => {
     setupChannelMocks();
     const maxMinusFileSize = 10 * 1024 * 1024 * 1024 - 1024;
     setupQuotaMocks(maxMinusFileSize, 0);
+    setupFeatureFlagMock();
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
 
@@ -315,6 +327,7 @@ describe("Upload API endpoint", () => {
     setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks(6 * 1024 * 1024 * 1024, 4 * 1024 * 1024 * 1024);
+    setupFeatureFlagMock();
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("photo.jpg", "image/jpeg", 1024);
@@ -325,6 +338,22 @@ describe("Upload API endpoint", () => {
     const body = (await response.json()) as { error: string };
     expect(body.error).toContain("Storage quota exceeded");
     expect(mockPut).not.toHaveBeenCalled();
+  });
+
+  it("should use custom upload limit from feature flag", async () => {
+    setupWorkspaceMocks();
+    setupChannelMocks();
+    setupQuotaMocks(10 * 1024 * 1024 * 1024, 0);
+    setupFeatureFlagMock(String(20 * 1024 * 1024 * 1024));
+
+    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("photo.jpg", "image/jpeg", 1024);
+    const request = createUploadRequest(file, "1");
+    const response = await app.request(request);
+    expect(response.status).toBe(200);
+    expect(mockPut).toHaveBeenCalledOnce();
   });
 });
 
