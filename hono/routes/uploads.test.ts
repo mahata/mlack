@@ -95,8 +95,8 @@ function createUploadRequest(file: File, channelId: string): Request {
 describe("Upload API endpoint", () => {
   it("should upload a valid image file", async () => {
     setupWorkspaceMocks();
-    setupQuotaMocks();
     setupChannelMocks();
+    setupQuotaMocks();
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
 
@@ -203,7 +203,6 @@ describe("Upload API endpoint", () => {
 
   it("should return 403 when user is not a channel member", async () => {
     setupWorkspaceMocks();
-    setupQuotaMocks();
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
@@ -229,7 +228,6 @@ describe("Upload API endpoint", () => {
 
   it("should return 404 when channel does not exist", async () => {
     setupWorkspaceMocks();
-    setupQuotaMocks();
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
@@ -255,7 +253,6 @@ describe("Upload API endpoint", () => {
     for (const invalidId of ["0", "-1", "1.5", "abc"]) {
       mockSelect.mockReset();
       setupWorkspaceMocks();
-      setupQuotaMocks();
       const file = createTestFile("photo.jpg", "image/jpeg", 1024);
       const request = createUploadRequest(file, invalidId);
       const response = await app.request(request);
@@ -268,6 +265,7 @@ describe("Upload API endpoint", () => {
 
   it("should return 413 when upload would exceed storage quota", async () => {
     setupWorkspaceMocks();
+    setupChannelMocks();
     const almostFullUsage = 10 * 1024 * 1024 * 1024 - 512;
     setupQuotaMocks(almostFullUsage, 0);
 
@@ -284,8 +282,8 @@ describe("Upload API endpoint", () => {
 
   it("should allow upload when under storage quota", async () => {
     setupWorkspaceMocks();
-    setupQuotaMocks(5 * 1024 * 1024 * 1024, 0);
     setupChannelMocks();
+    setupQuotaMocks(5 * 1024 * 1024 * 1024, 0);
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
 
@@ -299,9 +297,9 @@ describe("Upload API endpoint", () => {
 
   it("should allow upload when usage is exactly at boundary", async () => {
     setupWorkspaceMocks();
+    setupChannelMocks();
     const maxMinusFileSize = 10 * 1024 * 1024 * 1024 - 1024;
     setupQuotaMocks(maxMinusFileSize, 0);
-    setupChannelMocks();
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
 
@@ -315,6 +313,7 @@ describe("Upload API endpoint", () => {
 
   it("should account for both channel and DM usage in quota", async () => {
     setupWorkspaceMocks();
+    setupChannelMocks();
     setupQuotaMocks(6 * 1024 * 1024 * 1024, 4 * 1024 * 1024 * 1024);
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });

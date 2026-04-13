@@ -57,12 +57,6 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
     }
 
     const db = getDb(c.env.DB);
-
-    const currentUsage = await getUserTotalUploadSize(db, user.email);
-    if (currentUsage + file.size > MAX_TOTAL_UPLOAD_SIZE) {
-      return c.json({ error: "Storage quota exceeded. Maximum total upload size is 10 GB" }, 413);
-    }
-
     const ext = getExtension(file.type);
     let key: string;
 
@@ -95,6 +89,11 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
       }
 
       key = `${workspace.slug}/${channelId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+    }
+
+    const currentUsage = await getUserTotalUploadSize(db, user.email);
+    if (currentUsage + file.size > MAX_TOTAL_UPLOAD_SIZE) {
+      return c.json({ error: "Storage quota exceeded. Maximum total upload size is 10 GB" }, 413);
     }
 
     await c.env.STORAGE.put(key, file.stream(), {
