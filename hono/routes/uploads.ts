@@ -1,11 +1,18 @@
 import { Hono } from "hono";
 import { getDb } from "../db/index.js";
-import { getChannelInWorkspace, getConversationForParticipant, isChannelMember } from "../db/queries/index.js";
+import {
+  getChannelInWorkspace,
+  getConversationForParticipant,
+  getUserTotalUploadSize,
+  isChannelMember,
+} from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
 import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+const MAX_TOTAL_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024;
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm"]);
 
@@ -50,6 +57,12 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
     }
 
     const db = getDb(c.env.DB);
+
+    const currentUsage = await getUserTotalUploadSize(db, user.email);
+    if (currentUsage + file.size > MAX_TOTAL_UPLOAD_SIZE) {
+      return c.json({ error: "Storage quota exceeded. Maximum total upload size is 10 GB" }, 413);
+    }
+
     const ext = getExtension(file.type);
     let key: string;
 

@@ -84,6 +84,7 @@ export const messages = sqliteTable(
   (table) => [
     index("messages_created_at_idx").on(table.createdAt),
     index("messages_channel_id_created_at_idx").on(table.channelId, table.createdAt),
+    index("messages_user_email_idx").on(table.userEmail),
   ],
 );
 
@@ -126,6 +127,7 @@ export const directMessages = sqliteTable(
   (table) => [
     index("direct_messages_created_at_idx").on(table.createdAt),
     index("direct_messages_conversation_id_created_at_idx").on(table.conversationId, table.createdAt),
+    index("direct_messages_user_email_idx").on(table.userEmail),
   ],
 );
 

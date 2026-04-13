@@ -63,6 +63,19 @@ function setupChannelMocks() {
   });
 }
 
+function setupQuotaMocks(channelUsageBytes = 0, dmUsageBytes = 0) {
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ total: channelUsageBytes }]),
+    }),
+  });
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ total: dmUsageBytes }]),
+    }),
+  });
+}
+
 function createTestFile(name: string, type: string, sizeBytes: number): File {
   const buffer = new ArrayBuffer(sizeBytes);
   return new File([buffer], name, { type });
@@ -82,6 +95,7 @@ function createUploadRequest(file: File, channelId: string): Request {
 describe("Upload API endpoint", () => {
   it("should upload a valid image file", async () => {
     setupWorkspaceMocks();
+    setupQuotaMocks();
     setupChannelMocks();
 
     mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
@@ -189,6 +203,7 @@ describe("Upload API endpoint", () => {
 
   it("should return 403 when user is not a channel member", async () => {
     setupWorkspaceMocks();
+    setupQuotaMocks();
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
@@ -214,6 +229,7 @@ describe("Upload API endpoint", () => {
 
   it("should return 404 when channel does not exist", async () => {
     setupWorkspaceMocks();
+    setupQuotaMocks();
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
@@ -239,6 +255,7 @@ describe("Upload API endpoint", () => {
     for (const invalidId of ["0", "-1", "1.5", "abc"]) {
       mockSelect.mockReset();
       setupWorkspaceMocks();
+      setupQuotaMocks();
       const file = createTestFile("photo.jpg", "image/jpeg", 1024);
       const request = createUploadRequest(file, invalidId);
       const response = await app.request(request);
@@ -247,6 +264,68 @@ describe("Upload API endpoint", () => {
       const body = (await response.json()) as { error: string };
       expect(body.error).toBe("Invalid channelId");
     }
+  });
+
+  it("should return 413 when upload would exceed storage quota", async () => {
+    setupWorkspaceMocks();
+    const almostFullUsage = 10 * 1024 * 1024 * 1024 - 512;
+    setupQuotaMocks(almostFullUsage, 0);
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("photo.jpg", "image/jpeg", 1024);
+    const request = createUploadRequest(file, "1");
+    const response = await app.request(request);
+    expect(response.status).toBe(413);
+
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("Storage quota exceeded");
+    expect(mockPut).not.toHaveBeenCalled();
+  });
+
+  it("should allow upload when under storage quota", async () => {
+    setupWorkspaceMocks();
+    setupQuotaMocks(5 * 1024 * 1024 * 1024, 0);
+    setupChannelMocks();
+
+    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("photo.jpg", "image/jpeg", 1024);
+    const request = createUploadRequest(file, "1");
+    const response = await app.request(request);
+    expect(response.status).toBe(200);
+    expect(mockPut).toHaveBeenCalledOnce();
+  });
+
+  it("should allow upload when usage is exactly at boundary", async () => {
+    setupWorkspaceMocks();
+    const maxMinusFileSize = 10 * 1024 * 1024 * 1024 - 1024;
+    setupQuotaMocks(maxMinusFileSize, 0);
+    setupChannelMocks();
+
+    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("photo.jpg", "image/jpeg", 1024);
+    const request = createUploadRequest(file, "1");
+    const response = await app.request(request);
+    expect(response.status).toBe(200);
+    expect(mockPut).toHaveBeenCalledOnce();
+  });
+
+  it("should account for both channel and DM usage in quota", async () => {
+    setupWorkspaceMocks();
+    setupQuotaMocks(6 * 1024 * 1024 * 1024, 4 * 1024 * 1024 * 1024);
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("photo.jpg", "image/jpeg", 1024);
+    const request = createUploadRequest(file, "1");
+    const response = await app.request(request);
+    expect(response.status).toBe(413);
+
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("Storage quota exceeded");
+    expect(mockPut).not.toHaveBeenCalled();
   });
 });
 
