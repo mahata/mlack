@@ -1,9 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { AboutPage } from "../components/AboutPage.js";
 import { ChatPage } from "../components/ChatPage.js";
 import { WorkspacesPage } from "../components/WorkspacesPage.js";
-import { channelMembers, channels, getDb, workspaceMembers, workspaces } from "../db/index.js";
+import { getDb, workspaceMembers, workspaces } from "../db/index.js";
+import { getChannelByNameInWorkspace, insertChannelMember, isChannelMember } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Env, User } from "../types.js";
@@ -84,22 +85,13 @@ indexRoute.get("/w/:slug", async (c) => {
 
   try {
     const db = getDb(c.env.DB);
-    const [generalChannel] = await db
-      .select()
-      .from(channels)
-      .where(and(eq(channels.workspaceId, workspace.id), eq(channels.name, "general")));
+    const generalChannel = await getChannelByNameInWorkspace(db, workspace.id, "general");
 
     if (generalChannel) {
-      const existingMembership = await db
-        .select()
-        .from(channelMembers)
-        .where(and(eq(channelMembers.channelId, generalChannel.id), eq(channelMembers.userEmail, user.email)));
+      const alreadyMember = await isChannelMember(db, generalChannel.id, user.email);
 
-      if (existingMembership.length === 0) {
-        await db.insert(channelMembers).values({
-          channelId: generalChannel.id,
-          userEmail: user.email,
-        });
+      if (!alreadyMember) {
+        await insertChannelMember(db, generalChannel.id, user.email);
       }
     }
   } catch (error) {

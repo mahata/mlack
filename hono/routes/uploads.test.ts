@@ -53,16 +53,12 @@ function setupWorkspaceMocks() {
 function setupChannelMocks() {
   mockSelect.mockReturnValueOnce({
     from: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
-      }),
+      where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
     }),
   });
   mockSelect.mockReturnValueOnce({
     from: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
-      }),
+      where: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
     }),
   });
 }
@@ -196,16 +192,12 @@ describe("Upload API endpoint", () => {
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
-        }),
+        where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
       }),
     });
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
+        where: vi.fn().mockResolvedValue([]),
       }),
     });
 
@@ -225,9 +217,7 @@ describe("Upload API endpoint", () => {
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
+        where: vi.fn().mockResolvedValue([]),
       }),
     });
 
@@ -273,9 +263,7 @@ describe("File serving endpoint", () => {
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
+        where: vi.fn().mockResolvedValue([]),
       }),
     });
 
@@ -290,9 +278,7 @@ describe("File serving endpoint", () => {
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
-        }),
+        where: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
       }),
     });
 
@@ -308,9 +294,7 @@ describe("File serving endpoint", () => {
 
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
-        }),
+        where: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
       }),
     });
 

@@ -2,7 +2,13 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireUser } from "../auth/requireUser.js";
 import { InvitePage } from "../components/InvitePage.js";
-import { channelMembers, channels, getDb, workspaceInvites, workspaceMembers, workspaces } from "../db/index.js";
+import { getDb, workspaceInvites, workspaceMembers, workspaces } from "../db/index.js";
+import {
+  getChannelByNameInWorkspace,
+  getWorkspaceMember,
+  insertChannelMember,
+  isChannelMember,
+} from "../db/queries/index.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Env } from "../types.js";
 
@@ -33,10 +39,7 @@ workspaceInviteRoute.get("/w/:slug/invite/:code", requireUser, async (c) => {
       return renderPage(c, InvitePage({ error: "Invite link has expired" }), 410);
     }
 
-    const [existingMember] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspace.id), eq(workspaceMembers.userEmail, user.email)));
+    const existingMember = await getWorkspaceMember(db, workspace.id, user.email);
 
     if (existingMember) {
       return c.redirect(`/w/${workspace.slug}`);
@@ -74,10 +77,7 @@ workspaceInviteRoute.post("/w/:slug/invite/:code", requireUser, async (c) => {
       return c.json({ error: "Invite link has expired" }, 410);
     }
 
-    const [existingMember] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspace.id), eq(workspaceMembers.userEmail, user.email)));
+    const existingMember = await getWorkspaceMember(db, workspace.id, user.email);
 
     if (!existingMember) {
       await db.insert(workspaceMembers).values({
@@ -86,22 +86,13 @@ workspaceInviteRoute.post("/w/:slug/invite/:code", requireUser, async (c) => {
         role: "member",
       });
 
-      const [generalChannel] = await db
-        .select()
-        .from(channels)
-        .where(and(eq(channels.workspaceId, workspace.id), eq(channels.name, "general")));
+      const generalChannel = await getChannelByNameInWorkspace(db, workspace.id, "general");
 
       if (generalChannel) {
-        const [existingChannelMember] = await db
-          .select()
-          .from(channelMembers)
-          .where(and(eq(channelMembers.channelId, generalChannel.id), eq(channelMembers.userEmail, user.email)));
+        const alreadyMember = await isChannelMember(db, generalChannel.id, user.email);
 
-        if (!existingChannelMember) {
-          await db.insert(channelMembers).values({
-            channelId: generalChannel.id,
-            userEmail: user.email,
-          });
+        if (!alreadyMember) {
+          await insertChannelMember(db, generalChannel.id, user.email);
         }
       }
     }

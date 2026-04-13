@@ -248,7 +248,9 @@ describe("Channels API", () => {
         }),
       });
       mockInsert.mockReturnValueOnce({
-        values: vi.fn().mockResolvedValue({}),
+        values: vi.fn().mockReturnValue({
+          onConflictDoNothing: vi.fn().mockResolvedValue({}),
+        }),
       });
 
       const { app } = createTestApp({ authenticatedUser });
@@ -322,7 +324,9 @@ describe("Channels API", () => {
         }),
       });
       mockInsert.mockReturnValue({
-        values: vi.fn().mockResolvedValue({}),
+        values: vi.fn().mockReturnValue({
+          onConflictDoNothing: vi.fn().mockResolvedValue({}),
+        }),
       });
 
       const { app } = createTestApp({ authenticatedUser });

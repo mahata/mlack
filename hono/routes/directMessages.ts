@@ -1,6 +1,7 @@
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
-import { directConversations, directMessages, getDb, users, workspaceMembers } from "../db/index.js";
+import { directConversations, directMessages, getDb, workspaceMembers } from "../db/index.js";
+import { getUserNameByEmail, getUsersByEmails, getWorkspaceMember } from "../db/queries/index.js";
 import { getWorkspace } from "../helpers/getWorkspace.js";
 import type { Env } from "../types.js";
 
@@ -26,10 +27,7 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
       conv.user1Email === user.email ? conv.user2Email : conv.user1Email,
     );
 
-    const otherUsers =
-      otherEmails.length > 0
-        ? await db.select({ email: users.email, name: users.name }).from(users).where(inArray(users.email, otherEmails))
-        : [];
+    const otherUsers = await getUsersByEmails(db, otherEmails);
 
     const userMap = new Map(otherUsers.map((u) => [u.email, u.name]));
 
@@ -67,12 +65,9 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
       return c.json({ error: "Cannot start a DM with yourself" }, 400);
     }
 
-    const targetMembership = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspace.id), eq(workspaceMembers.userEmail, targetEmail)));
+    const targetMembership = await getWorkspaceMember(db, workspace.id, targetEmail);
 
-    if (targetMembership.length === 0) {
+    if (!targetMembership) {
       return c.json({ error: "User is not a member of this workspace" }, 404);
     }
 
@@ -92,8 +87,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
     if (existing.length > 0) {
       const conv = existing[0];
       const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
-      const targetUser = await db.select({ name: users.name }).from(users).where(eq(users.email, otherEmail));
-      const otherUserName = targetUser.length > 0 ? targetUser[0].name : otherEmail;
+      const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
 
       return c.json({
         conversation: {
@@ -130,8 +124,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
       if (raceExisting.length > 0) {
         const conv = raceExisting[0];
         const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
-        const targetUser = await db.select({ name: users.name }).from(users).where(eq(users.email, otherEmail));
-        const otherUserName = targetUser.length > 0 ? targetUser[0].name : otherEmail;
+        const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
 
         return c.json({
           conversation: {
@@ -147,8 +140,7 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
     }
 
     const otherEmail = created.user1Email === user.email ? created.user2Email : created.user1Email;
-    const targetUser = await db.select({ name: users.name }).from(users).where(eq(users.email, otherEmail));
-    const otherUserName = targetUser.length > 0 ? targetUser[0].name : otherEmail;
+    const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
 
     return c.json(
       {
@@ -219,13 +211,7 @@ directMessagesRoute.get("/w/:slug/api/dm/workspace-members", async (c) => {
 
     const memberEmails = members.map((m) => m.userEmail).filter((email) => email !== user.email);
 
-    const memberUsers =
-      memberEmails.length > 0
-        ? await db
-            .select({ email: users.email, name: users.name })
-            .from(users)
-            .where(inArray(users.email, memberEmails))
-        : [];
+    const memberUsers = await getUsersByEmails(db, memberEmails);
 
     return c.json({ members: memberUsers });
   } catch (error) {
