@@ -11,6 +11,18 @@ import { getWorkspace } from "../helpers/getWorkspace.js";
 import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
+const BYTES_PER_MB = 1024 * 1024;
+const BYTES_PER_GB = 1024 * BYTES_PER_MB;
+
+function formatUploadLimit(bytes: number): string {
+  if (bytes >= BYTES_PER_GB) {
+    const gb = bytes / BYTES_PER_GB;
+    const rounded = Math.round(gb * 10) / 10;
+    return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)} GB`;
+  }
+  return `${Math.ceil(bytes / BYTES_PER_MB)} MB`;
+}
+
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 const MAX_TOTAL_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024;
@@ -97,8 +109,10 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
     const parsedCustomLimit = customLimit ? parsePositiveInt(customLimit) : null;
     const effectiveLimit = parsedCustomLimit ?? MAX_TOTAL_UPLOAD_SIZE;
     if (currentUsage + file.size > effectiveLimit) {
-      const limitInGb = Math.round(effectiveLimit / (1024 * 1024 * 1024));
-      return c.json({ error: `Storage quota exceeded. Maximum total upload size is ${limitInGb} GB` }, 413);
+      return c.json(
+        { error: `Storage quota exceeded. Maximum total upload size is ${formatUploadLimit(effectiveLimit)}` },
+        413,
+      );
     }
 
     await c.env.STORAGE.put(key, file.stream(), {

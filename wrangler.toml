@@ -27,7 +27,6 @@ new_sqlite_classes = ["ChatRoom"]
 
 [vars]
 NODE_ENV = "development"
-SITE_ADMIN_EMAIL = ""
 
 [env.production]
 routes = [
