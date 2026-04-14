@@ -139,6 +139,19 @@ export const users = sqliteTable("users", {
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
 
+export const userFeatureFlags = sqliteTable(
+  "user_feature_flags",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userEmail: text("user_email").notNull(),
+    flagKey: text("flag_key").notNull(),
+    flagValue: text("flag_value").notNull(),
+    grantedBy: text("granted_by").notNull(),
+    createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => [uniqueIndex("user_feature_flags_email_key_unique").on(table.userEmail, table.flagKey)],
+);
+
 export const pendingRegistrations = sqliteTable(
   "pending_registrations",
   {

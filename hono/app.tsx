@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import type { MiddlewareHandler } from "hono/types";
 import { CookieStore, sessionMiddleware } from "hono-sessions";
+import { requireSiteAdmin } from "./auth/requireSiteAdmin.js";
 import { requireWorkspaceMember } from "./auth/requireWorkspaceMember.js";
 import { authRoute } from "./routes/auth.js";
 import { channelsRoute } from "./routes/channels.js";
@@ -10,6 +11,7 @@ import { emailAuthRoute } from "./routes/emailAuth.js";
 import { healthRoute } from "./routes/health.js";
 import { indexRoute } from "./routes/index.js";
 import { messagesRoute } from "./routes/messages.js";
+import { siteAdminRoute } from "./routes/siteAdmin.js";
 import { testAuthRoute } from "./routes/testAuth.js";
 import { uploadsRoute } from "./routes/uploads.js";
 import { workspaceAdminRoute } from "./routes/workspaceAdmin.js";
@@ -65,6 +67,10 @@ export function createApp(options?: AppOptions) {
 
   app.route("/", workspacesRoute);
   app.route("/", workspaceInviteRoute);
+
+  app.use("/site-admin/*", requireSiteAdmin);
+  app.use("/site-admin", requireSiteAdmin);
+  app.route("/", siteAdminRoute);
 
   app.use("/w/:slug/api/*", requireWorkspaceMember);
   app.use("/w/:slug/admin/*", requireWorkspaceMember);
