@@ -40,8 +40,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "electron": "^39.8.5",
-    "electron-builder": "^26.0.12",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
     "typescript": "^5.9.3"
   }
 }

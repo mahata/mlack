@@ -8,7 +8,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "allowImportingTsExtensions": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "types": ["node", "@cloudflare/workers-types"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
