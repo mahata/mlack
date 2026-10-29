@@ -1,7 +1,5 @@
 packages:
   - .
-  - electron
-  - mobile
 
 onlyBuiltDependencies:
   - better-sqlite3
