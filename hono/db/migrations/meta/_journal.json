@@ -50,6 +50,13 @@
       "when": 1776200000000,
       "tag": "0006_add_user_feature_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793259776101,
+      "tag": "0007_remove_workspaces",
+      "breakpoints": true
     }
   ]
 }

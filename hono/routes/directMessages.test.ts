@@ -11,7 +11,6 @@ vi.mock("../db/index.js", () => ({
   }),
   directConversations: {
     id: "id",
-    workspaceId: "workspace_id",
     user1Email: "user1_email",
     user2Email: "user2_email",
   },
@@ -20,39 +19,13 @@ vi.mock("../db/index.js", () => ({
     createdAt: "created_at",
   },
   users: { email: "email", name: "name" },
-  workspaces: { id: "id", slug: "slug" },
-  workspaceMembers: { workspaceId: "workspace_id", userEmail: "user_email" },
 }));
 
 const authenticatedUser = { email: "alice@example.com", name: "Alice", picture: "alice.jpg" };
 
-const mockWorkspace = { id: 1, name: "Default", slug: "default", createdByEmail: "system", createdAt: "2025-01-01" };
-const mockWorkspaceMember = {
-  id: 1,
-  workspaceId: 1,
-  userEmail: "alice@example.com",
-  role: "member",
-  joinedAt: "2025-01-01",
-};
-
-function setupWorkspaceMocks() {
-  mockSelect.mockReturnValueOnce({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([mockWorkspace]),
-    }),
-  });
-  mockSelect.mockReturnValueOnce({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([mockWorkspaceMember]),
-    }),
-  });
-}
-
 describe("DM Conversations API", () => {
-  describe("GET /w/:slug/api/dm/conversations", () => {
+  describe("GET /api/dm/conversations", () => {
     it("should return empty conversations for a new user", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -60,7 +33,7 @@ describe("DM Conversations API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations");
+      const response = await app.request("/api/dm/conversations");
       expect(response.status).toBe(200);
 
       const body = (await response.json()) as { conversations: unknown[] };
@@ -68,14 +41,11 @@ describe("DM Conversations API", () => {
     });
 
     it("should return conversations with other user names", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([
             {
               id: 1,
-              workspaceId: 1,
               user1Email: "alice@example.com",
               user2Email: "bob@example.com",
               createdAt: "2025-01-01",
@@ -91,7 +61,7 @@ describe("DM Conversations API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations");
+      const response = await app.request("/api/dm/conversations");
       expect(response.status).toBe(200);
 
       const body = (await response.json()) as {
@@ -104,17 +74,15 @@ describe("DM Conversations API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("/w/default/api/dm/conversations");
+      const response = await app.request("/api/dm/conversations");
       expect(response.status).toBe(401);
     });
   });
 
-  describe("POST /w/:slug/api/dm/conversations", () => {
+  describe("POST /api/dm/conversations", () => {
     it("should return 400 when targetEmail is missing", async () => {
-      setupWorkspaceMocks();
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations", {
+      const response = await app.request("/api/dm/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -126,10 +94,8 @@ describe("DM Conversations API", () => {
     });
 
     it("should return 400 when trying to DM yourself", async () => {
-      setupWorkspaceMocks();
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations", {
+      const response = await app.request("/api/dm/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetEmail: "alice@example.com" }),
@@ -140,9 +106,7 @@ describe("DM Conversations API", () => {
       expect(body.error).toBe("Cannot start a DM with yourself");
     });
 
-    it("should return 404 when target is not a workspace member", async () => {
-      setupWorkspaceMocks();
-
+    it("should return 404 when target user does not exist", async () => {
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -150,7 +114,7 @@ describe("DM Conversations API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations", {
+      const response = await app.request("/api/dm/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetEmail: "stranger@example.com" }),
@@ -158,15 +122,13 @@ describe("DM Conversations API", () => {
       expect(response.status).toBe(404);
 
       const body = (await response.json()) as { error: string };
-      expect(body.error).toBe("User is not a member of this workspace");
+      expect(body.error).toBe("User not found");
     });
 
     it("should return existing conversation if one already exists", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, workspaceId: 1, userEmail: "bob@example.com" }]),
+          where: vi.fn().mockResolvedValue([{ name: "Bob" }]),
         }),
       });
 
@@ -175,7 +137,6 @@ describe("DM Conversations API", () => {
           where: vi.fn().mockResolvedValue([
             {
               id: 10,
-              workspaceId: 1,
               user1Email: "alice@example.com",
               user2Email: "bob@example.com",
               createdAt: "2025-01-01",
@@ -184,31 +145,26 @@ describe("DM Conversations API", () => {
         }),
       });
 
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ name: "Bob" }]),
-        }),
-      });
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations", {
+      const response = await app.request("/api/dm/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetEmail: "bob@example.com" }),
       });
       expect(response.status).toBe(200);
 
-      const body = (await response.json()) as { conversation: { id: number; otherUserEmail: string } };
+      const body = (await response.json()) as {
+        conversation: { id: number; otherUserEmail: string; otherUserName: string };
+      };
       expect(body.conversation.id).toBe(10);
       expect(body.conversation.otherUserEmail).toBe("bob@example.com");
+      expect(body.conversation.otherUserName).toBe("Bob");
     });
 
     it("should create a new conversation when none exists", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, workspaceId: 1, userEmail: "bob@example.com" }]),
+          where: vi.fn().mockResolvedValue([{ name: "Bob" }]),
         }),
       });
 
@@ -223,7 +179,6 @@ describe("DM Conversations API", () => {
           returning: vi.fn().mockResolvedValue([
             {
               id: 20,
-              workspaceId: 1,
               user1Email: "alice@example.com",
               user2Email: "bob@example.com",
               createdAt: "2025-01-01",
@@ -232,32 +187,27 @@ describe("DM Conversations API", () => {
         }),
       });
 
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ name: "Bob" }]),
-        }),
-      });
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations", {
+      const response = await app.request("/api/dm/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetEmail: "bob@example.com" }),
       });
       expect(response.status).toBe(201);
 
-      const body = (await response.json()) as { conversation: { id: number; otherUserEmail: string } };
+      const body = (await response.json()) as {
+        conversation: { id: number; otherUserEmail: string; otherUserName: string };
+      };
       expect(body.conversation.id).toBe(20);
       expect(body.conversation.otherUserEmail).toBe("bob@example.com");
+      expect(body.conversation.otherUserName).toBe("Bob");
     });
   });
 
-  describe("GET /w/:slug/api/dm/conversations/:id/messages", () => {
+  describe("GET /api/dm/conversations/:id/messages", () => {
     it("should return 400 for invalid conversation ID", async () => {
-      setupWorkspaceMocks();
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations/abc/messages");
+      const response = await app.request("/api/dm/conversations/abc/messages");
       expect(response.status).toBe(400);
 
       const body = (await response.json()) as { error: string };
@@ -265,8 +215,6 @@ describe("DM Conversations API", () => {
     });
 
     it("should return 404 when conversation does not exist", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
@@ -274,7 +222,7 @@ describe("DM Conversations API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations/999/messages");
+      const response = await app.request("/api/dm/conversations/999/messages");
       expect(response.status).toBe(404);
 
       const body = (await response.json()) as { error: string };
@@ -282,14 +230,11 @@ describe("DM Conversations API", () => {
     });
 
     it("should return 403 when user is not a participant", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([
             {
               id: 1,
-              workspaceId: 1,
               user1Email: "bob@example.com",
               user2Email: "carol@example.com",
               createdAt: "2025-01-01",
@@ -299,7 +244,7 @@ describe("DM Conversations API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations/1/messages");
+      const response = await app.request("/api/dm/conversations/1/messages");
       expect(response.status).toBe(403);
 
       const body = (await response.json()) as { error: string };
@@ -307,14 +252,11 @@ describe("DM Conversations API", () => {
     });
 
     it("should return messages for a valid conversation", async () => {
-      setupWorkspaceMocks();
-
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([
             {
               id: 1,
-              workspaceId: 1,
               user1Email: "alice@example.com",
               user2Email: "bob@example.com",
               createdAt: "2025-01-01",
@@ -343,7 +285,7 @@ describe("DM Conversations API", () => {
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/conversations/1/messages");
+      const response = await app.request("/api/dm/conversations/1/messages");
       expect(response.status).toBe(200);
 
       const body = (await response.json()) as { messages: { content: string }[] };
@@ -352,43 +294,29 @@ describe("DM Conversations API", () => {
     });
   });
 
-  describe("GET /w/:slug/api/dm/workspace-members", () => {
-    it("should return workspace members excluding current user", async () => {
-      setupWorkspaceMocks();
-
+  describe("GET /api/dm/members", () => {
+    it("should return the other registered users", async () => {
+      const otherUsers = [
+        { email: "bob@example.com", name: "Bob" },
+        { email: "carol@example.com", name: "Carol" },
+      ];
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi
-            .fn()
-            .mockResolvedValue([
-              { userEmail: "alice@example.com" },
-              { userEmail: "bob@example.com" },
-              { userEmail: "carol@example.com" },
-            ]),
-        }),
-      });
-
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            { email: "bob@example.com", name: "Bob" },
-            { email: "carol@example.com", name: "Carol" },
-          ]),
+          where: vi.fn().mockResolvedValue(otherUsers),
         }),
       });
 
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/w/default/api/dm/workspace-members");
+      const response = await app.request("/api/dm/members");
       expect(response.status).toBe(200);
 
       const body = (await response.json()) as { members: { email: string; name: string }[] };
-      expect(body.members).toHaveLength(2);
-      expect(body.members.every((m) => m.email !== "alice@example.com")).toBe(true);
+      expect(body.members).toEqual(otherUsers);
     });
 
     it("should return 401 for unauthenticated user", async () => {
       const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("/w/default/api/dm/workspace-members");
+      const response = await app.request("/api/dm/members");
       expect(response.status).toBe(401);
     });
   });

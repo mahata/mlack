@@ -8,43 +8,17 @@ vi.mock("../db/index.js", () => ({
     select: (...args: unknown[]) => mockSelect(...args),
   }),
   messages: { channelId: "channel_id", createdAt: "created_at" },
-  channels: { id: "id", workspaceId: "workspace_id" },
+  channels: { id: "id" },
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
-  workspaces: { id: "id", slug: "slug" },
-  workspaceMembers: { workspaceId: "workspace_id", userEmail: "user_email" },
 }));
 
 const authenticatedUser = { email: "test@example.com", name: "Test User", picture: "test.jpg" };
 
-const mockWorkspace = { id: 1, name: "Default", slug: "default", createdByEmail: "system", createdAt: "2025-01-01" };
-const mockWorkspaceMember = {
-  id: 1,
-  workspaceId: 1,
-  userEmail: "test@example.com",
-  role: "member",
-  joinedAt: "2025-01-01",
-};
-
-function setupWorkspaceMocks() {
-  mockSelect.mockReturnValueOnce({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([mockWorkspace]),
-    }),
-  });
-  mockSelect.mockReturnValueOnce({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([mockWorkspaceMember]),
-    }),
-  });
-}
-
 describe("Messages API endpoint", () => {
   it("should return messages for authenticated member with channelId", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
+        where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
       }),
     });
     mockSelect.mockReturnValueOnce({
@@ -72,7 +46,7 @@ describe("Messages API endpoint", () => {
     });
 
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/w/default/api/messages?channelId=1");
+    const response = await app.request("/api/messages?channelId=1");
     expect(response.status).toBe(200);
 
     const body = (await response.json()) as { messages: unknown[] };
@@ -81,11 +55,9 @@ describe("Messages API endpoint", () => {
   });
 
   it("should return 403 when user is not a member of the channel", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
+        where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
       }),
     });
     mockSelect.mockReturnValueOnce({
@@ -95,7 +67,7 @@ describe("Messages API endpoint", () => {
     });
 
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/w/default/api/messages?channelId=1");
+    const response = await app.request("/api/messages?channelId=1");
     expect(response.status).toBe(403);
 
     const body = (await response.json()) as { error: string };
@@ -103,10 +75,8 @@ describe("Messages API endpoint", () => {
   });
 
   it("should return 400 when channelId is missing", async () => {
-    setupWorkspaceMocks();
-
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/w/default/api/messages");
+    const response = await app.request("/api/messages");
     expect(response.status).toBe(400);
 
     const body = await response.json();
@@ -114,10 +84,8 @@ describe("Messages API endpoint", () => {
   });
 
   it("should return 400 when channelId is invalid", async () => {
-    setupWorkspaceMocks();
-
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/w/default/api/messages?channelId=abc");
+    const response = await app.request("/api/messages?channelId=abc");
     expect(response.status).toBe(400);
 
     const body = await response.json();
@@ -129,7 +97,7 @@ describe("Messages API endpoint", () => {
       authenticatedUser: null,
     });
 
-    const response = await app.request("/w/default/api/messages?channelId=1");
+    const response = await app.request("/api/messages?channelId=1");
     expect(response.status).toBe(401);
 
     const body = await response.json();

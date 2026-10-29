@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getUserNameByEmail, getUsersByEmails } from "./user.js";
+import { getOtherUsers, getUserNameByEmail, getUsersByEmails } from "./user.js";
 
 const mockFrom = vi.fn();
 const mockWhere = vi.fn();
@@ -48,5 +48,17 @@ describe("getUsersByEmails", () => {
 
     expect(result).toEqual([]);
     expect(mockDb.select).not.toHaveBeenCalled();
+  });
+});
+
+describe("getOtherUsers", () => {
+  it("should return every user except the current one", async () => {
+    const otherUsers = [{ email: "b@example.com", name: "Bob" }];
+    mockWhere.mockResolvedValue(otherUsers);
+
+    const result = await getOtherUsers(mockDb, "a@example.com");
+
+    expect(result).toEqual(otherUsers);
+    expect(mockWhere).toHaveBeenCalledTimes(1);
   });
 });

@@ -10,19 +10,13 @@ export async function isChannelMember(db: Database, channelId: number, userEmail
   return membership.length > 0;
 }
 
-export async function getChannelInWorkspace(db: Database, channelId: number, workspaceId: number) {
-  const [channel] = await db
-    .select()
-    .from(channels)
-    .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspaceId)));
+export async function getChannelById(db: Database, channelId: number) {
+  const [channel] = await db.select().from(channels).where(eq(channels.id, channelId));
   return channel ?? null;
 }
 
-export async function getChannelByNameInWorkspace(db: Database, workspaceId: number, name: string) {
-  const [channel] = await db
-    .select()
-    .from(channels)
-    .where(and(eq(channels.workspaceId, workspaceId), eq(channels.name, name)));
+export async function getChannelByName(db: Database, name: string) {
+  const [channel] = await db.select().from(channels).where(eq(channels.name, name));
   return channel ?? null;
 }
 
@@ -35,12 +29,8 @@ export async function getChannelMemberEmails(db: Database, channelId: number): P
   return members.map((m) => m.userEmail);
 }
 
-export async function ensureGeneralChannelMembership(
-  db: Database,
-  workspaceId: number,
-  userEmail: string,
-): Promise<void> {
-  const generalChannel = await getChannelByNameInWorkspace(db, workspaceId, "general");
+export async function ensureGeneralChannelMembership(db: Database, userEmail: string): Promise<void> {
+  const generalChannel = await getChannelByName(db, "general");
   if (!generalChannel) return;
 
   const alreadyMember = await isChannelMember(db, generalChannel.id, userEmail);

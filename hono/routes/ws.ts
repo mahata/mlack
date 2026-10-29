@@ -1,11 +1,12 @@
 import { Hono } from "hono";
-import { getWorkspace } from "../helpers/getWorkspace.js";
 import type { Env, User } from "../types.js";
+
+const CHAT_ROOM_NAME = "global";
 
 export function createWsRoute() {
   const wsRoute = new Hono<Env>();
 
-  wsRoute.get("/w/:slug/ws", async (c) => {
+  wsRoute.get("/ws", async (c) => {
     const upgradeHeader = c.req.header("Upgrade");
     if (!upgradeHeader || upgradeHeader !== "websocket") {
       return c.text("Expected Upgrade: websocket", 426);
@@ -18,8 +19,7 @@ export function createWsRoute() {
       return c.text("Unauthorized", 401);
     }
 
-    const workspace = getWorkspace(c);
-    const stub = c.env.CHAT_ROOM.getByName(workspace.slug);
+    const stub = c.env.CHAT_ROOM.getByName(CHAT_ROOM_NAME);
 
     const url = new URL(c.req.url);
     url.searchParams.set("userEmail", user.email);

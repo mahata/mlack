@@ -1,10 +1,17 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, ne } from "drizzle-orm";
 import { users } from "../schema.js";
 import type { Database } from "./types.js";
 
 export async function getUserNameByEmail(db: Database, email: string): Promise<string | null> {
   const [user] = await db.select({ name: users.name }).from(users).where(eq(users.email, email));
   return user?.name ?? null;
+}
+
+export async function getOtherUsers(
+  db: Database,
+  currentUserEmail: string,
+): Promise<Array<{ email: string; name: string }>> {
+  return db.select({ email: users.email, name: users.name }).from(users).where(ne(users.email, currentUserEmail));
 }
 
 export async function getUsersByEmails(

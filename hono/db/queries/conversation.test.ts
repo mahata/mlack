@@ -14,7 +14,7 @@ beforeEach(() => {
 
 describe("getConversationForParticipant", () => {
   it("should return conversation when user is a participant", async () => {
-    const conversation = { id: 1, workspaceId: 1, user1Email: "a@example.com", user2Email: "b@example.com" };
+    const conversation = { id: 1, user1Email: "a@example.com", user2Email: "b@example.com" };
     mockWhere.mockResolvedValue([conversation]);
 
     const result = await getConversationForParticipant(mockDb, 1, "a@example.com");
@@ -28,13 +28,5 @@ describe("getConversationForParticipant", () => {
     const result = await getConversationForParticipant(mockDb, 1, "stranger@example.com");
 
     expect(result).toBeNull();
-  });
-
-  it("should include workspaceId in query when provided", async () => {
-    mockWhere.mockResolvedValue([]);
-
-    await getConversationForParticipant(mockDb, 1, "a@example.com", 5);
-
-    expect(mockWhere).toHaveBeenCalled();
   });
 });

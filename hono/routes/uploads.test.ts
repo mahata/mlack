@@ -16,44 +16,20 @@ vi.mock("../db/index.js", () => ({
     select: (...args: unknown[]) => mockSelect(...args),
   }),
   messages: { channelId: "channel_id", createdAt: "created_at" },
-  channels: { id: "id", workspaceId: "workspace_id" },
+  channels: { id: "id" },
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
-  workspaces: { id: "id", slug: "slug" },
-  workspaceMembers: { workspaceId: "workspace_id", userEmail: "user_email" },
 }));
 
 const authenticatedUser = { email: "test@example.com", name: "Test User", picture: "test.jpg" };
-
-const mockWorkspace = { id: 1, name: "Default", slug: "default", createdByEmail: "system", createdAt: "2025-01-01" };
-const mockWorkspaceMember = {
-  id: 1,
-  workspaceId: 1,
-  userEmail: "test@example.com",
-  role: "member",
-  joinedAt: "2025-01-01",
-};
 
 function createStorageMock() {
   return { put: mockPut, get: mockGet } as unknown as R2Bucket;
 }
 
-function setupWorkspaceMocks() {
-  mockSelect.mockReturnValueOnce({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([mockWorkspace]),
-    }),
-  });
-  mockSelect.mockReturnValueOnce({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([mockWorkspaceMember]),
-    }),
-  });
-}
-
 function setupChannelMocks() {
   mockSelect.mockReturnValueOnce({
     from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
+      where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
     }),
   });
   mockSelect.mockReturnValueOnce({
@@ -93,21 +69,41 @@ function createUploadRequest(file: File, channelId: string): Request {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("channelId", channelId);
-  return new Request("http://localhost/w/default/api/upload", {
+  return new Request("http://localhost/api/upload", {
     method: "POST",
     body: formData,
     headers: { Origin: "http://localhost" },
   });
 }
 
+function createDmUploadRequest(file: File, conversationId: string): Request {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("conversationId", conversationId);
+  return new Request("http://localhost/api/upload", {
+    method: "POST",
+    body: formData,
+    headers: { Origin: "http://localhost" },
+  });
+}
+
+function setupConversationMock(conversations: unknown[]) {
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(conversations),
+    }),
+  });
+}
+
+const conversationWithBob = { id: 5, user1Email: "bob@example.com", user2Email: "test@example.com" };
+
 describe("Upload API endpoint", () => {
   it("should upload a valid image file", async () => {
-    setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks();
     setupFeatureFlagMock();
 
-    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+    mockPut.mockResolvedValueOnce({ key: "channels/1/test.jpg" });
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
 
@@ -120,22 +116,20 @@ describe("Upload API endpoint", () => {
     expect(body.name).toBe("photo.jpg");
     expect(body.type).toBe("image/jpeg");
     expect(body.size).toBe(1024);
-    expect(body.key).toMatch(/^default\/1\/\d+-[\w-]+\.jpg$/);
+    expect(body.key).toMatch(/^channels\/1\/\d+-[\w-]+\.jpg$/);
 
     expect(mockPut).toHaveBeenCalledOnce();
     const [putKey, , putOptions] = mockPut.mock.calls[0];
-    expect(putKey).toMatch(/^default\/1\/\d+-[\w-]+\.jpg$/);
+    expect(putKey).toMatch(/^channels\/1\/\d+-[\w-]+\.jpg$/);
     expect(putOptions).toEqual({ httpMetadata: { contentType: "image/jpeg" } });
   });
 
   it("should return 400 when no file is provided", async () => {
-    setupWorkspaceMocks();
-
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const formData = new FormData();
     formData.append("channelId", "1");
 
-    const request = new Request("http://localhost/w/default/api/upload", {
+    const request = new Request("http://localhost/api/upload", {
       method: "POST",
       body: formData,
       headers: { Origin: "http://localhost" },
@@ -149,14 +143,12 @@ describe("Upload API endpoint", () => {
   });
 
   it("should return 400 when channelId is missing", async () => {
-    setupWorkspaceMocks();
-
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("photo.jpg", "image/jpeg", 1024);
     const formData = new FormData();
     formData.append("file", file);
 
-    const request = new Request("http://localhost/w/default/api/upload", {
+    const request = new Request("http://localhost/api/upload", {
       method: "POST",
       body: formData,
       headers: { Origin: "http://localhost" },
@@ -170,8 +162,6 @@ describe("Upload API endpoint", () => {
   });
 
   it("should return 415 for unsupported file type", async () => {
-    setupWorkspaceMocks();
-
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("document.pdf", "application/pdf", 1024);
     const request = createUploadRequest(file, "1");
@@ -184,8 +174,6 @@ describe("Upload API endpoint", () => {
   });
 
   it("should return 413 for files exceeding size limit", async () => {
-    setupWorkspaceMocks();
-
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("huge.jpg", "image/jpeg", 26 * 1024 * 1024);
     const request = createUploadRequest(file, "1");
@@ -211,11 +199,9 @@ describe("Upload API endpoint", () => {
   });
 
   it("should return 403 when user is not a channel member", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
+        where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
       }),
     });
     mockSelect.mockReturnValueOnce({
@@ -236,8 +222,6 @@ describe("Upload API endpoint", () => {
   });
 
   it("should return 404 when channel does not exist", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([]),
@@ -251,17 +235,14 @@ describe("Upload API endpoint", () => {
     expect(response.status).toBe(404);
 
     const body = (await response.json()) as { error: string };
-    expect(body.error).toBe("Channel not found in this workspace");
+    expect(body.error).toBe("Channel not found");
     expect(mockPut).not.toHaveBeenCalled();
   });
 
   it("should return 400 for non-positive channelId values", async () => {
-    setupWorkspaceMocks();
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
 
     for (const invalidId of ["0", "-1", "1.5", "abc"]) {
-      mockSelect.mockReset();
-      setupWorkspaceMocks();
       const file = createTestFile("photo.jpg", "image/jpeg", 1024);
       const request = createUploadRequest(file, invalidId);
       const response = await app.request(request);
@@ -273,7 +254,6 @@ describe("Upload API endpoint", () => {
   });
 
   it("should return 413 when upload would exceed storage quota", async () => {
-    setupWorkspaceMocks();
     setupChannelMocks();
     const almostFullUsage = 10 * 1024 * 1024 * 1024 - 512;
     setupQuotaMocks(almostFullUsage, 0);
@@ -291,12 +271,11 @@ describe("Upload API endpoint", () => {
   });
 
   it("should allow upload when under storage quota", async () => {
-    setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks(5 * 1024 * 1024 * 1024, 0);
     setupFeatureFlagMock();
 
-    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+    mockPut.mockResolvedValueOnce({ key: "channels/1/test.jpg" });
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("photo.jpg", "image/jpeg", 1024);
@@ -307,13 +286,12 @@ describe("Upload API endpoint", () => {
   });
 
   it("should allow upload when usage is exactly at boundary", async () => {
-    setupWorkspaceMocks();
     setupChannelMocks();
     const maxMinusFileSize = 10 * 1024 * 1024 * 1024 - 1024;
     setupQuotaMocks(maxMinusFileSize, 0);
     setupFeatureFlagMock();
 
-    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+    mockPut.mockResolvedValueOnce({ key: "channels/1/test.jpg" });
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("photo.jpg", "image/jpeg", 1024);
@@ -324,7 +302,6 @@ describe("Upload API endpoint", () => {
   });
 
   it("should account for both channel and DM usage in quota", async () => {
-    setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks(6 * 1024 * 1024 * 1024, 4 * 1024 * 1024 * 1024);
     setupFeatureFlagMock();
@@ -341,12 +318,11 @@ describe("Upload API endpoint", () => {
   });
 
   it("should use custom upload limit from feature flag", async () => {
-    setupWorkspaceMocks();
     setupChannelMocks();
     setupQuotaMocks(10 * 1024 * 1024 * 1024, 0);
     setupFeatureFlagMock(String(20 * 1024 * 1024 * 1024));
 
-    mockPut.mockResolvedValueOnce({ key: "default/1/test.jpg" });
+    mockPut.mockResolvedValueOnce({ key: "channels/1/test.jpg" });
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
     const file = createTestFile("photo.jpg", "image/jpeg", 1024);
@@ -355,19 +331,45 @@ describe("Upload API endpoint", () => {
     expect(response.status).toBe(200);
     expect(mockPut).toHaveBeenCalledOnce();
   });
+
+  it("should store DM uploads under the dm scope", async () => {
+    setupConversationMock([conversationWithBob]);
+    setupQuotaMocks();
+    setupFeatureFlagMock();
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("clip.mp4", "video/mp4", 2048);
+    const response = await app.request(createDmUploadRequest(file, "5"));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { key: string };
+    expect(body.key).toMatch(/^dm\/5\/\d+-[\w-]+\.mp4$/);
+    expect(mockPut.mock.calls[0][0]).toBe(body.key);
+  });
+
+  it("should return 404 for DM uploads by a non-participant", async () => {
+    setupConversationMock([]);
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const file = createTestFile("clip.mp4", "video/mp4", 2048);
+    const response = await app.request(createDmUploadRequest(file, "5"));
+
+    expect(response.status).toBe(404);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toBe("Conversation not found");
+    expect(mockPut).not.toHaveBeenCalled();
+  });
 });
 
 describe("File serving endpoint", () => {
   it("should return 401 for unauthenticated user", async () => {
     const { app } = createTestApp({ authenticatedUser: null, storageMock: createStorageMock() });
-    const response = await app.request("/w/default/api/files/default/1/test.jpg");
+    const response = await app.request("/api/files/channels/1/test.jpg");
     expect(response.status).toBe(401);
     expect(mockGet).not.toHaveBeenCalled();
   });
 
   it("should return 404 when user is not a channel member", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([]),
@@ -375,14 +377,12 @@ describe("File serving endpoint", () => {
     });
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
-    const response = await app.request("/w/default/api/files/default/1/test.jpg");
+    const response = await app.request("/api/files/channels/1/test.jpg");
     expect(response.status).toBe(404);
     expect(mockGet).not.toHaveBeenCalled();
   });
 
   it("should return 404 when file does not exist", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
@@ -392,13 +392,11 @@ describe("File serving endpoint", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
-    const response = await app.request("/w/default/api/files/default/1/nonexistent.jpg");
+    const response = await app.request("/api/files/channels/1/nonexistent.jpg");
     expect(response.status).toBe(404);
   });
 
   it("should serve a file when it exists", async () => {
-    setupWorkspaceMocks();
-
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
@@ -421,7 +419,7 @@ describe("File serving endpoint", () => {
     });
 
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
-    const response = await app.request("/w/default/api/files/default/1/test.jpg");
+    const response = await app.request("/api/files/channels/1/test.jpg");
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/jpeg");
     expect(response.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
@@ -429,25 +427,53 @@ describe("File serving endpoint", () => {
     expect(await response.text()).toBe("file-content");
   });
 
-  it("should return 404 for cross-workspace file key", async () => {
-    setupWorkspaceMocks();
+  it("should serve a DM file to a conversation participant", async () => {
+    setupConversationMock([conversationWithBob]);
+    mockGet.mockResolvedValueOnce({
+      body: "dm-file-content",
+      size: 15,
+      writeHttpMetadata: (headers: Headers) => {
+        headers.set("content-type", "video/mp4");
+      },
+    });
+
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
-    const response = await app.request("/w/default/api/files/other-workspace/1/test.jpg");
+    const response = await app.request("/api/files/dm/5/clip.mp4");
+
+    expect(response.status).toBe(200);
+    expect(mockGet).toHaveBeenCalledWith("dm/5/clip.mp4");
+    expect(await response.text()).toBe("dm-file-content");
+  });
+
+  it("should return 404 for a DM file when user is not a participant", async () => {
+    setupConversationMock([]);
+
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+    const response = await app.request("/api/files/dm/5/clip.mp4");
+
     expect(response.status).toBe(404);
     expect(mockGet).not.toHaveBeenCalled();
   });
 
+  it("should return 404 for keys outside the channels and dm scopes", async () => {
+    const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
+
+    for (const path of ["/api/files/default/1/test.jpg", "/api/files/channels/1/nested/test.jpg"]) {
+      const response = await app.request(path);
+      expect(response.status).toBe(404);
+    }
+    expect(mockSelect).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
   it("should return 404 for malformed channel id in file key", async () => {
-    setupWorkspaceMocks();
     const { app } = createTestApp({ authenticatedUser, storageMock: createStorageMock() });
 
     for (const path of [
-      "/w/default/api/files/default/not-a-number/test.jpg",
-      "/w/default/api/files/default/0/test.jpg",
-      "/w/default/api/files/default/-1/test.jpg",
+      "/api/files/channels/not-a-number/test.jpg",
+      "/api/files/channels/0/test.jpg",
+      "/api/files/channels/-1/test.jpg",
     ]) {
-      mockSelect.mockReset();
-      setupWorkspaceMocks();
       const response = await app.request(path);
       expect(response.status).toBe(404);
       expect(mockGet).not.toHaveBeenCalled();
