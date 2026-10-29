@@ -14,31 +14,6 @@
   const membersPanel = document.getElementById("membersPanel") as HTMLElement;
   const membersList = document.getElementById("membersList") as HTMLUListElement;
   const toggleMembersButton = document.getElementById("toggleMembersButton") as HTMLButtonElement;
-  const createWorkspaceButton = document.getElementById("createWorkspaceButton") as HTMLButtonElement;
-  const createWorkspaceModal = document.getElementById("createWorkspaceModal") as HTMLDivElement;
-  const workspaceModal = (
-    window as unknown as {
-      initWorkspaceModal: (elements: {
-        createWorkspaceModal: HTMLDivElement;
-        workspaceNameInput: HTMLInputElement;
-        workspaceSlugInput: HTMLInputElement;
-        slugPreviewValue: HTMLSpanElement;
-        createWorkspaceError: HTMLParagraphElement;
-        cancelCreateWorkspace: HTMLButtonElement;
-        confirmCreateWorkspace: HTMLButtonElement;
-        createWorkspaceButton: HTMLButtonElement;
-      }) => { closeModal: () => void; isModalVisible: () => boolean };
-    }
-  ).initWorkspaceModal({
-    createWorkspaceModal,
-    workspaceNameInput: document.getElementById("workspaceName") as HTMLInputElement,
-    workspaceSlugInput: document.getElementById("workspaceSlug") as HTMLInputElement,
-    slugPreviewValue: document.getElementById("slugPreviewValue") as HTMLSpanElement,
-    createWorkspaceError: document.getElementById("createWorkspaceError") as HTMLParagraphElement,
-    cancelCreateWorkspace: document.getElementById("cancelCreateWorkspace") as HTMLButtonElement,
-    confirmCreateWorkspace: document.getElementById("confirmCreateWorkspace") as HTMLButtonElement,
-    createWorkspaceButton,
-  });
   const sidebar = document.getElementById("sidebar") as HTMLElement;
   const sidebarOverlay = document.getElementById("sidebarOverlay") as HTMLDivElement;
   const sidebarToggle = document.getElementById("sidebarToggle") as HTMLButtonElement;
@@ -78,8 +53,7 @@
 
   const container = document.querySelector("[data-ws-url]") as HTMLElement;
   const wsUrl = container.getAttribute("data-ws-url") as string;
-  const workspaceSlug = container.getAttribute("data-workspace-slug") as string;
-  const apiBase = `/w/${workspaceSlug}/api`;
+  const apiBase = "/api";
 
   type Channel = {
     id: number;
@@ -112,7 +86,7 @@
   let viewMode: ViewMode = "channel";
   let activeDmConversationId: number | null = null;
   let dmConversations: DmConversation[] = [];
-  let allWorkspaceMembers: Member[] = [];
+  let dmMembers: Member[] = [];
 
   let huddleActive = false;
   let huddlePeerConnection: RTCPeerConnection | null = null;
@@ -475,13 +449,13 @@
     dmSearchInput.focus();
 
     try {
-      const response = await fetch(`${apiBase}/dm/workspace-members`);
+      const response = await fetch(`${apiBase}/dm/members`);
       if (response.ok) {
         const data = (await response.json()) as { members?: Member[] };
-        allWorkspaceMembers = data.members || [];
+        dmMembers = data.members || [];
       }
     } catch (error) {
-      console.error("Error fetching workspace members for DM compose:", error);
+      console.error("Error fetching members for DM compose:", error);
     }
 
     renderDmMemberList("");
@@ -494,7 +468,7 @@
   function renderDmMemberList(filter: string): void {
     dmMemberListEl.innerHTML = "";
     const lowerFilter = filter.toLowerCase();
-    const filtered = allWorkspaceMembers.filter(
+    const filtered = dmMembers.filter(
       (m) => m.name.toLowerCase().includes(lowerFilter) || m.email.toLowerCase().includes(lowerFilter),
     );
 
@@ -974,8 +948,6 @@
         closeSidebar();
       } else if (!dmComposeModal.classList.contains("hidden")) {
         closeDmCompose();
-      } else if (workspaceModal.isModalVisible()) {
-        workspaceModal.closeModal();
       } else if (!createChannelModal.classList.contains("hidden")) {
         createChannelModal.classList.add("hidden");
       }

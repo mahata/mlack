@@ -6,33 +6,15 @@ export type User = {
   picture?: string;
 };
 
-export type Workspace = {
-  id: number;
-  name: string;
-  slug: string;
-  createdByEmail: string;
-  createdAt: string | null;
-};
-
-export type WorkspaceMember = {
-  id: number;
-  workspaceId: number;
-  userEmail: string;
-  role: "admin" | "member";
-  joinedAt: string | null;
-};
-
 export type Channel = {
   id: number;
   name: string;
-  workspaceId: number;
   createdByEmail: string;
   createdAt: string | null;
 };
 
 export type DirectConversation = {
   id: number;
-  workspaceId: number;
   user1Email: string;
   user2Email: string;
   createdAt: string | null;
@@ -56,8 +38,6 @@ export type Bindings = {
 export type Variables = {
   session: Session;
   user: User;
-  workspace?: Workspace;
-  workspaceMember?: WorkspaceMember;
 };
 
 export type Env = {

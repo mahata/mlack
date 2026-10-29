@@ -12,20 +12,17 @@ vi.mock("../db/index.js", () => ({
     select: (...args: unknown[]) => mockSelect(...args),
     insert: (...args: unknown[]) => mockInsert(...args),
   }),
-  channels: { id: "id", name: "name", workspaceId: "workspace_id" },
+  channels: { id: "id", name: "name" },
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
-  workspaces: { id: "id", slug: "slug" },
-  workspaceMembers: { workspaceId: "workspace_id", userEmail: "user_email" },
 }));
 
-const mockWorkspace = { id: 1, name: "Default", slug: "default", createdByEmail: "system", createdAt: "2025-01-01" };
-const mockWorkspaceMember = {
-  id: 1,
-  workspaceId: 1,
-  userEmail: "test@example.com",
-  role: "member",
-  joinedAt: "2025-01-01",
-};
+function mockSelectResult(rows: unknown[]) {
+  mockSelect.mockReturnValueOnce({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(rows),
+    }),
+  });
+}
 
 describe("Root page", () => {
   let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
@@ -50,22 +47,53 @@ describe("Root page", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("should redirect to workspace when user has exactly one workspace", async () => {
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ workspaceId: 1, role: "member" }]),
-      }),
-    });
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([mockWorkspace]),
-      }),
+  it("should render the chat page for an authenticated user", async () => {
+    mockSelectResult([{ id: 1, name: "general" }]);
+    mockSelectResult([{ channelId: 1, userEmail: "test@example.com" }]);
+
+    const response = await testApp.request("/");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+
+    const html = await response.text();
+    expect(html).toContain("<title>Mlack</title>");
+    expect(html).toContain('src="/static/ChatPage.js"');
+    expect(html).toContain("test@example.com");
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("should auto-join #general when the user is not a member yet", async () => {
+    mockSelectResult([{ id: 1, name: "general" }]);
+    mockSelectResult([]);
+    const mockValues = vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) });
+    mockInsert.mockReturnValueOnce({ values: mockValues });
+
+    const response = await testApp.request("/");
+
+    expect(response.status).toBe(200);
+    expect(mockValues).toHaveBeenCalledWith({ channelId: 1, userEmail: "test@example.com" });
+  });
+
+  it("should still render the chat page when auto-joining #general fails", async () => {
+    mockSelect.mockImplementationOnce(() => {
+      throw new Error("database unavailable");
     });
 
     const response = await testApp.request("/");
 
-    expect(response.status).toBe(302);
-    expect(response.headers.get("Location")).toBe("/w/default");
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('src="/static/ChatPage.js"');
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
+  it("should point the chat page at the root WebSocket endpoint", async () => {
+    mockSelectResult([]);
+
+    const response = await testApp.request("http://localhost:3000/");
+    const html = await response.text();
+
+    expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
   });
 
   it("should redirect to login page when user is not logged in", async () => {
@@ -89,101 +117,12 @@ describe("Root page", () => {
     expect(html).toContain("<title>About - Mlack</title>");
     expect(html).toContain("About Mlack");
   });
-});
 
-describe("Workspace chat page", () => {
-  let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
-  let consoleErrorSpy: MockInstance;
-
-  beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockSelect.mockReset();
-    mockInsert.mockReset();
-
-    const { app } = createTestApp({
-      authenticatedUser: {
-        email: "test@example.com",
-        name: "Test User",
-        picture: "https://via.placeholder.com/32",
-      },
-    });
-    testApp = app;
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
-  });
-
-  function setupWorkspaceMocks() {
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([mockWorkspace]),
-      }),
-    });
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([mockWorkspaceMember]),
-      }),
-    });
-  }
-
-  it("should return HTML chat page for workspace member", async () => {
-    setupWorkspaceMocks();
-
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, name: "general", workspaceId: 1 }]),
-      }),
-    });
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ channelId: 1, userEmail: "test@example.com" }]),
-      }),
-    });
-
-    const response = await testApp.request("/w/default");
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-
-    const html = await response.text();
-    expect(html).toContain('data-workspace-slug="default"');
-    expect(html).toContain('src="/static/ChatPage.js"');
-    expect(html).toContain("test@example.com");
-  });
-
-  it("should include workspace-scoped WebSocket URL", async () => {
-    setupWorkspaceMocks();
-
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
-
-    const response = await testApp.request("http://localhost:3000/w/default");
-    const html = await response.text();
-
-    expect(html).toContain('data-ws-url="ws://localhost:3000/w/default/ws"');
-  });
-
-  it("should return 401 for unauthenticated user", async () => {
-    const { app: testAppNoAuth } = createTestApp({ authenticatedUser: null });
-
-    const response = await testAppNoAuth.request("/w/default");
-
-    expect(response.status).toBe(401);
-  });
-
-  it("should return 404 for non-existent workspace", async () => {
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
-
-    const response = await testApp.request("/w/nonexistent");
-
-    expect(response.status).toBe(404);
+  it("should return 404 for removed workspace URLs", async () => {
+    for (const path of ["/w/default", "/w/default/api/channels", "/w/default/invite/some-code"]) {
+      const response = await testApp.request(path);
+      expect(response.status).toBe(404);
+    }
+    expect(mockSelect).not.toHaveBeenCalled();
   });
 });

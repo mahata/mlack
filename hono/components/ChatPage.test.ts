@@ -30,7 +30,7 @@ describe("ChatPage component", () => {
     const jsxElement = await ChatPage();
 
     const html = jsxElement.toString();
-    expect(html).toContain('data-ws-url="ws://localhost:3000/w/default/ws"');
+    expect(html).toContain('data-ws-url="ws://localhost:3000/ws"');
   });
 
   it("should include Hello, world! heading", async () => {
@@ -41,7 +41,7 @@ describe("ChatPage component", () => {
   });
 
   it("should include custom WebSocket URL when provided", async () => {
-    const customWsUrl = "wss://example.com/w/myworkspace/ws";
+    const customWsUrl = "wss://example.com/ws";
     const jsxElement = await ChatPage(customWsUrl);
 
     const html = jsxElement.toString();
@@ -65,76 +65,22 @@ describe("ChatPage component", () => {
     expect(html).toContain("Members");
   });
 
-  it("should include workspace slug data attribute", async () => {
-    const workspace = {
-      id: 1,
-      name: "Test Workspace",
-      slug: "test-ws",
-      createdByEmail: "admin@test.com",
-      createdAt: "2025-01-01",
-    };
-    const jsxElement = await ChatPage("wss://example.com/ws", undefined, workspace);
-
-    const html = jsxElement.toString();
-    expect(html).toContain('data-workspace-slug="test-ws"');
-  });
-
-  it("should display workspace name in sidebar header", async () => {
-    const workspace = {
-      id: 1,
-      name: "My Workspace",
-      slug: "my-ws",
-      createdByEmail: "admin@test.com",
-      createdAt: "2025-01-01",
-    };
-    const jsxElement = await ChatPage("wss://example.com/ws", undefined, workspace);
-
-    const html = jsxElement.toString();
-    expect(html).toContain("My Workspace");
-  });
-
-  it("should include create workspace button in sidebar", async () => {
+  it("should show the app name in the title and sidebar header", async () => {
     const jsxElement = await ChatPage();
 
     const html = jsxElement.toString();
-    expect(html).toContain('id="createWorkspaceButton"');
-    expect(html).toContain('class="create-workspace-button"');
-    expect(html).toContain('title="Create workspace"');
+    expect(html).toContain("<title>Mlack</title>");
+    expect(html).toContain('<div class="sidebar-header"><h2>Mlack</h2></div>');
   });
 
-  it("should include create workspace modal", async () => {
+  it("should not render any workspace controls", async () => {
     const jsxElement = await ChatPage();
 
     const html = jsxElement.toString();
-    expect(html).toContain('id="createWorkspaceModal"');
-    expect(html).toContain('role="dialog"');
-    expect(html).toContain('aria-modal="true"');
-    expect(html).toContain('aria-labelledby="createWorkspaceTitle"');
-  });
-
-  it("should include workspace name and slug inputs in modal", async () => {
-    const jsxElement = await ChatPage();
-
-    const html = jsxElement.toString();
-    expect(html).toContain('id="workspaceName"');
-    expect(html).toContain('id="workspaceSlug"');
-    expect(html).toContain('id="slugPreviewValue"');
-  });
-
-  it("should include workspace modal action buttons", async () => {
-    const jsxElement = await ChatPage();
-
-    const html = jsxElement.toString();
-    expect(html).toContain('id="cancelCreateWorkspace"');
-    expect(html).toContain('id="confirmCreateWorkspace"');
-  });
-
-  it("should include workspace modal error element", async () => {
-    const jsxElement = await ChatPage();
-
-    const html = jsxElement.toString();
-    expect(html).toContain('id="createWorkspaceError"');
-    expect(html).toContain("modal-error hidden");
+    expect(html).not.toContain("data-workspace-slug");
+    expect(html).not.toContain('id="createWorkspaceButton"');
+    expect(html).not.toContain('id="createWorkspaceModal"');
+    expect(html).not.toContain("/static/workspaceModal.js");
   });
 
   it("should include start huddle button hidden by default", async () => {

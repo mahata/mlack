@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { getDb } from "../db/index.js";
 import {
-  getChannelInWorkspace,
+  getChannelById,
   getConversationForParticipant,
   getUserFeatureFlag,
   getUserTotalUploadSize,
   isChannelMember,
 } from "../db/queries/index.js";
-import { getWorkspace } from "../helpers/getWorkspace.js";
 import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
@@ -41,11 +40,12 @@ function getExtension(mimeType: string): string {
   return map[mimeType] || "bin";
 }
 
+const FILES_PATH_PREFIX = "/api/files/";
+
 const uploadsRoute = new Hono<Env>();
 
-uploadsRoute.post("/w/:slug/api/upload", async (c) => {
+uploadsRoute.post("/api/upload", async (c) => {
   try {
-    const workspace = getWorkspace(c);
     const user = c.get("user");
 
     const formData = await c.req.formData();
@@ -79,21 +79,21 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
         return c.json({ error: "Invalid conversationId" }, 400);
       }
 
-      const conversation = await getConversationForParticipant(db, conversationId, user.email, workspace.id);
+      const conversation = await getConversationForParticipant(db, conversationId, user.email);
       if (!conversation) {
         return c.json({ error: "Conversation not found" }, 404);
       }
 
-      key = `${workspace.slug}/dm/${conversationId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+      key = `dm/${conversationId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
     } else {
       const channelId = parsePositiveInt(channelIdParam);
       if (!channelId) {
         return c.json({ error: "Invalid channelId" }, 400);
       }
 
-      const channel = await getChannelInWorkspace(db, channelId, workspace.id);
+      const channel = await getChannelById(db, channelId);
       if (!channel) {
-        return c.json({ error: "Channel not found in this workspace" }, 404);
+        return c.json({ error: "Channel not found" }, 404);
       }
 
       const isMember = await isChannelMember(db, channelId, user.email);
@@ -101,7 +101,7 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
         return c.json({ error: "Not a member of this channel" }, 403);
       }
 
-      key = `${workspace.slug}/${channelId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+      key = `channels/${channelId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
     }
 
     const currentUsage = await getUserTotalUploadSize(db, user.email);
@@ -131,48 +131,35 @@ uploadsRoute.post("/w/:slug/api/upload", async (c) => {
   }
 });
 
-uploadsRoute.get("/w/:slug/api/files/*", async (c) => {
+uploadsRoute.get(`${FILES_PATH_PREFIX}*`, async (c) => {
   try {
-    const workspace = getWorkspace(c);
     const user = c.get("user");
-    const fullPath = c.req.path;
-    const prefix = `/w/${c.req.param("slug")}/api/files/`;
-    const key = fullPath.slice(prefix.length);
+    const key = c.req.path.slice(FILES_PATH_PREFIX.length);
 
     if (!key) {
       return c.json({ error: "File key is required" }, 400);
     }
 
-    const keyParts = key.split("/");
-    if (keyParts.length < 3 || keyParts[0] !== workspace.slug) {
+    const [scope, scopeIdParam, fileName, ...extraParts] = key.split("/");
+    const scopeId = parsePositiveInt(scopeIdParam);
+    if (!scopeId || !fileName || extraParts.length > 0) {
       return c.json({ error: "File not found" }, 404);
     }
 
     const db = getDb(c.env.DB);
 
-    if (keyParts[1] === "dm") {
-      if (keyParts.length < 4) {
-        return c.json({ error: "File not found" }, 404);
-      }
-      const conversationId = parsePositiveInt(keyParts[2]);
-      if (!conversationId) {
-        return c.json({ error: "File not found" }, 404);
-      }
-
-      const conversation = await getConversationForParticipant(db, conversationId, user.email, workspace.id);
+    if (scope === "dm") {
+      const conversation = await getConversationForParticipant(db, scopeId, user.email);
       if (!conversation) {
         return c.json({ error: "File not found" }, 404);
       }
-    } else {
-      const channelId = parsePositiveInt(keyParts[1]);
-      if (!channelId) {
-        return c.json({ error: "File not found" }, 404);
-      }
-
-      const isMember = await isChannelMember(db, channelId, user.email);
+    } else if (scope === "channels") {
+      const isMember = await isChannelMember(db, scopeId, user.email);
       if (!isMember) {
         return c.json({ error: "File not found" }, 404);
       }
+    } else {
+      return c.json({ error: "File not found" }, 404);
     }
 
     const object = await c.env.STORAGE.get(key);

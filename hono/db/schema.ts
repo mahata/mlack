@@ -1,56 +1,12 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
-export const workspaces = sqliteTable("workspaces", {
+export const channels = sqliteTable("channels", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+  name: text("name").notNull().unique(),
   createdByEmail: text("created_by_email").notNull(),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
-
-export const workspaceMembers = sqliteTable(
-  "workspace_members",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    workspaceId: integer("workspace_id")
-      .notNull()
-      .references(() => workspaces.id),
-    userEmail: text("user_email").notNull(),
-    role: text("role").notNull().default("member"),
-    joinedAt: text("joined_at").default(sql`(CURRENT_TIMESTAMP)`),
-  },
-  (table) => [uniqueIndex("workspace_members_workspace_id_user_email_unique").on(table.workspaceId, table.userEmail)],
-);
-
-export const workspaceInvites = sqliteTable(
-  "workspace_invites",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    workspaceId: integer("workspace_id")
-      .notNull()
-      .references(() => workspaces.id),
-    code: text("code").notNull().unique(),
-    createdByEmail: text("created_by_email").notNull(),
-    expiresAt: text("expires_at").notNull(),
-    createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
-  },
-  (table) => [index("workspace_invites_expires_at_idx").on(table.expiresAt)],
-);
-
-export const channels = sqliteTable(
-  "channels",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    name: text("name").notNull(),
-    workspaceId: integer("workspace_id")
-      .notNull()
-      .references(() => workspaces.id),
-    createdByEmail: text("created_by_email").notNull(),
-    createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
-  },
-  (table) => [uniqueIndex("channels_workspace_id_name_unique").on(table.workspaceId, table.name)],
-);
 
 export const channelMembers = sqliteTable(
   "channel_members",
@@ -92,20 +48,11 @@ export const directConversations = sqliteTable(
   "direct_conversations",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    workspaceId: integer("workspace_id")
-      .notNull()
-      .references(() => workspaces.id),
     user1Email: text("user1_email").notNull(),
     user2Email: text("user2_email").notNull(),
     createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
-  (table) => [
-    uniqueIndex("direct_conversations_workspace_users_unique").on(
-      table.workspaceId,
-      table.user1Email,
-      table.user2Email,
-    ),
-  ],
+  (table) => [uniqueIndex("direct_conversations_users_unique").on(table.user1Email, table.user2Email)],
 );
 
 export const directMessages = sqliteTable(

@@ -1,38 +1,19 @@
-import type { User, Workspace } from "../types.js";
-import { CreateWorkspaceModal } from "./CreateWorkspaceModal.js";
+import type { User } from "../types.js";
 
-export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspace) {
-  const slug = workspace?.slug || "default";
-  const workspaceName = workspace?.name || "Mlack";
-
+export async function ChatPage(wsUrl?: string, user?: User) {
   return (
     <html lang="en">
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        <title>{workspaceName} - Mlack</title>
+        <title>Mlack</title>
         <link rel="stylesheet" href="/components/ChatPage.css" />
       </head>
       <body>
-        <div
-          className="app-layout"
-          data-ws-url={wsUrl || "ws://localhost:3000/w/default/ws"}
-          data-workspace-slug={slug}
-        >
+        <div className="app-layout" data-ws-url={wsUrl || "ws://localhost:3000/ws"}>
           <aside id="sidebar" className="sidebar">
             <div className="sidebar-header">
-              <a href="/" className="workspace-back-link" title="All workspaces">
-                <h2>{workspaceName}</h2>
-              </a>
-              <button
-                type="button"
-                id="createWorkspaceButton"
-                className="create-workspace-button"
-                title="Create workspace"
-                aria-label="Create workspace"
-              >
-                +
-              </button>
+              <h2>Mlack</h2>
             </div>
             <div className="sidebar-channels">
               <div className="sidebar-section-header">
@@ -254,8 +235,6 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
           </div>
         </div>
 
-        {await CreateWorkspaceModal()}
-
         <div
           id="dmComposeModal"
           className="modal hidden"
@@ -270,7 +249,6 @@ export async function ChatPage(wsUrl?: string, user?: User, workspace?: Workspac
           </div>
         </div>
 
-        <script src="/static/workspaceModal.js"></script>
         <script src="/static/ChatPage.js"></script>
       </body>
     </html>

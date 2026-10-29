@@ -1,8 +1,7 @@
 import { and, desc, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
-import { directConversations, directMessages, getDb, workspaceMembers } from "../db/index.js";
-import { getUserNameByEmail, getUsersByEmails, getWorkspaceMember } from "../db/queries/index.js";
-import { getWorkspace } from "../helpers/getWorkspace.js";
+import { directConversations, directMessages, getDb } from "../db/index.js";
+import { getOtherUsers, getUserNameByEmail, getUsersByEmails } from "../db/queries/index.js";
 import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
@@ -29,21 +28,15 @@ function formatConversation(
   };
 }
 
-directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
+directMessagesRoute.get("/api/dm/conversations", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = getWorkspace(c);
 
     const conversations = await db
       .select()
       .from(directConversations)
-      .where(
-        and(
-          eq(directConversations.workspaceId, workspace.id),
-          or(eq(directConversations.user1Email, user.email), eq(directConversations.user2Email, user.email)),
-        ),
-      );
+      .where(or(eq(directConversations.user1Email, user.email), eq(directConversations.user2Email, user.email)));
 
     const otherEmails = conversations.map((conv) =>
       conv.user1Email === user.email ? conv.user2Email : conv.user1Email,
@@ -65,11 +58,10 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations", async (c) => {
   }
 });
 
-directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
+directMessagesRoute.post("/api/dm/conversations", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = getWorkspace(c);
 
     const body = await c.req.json();
     const targetEmail = body.targetEmail?.trim();
@@ -82,10 +74,10 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
       return c.json({ error: "Cannot start a DM with yourself" }, 400);
     }
 
-    const targetMembership = await getWorkspaceMember(db, workspace.id, targetEmail);
+    const targetName = await getUserNameByEmail(db, targetEmail);
 
-    if (!targetMembership) {
-      return c.json({ error: "User is not a member of this workspace" }, 404);
+    if (targetName === null) {
+      return c.json({ error: "User not found" }, 404);
     }
 
     const [user1Email, user2Email] = user.email < targetEmail ? [user.email, targetEmail] : [targetEmail, user.email];
@@ -93,80 +85,46 @@ directMessagesRoute.post("/w/:slug/api/dm/conversations", async (c) => {
     const existing = await db
       .select()
       .from(directConversations)
-      .where(
-        and(
-          eq(directConversations.workspaceId, workspace.id),
-          eq(directConversations.user1Email, user1Email),
-          eq(directConversations.user2Email, user2Email),
-        ),
-      );
+      .where(and(eq(directConversations.user1Email, user1Email), eq(directConversations.user2Email, user2Email)));
 
     if (existing.length > 0) {
-      const conv = existing[0];
-      const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
-      const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
-
-      return c.json({ conversation: formatConversation(conv, user.email, otherUserName) });
+      return c.json({ conversation: formatConversation(existing[0], user.email, targetName) });
     }
 
     let created: (typeof existing)[0];
     try {
-      [created] = await db
-        .insert(directConversations)
-        .values({
-          workspaceId: workspace.id,
-          user1Email,
-          user2Email,
-        })
-        .returning();
+      [created] = await db.insert(directConversations).values({ user1Email, user2Email }).returning();
     } catch (insertError) {
       const raceExisting = await db
         .select()
         .from(directConversations)
-        .where(
-          and(
-            eq(directConversations.workspaceId, workspace.id),
-            eq(directConversations.user1Email, user1Email),
-            eq(directConversations.user2Email, user2Email),
-          ),
-        );
+        .where(and(eq(directConversations.user1Email, user1Email), eq(directConversations.user2Email, user2Email)));
 
       if (raceExisting.length > 0) {
-        const conv = raceExisting[0];
-        const otherEmail = conv.user1Email === user.email ? conv.user2Email : conv.user1Email;
-        const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
-
-        return c.json({ conversation: formatConversation(conv, user.email, otherUserName) });
+        return c.json({ conversation: formatConversation(raceExisting[0], user.email, targetName) });
       }
 
       throw insertError;
     }
 
-    const otherEmail = created.user1Email === user.email ? created.user2Email : created.user1Email;
-    const otherUserName = (await getUserNameByEmail(db, otherEmail)) ?? otherEmail;
-
-    return c.json({ conversation: formatConversation(created, user.email, otherUserName) }, 201);
+    return c.json({ conversation: formatConversation(created, user.email, targetName) }, 201);
   } catch (error) {
     console.error("Error creating DM conversation:", error);
     return c.json({ error: "Failed to create conversation" }, 500);
   }
 });
 
-directMessagesRoute.get("/w/:slug/api/dm/conversations/:id/messages", async (c) => {
+directMessagesRoute.get("/api/dm/conversations/:id/messages", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = getWorkspace(c);
 
     const conversationId = parsePositiveInt(c.req.param("id"));
     if (!conversationId) {
       return c.json({ error: "Invalid conversation ID" }, 400);
     }
 
-    const conversation = await db
-      .select()
-      .from(directConversations)
-      .where(and(eq(directConversations.id, conversationId), eq(directConversations.workspaceId, workspace.id)));
+    const conversation = await db.select().from(directConversations).where(eq(directConversations.id, conversationId));
 
     if (conversation.length === 0) {
       return c.json({ error: "Conversation not found" }, 404);
@@ -191,25 +149,17 @@ directMessagesRoute.get("/w/:slug/api/dm/conversations/:id/messages", async (c) 
   }
 });
 
-directMessagesRoute.get("/w/:slug/api/dm/workspace-members", async (c) => {
+directMessagesRoute.get("/api/dm/members", async (c) => {
   try {
     const db = getDb(c.env.DB);
     const user = c.get("user");
-    const workspace = getWorkspace(c);
 
-    const members = await db
-      .select({ userEmail: workspaceMembers.userEmail })
-      .from(workspaceMembers)
-      .where(eq(workspaceMembers.workspaceId, workspace.id));
+    const members = await getOtherUsers(db, user.email);
 
-    const memberEmails = members.map((m) => m.userEmail).filter((email) => email !== user.email);
-
-    const memberUsers = await getUsersByEmails(db, memberEmails);
-
-    return c.json({ members: memberUsers });
+    return c.json({ members });
   } catch (error) {
-    console.error("Error fetching workspace members:", error);
-    return c.json({ error: "Failed to fetch workspace members" }, 500);
+    console.error("Error fetching DM members:", error);
+    return c.json({ error: "Failed to fetch members" }, 500);
   }
 });
 

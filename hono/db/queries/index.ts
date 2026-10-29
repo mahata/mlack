@@ -1,7 +1,7 @@
 export {
   ensureGeneralChannelMembership,
-  getChannelByNameInWorkspace,
-  getChannelInWorkspace,
+  getChannelById,
+  getChannelByName,
   getChannelMemberEmails,
   insertChannelMember,
   isChannelMember,
@@ -9,7 +9,7 @@ export {
 export { getConversationForParticipant } from "./conversation.js";
 export type { Database } from "./types.js";
 export { getUserTotalUploadSize } from "./upload.js";
-export { getUserNameByEmail, getUsersByEmails } from "./user.js";
+export { getOtherUsers, getUserNameByEmail, getUsersByEmails } from "./user.js";
 export {
   deleteUserFeatureFlag,
   getAllFeatureFlagsGroupedByUser,
@@ -17,4 +17,3 @@ export {
   getUserFeatureFlags,
   setUserFeatureFlag,
 } from "./userFeatureFlags.js";
-export { getWorkspaceMember } from "./workspace.js";
