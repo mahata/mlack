@@ -37,17 +37,7 @@
   ],
   "author": "",
   "license": "ISC",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3",
-      "esbuild",
-      "workerd"
-    ],
-    "overrides": {
-      "@esbuild-kit/core-utils>esbuild": "^0.25.4",
-      "undici@^7": "^7.30.1"
-    }
-  },
+  "packageManager": "pnpm@10.34.9",
   "dependencies": {
     "@hono/oauth-providers": "^0.9.0",
     "drizzle-orm": "^0.45.2",
