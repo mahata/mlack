@@ -21,7 +21,7 @@ A real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare Work
 ### Prerequisites
 
 - Node.js (v24 or higher)
-- pnpm (v10.12.4)
+- pnpm (v10.34.9, pinned via `packageManager` in `package.json`)
 
 ### Installation
 
