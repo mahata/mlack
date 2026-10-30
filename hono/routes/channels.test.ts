@@ -20,45 +20,6 @@ const authenticatedUser = { email: "test@example.com", name: "Test User" };
 const CSRF_HEADERS = { Origin: "http://localhost" };
 
 describe("Channels API", () => {
-  describe("GET /api/channels", () => {
-    it("should return channels for authenticated user", async () => {
-      const mockChannels = [
-        {
-          id: 1,
-          name: "general",
-          createdByEmail: "system",
-          createdAt: "2025-01-01T00:00:00.000Z",
-        },
-        {
-          id: 2,
-          name: "random",
-          createdByEmail: "test@example.com",
-          createdAt: "2025-01-01T00:00:00.000Z",
-        },
-      ];
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockResolvedValue(mockChannels),
-      });
-
-      const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("/api/channels");
-
-      expect(response.status).toBe(200);
-      const body = (await response.json()) as { channels: unknown[] };
-      expect(body).toHaveProperty("channels");
-      expect(body.channels).toHaveLength(2);
-    });
-
-    it("should return 401 for unauthenticated user", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("/api/channels");
-
-      expect(response.status).toBe(401);
-      const body = await response.json();
-      expect(body).toHaveProperty("error", "Unauthorized");
-    });
-  });
-
   describe("GET /api/channels/memberships", () => {
     it("should return myChannels and otherChannels for authenticated user", async () => {
       const mockAllChannels = [

@@ -240,9 +240,9 @@ Health check endpoint.
 
 Retrieve message history for a channel (requires authentication).
 
-### GET /api/channels
+### GET /api/channels/memberships
 
-List all channels (requires authentication).
+List the channels the user has joined (`myChannels`) and the rest (`otherChannels`) (requires authentication).
 
 ### POST /api/channels
 

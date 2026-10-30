@@ -60,16 +60,7 @@ async function sendOrLogVerificationEmail(
   return sendVerificationEmail(env.RESEND_API_KEY, env.RESEND_FROM_EMAIL, email, verificationCode);
 }
 
-emailAuthRoute.get("/auth/login", async (c) => {
-  const error = c.req.query("error");
-  let errorMessage: string | undefined;
-  if (error === "invalid_credentials") {
-    errorMessage = "Invalid email or password.";
-  } else if (error === "login_failed") {
-    errorMessage = "Login failed. Please try again.";
-  }
-  return renderPage(c, LoginPage(errorMessage));
-});
+emailAuthRoute.get("/auth/login", (c) => renderPage(c, LoginPage()));
 
 emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
   try {
@@ -106,16 +97,7 @@ emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
   }
 });
 
-emailAuthRoute.get("/auth/register", async (c) => {
-  const error = c.req.query("error");
-  let errorMessage: string | undefined;
-  if (error === "email_exists") {
-    errorMessage = "An account with this email already exists.";
-  } else if (error === "registration_failed") {
-    errorMessage = "Registration failed. Please try again.";
-  }
-  return renderPage(c, RegisterPage(errorMessage));
-});
+emailAuthRoute.get("/auth/register", (c) => renderPage(c, RegisterPage()));
 
 emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
   try {

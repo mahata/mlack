@@ -7,19 +7,6 @@ import type { Env } from "../types.js";
 
 const channelsRoute = new Hono<Env>();
 
-channelsRoute.get("/api/channels", async (c) => {
-  try {
-    const db = getDb(c.env.DB);
-
-    const allChannels = await db.select().from(channels);
-
-    return c.json({ channels: allChannels });
-  } catch (error) {
-    console.error("Error fetching channels:", error);
-    return c.json({ error: "Failed to fetch channels" }, 500);
-  }
-});
-
 channelsRoute.get("/api/channels/memberships", async (c) => {
   try {
     const db = getDb(c.env.DB);

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Session } from "hono-sessions";
 import { describe, expect, it, vi } from "vitest";
 import type { Bindings, User, Variables } from "../types.js";
-import { createWsRoute } from "./ws.js";
+import { wsRoute } from "./ws.js";
 
 const WS_UPGRADE_HEADERS = { Upgrade: "websocket", Connection: "Upgrade" };
 
@@ -26,18 +26,11 @@ function createWsApp(options?: { user?: User | null }) {
     await next();
   });
 
-  app.route("/", createWsRoute());
+  app.route("/", wsRoute);
   return { app, mockGetByName, mockFetch };
 }
 
 describe("WebSocket endpoint", () => {
-  it("should create WebSocket route", () => {
-    const wsRoute = createWsRoute();
-
-    expect(wsRoute).toBeDefined();
-    expect(typeof wsRoute.request).toBe("function");
-  });
-
   it("should return 426 for non-WebSocket requests", async () => {
     const { app } = createWsApp();
 

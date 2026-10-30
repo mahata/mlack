@@ -5,20 +5,6 @@ export type User = {
   name: string;
 };
 
-export type Channel = {
-  id: number;
-  name: string;
-  createdByEmail: string;
-  createdAt: string | null;
-};
-
-export type DirectConversation = {
-  id: number;
-  user1Email: string;
-  user2Email: string;
-  createdAt: string | null;
-};
-
 export type Bindings = {
   DB: D1Database;
   STORAGE: R2Bucket;

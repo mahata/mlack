@@ -14,7 +14,7 @@ import { messagesRoute } from "./routes/messages.js";
 import { siteAdminRoute } from "./routes/siteAdmin.js";
 import { testAuthRoute } from "./routes/testAuth.js";
 import { uploadsRoute } from "./routes/uploads.js";
-import { createWsRoute } from "./routes/ws.js";
+import { wsRoute } from "./routes/ws.js";
 import type { Env } from "./types.js";
 
 type AppOptions = {
@@ -72,7 +72,7 @@ export function createApp(options?: AppOptions) {
   app.route("/", directMessagesRoute);
   app.route("/", messagesRoute);
   app.route("/", uploadsRoute);
-  app.route("/", createWsRoute());
+  app.route("/", wsRoute);
   app.route("/", indexRoute);
 
   return { app };

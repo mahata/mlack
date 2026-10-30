@@ -89,14 +89,6 @@ describe("Email Auth routes", () => {
       expect(html).toContain('name="password"');
       expect(html).not.toContain("/auth/google");
     });
-
-    it("should show error message for invalid_credentials", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
-
-      const response = await app.request("/auth/login?error=invalid_credentials");
-      const html = await response.text();
-      expect(html).toContain("Invalid email or password.");
-    });
   });
 
   describe("GET /auth/register", () => {
@@ -113,14 +105,6 @@ describe("Email Auth routes", () => {
       expect(html).toContain('name="email"');
       expect(html).toContain('name="password"');
       expect(html).not.toContain("/auth/google");
-    });
-
-    it("should show error message for email_exists", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
-
-      const response = await app.request("/auth/register?error=email_exists");
-      const html = await response.text();
-      expect(html).toContain("An account with this email already exists.");
     });
   });
 

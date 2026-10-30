@@ -39,17 +39,6 @@ siteAdminRoute.get("/site-admin", async (c) => {
   }
 });
 
-siteAdminRoute.get("/site-admin/api/users", async (c) => {
-  try {
-    const db = getDb(c.env.DB);
-    const usersWithFlags = await listUsersWithFlags(db);
-    return c.json({ users: usersWithFlags });
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return c.json({ error: "Failed to fetch users" }, 500);
-  }
-});
-
 siteAdminRoute.put("/site-admin/api/users/:email/flags/:key", async (c) => {
   try {
     const db = getDb(c.env.DB);
