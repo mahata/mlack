@@ -15,10 +15,13 @@ siteAdminRoute.get("/site-admin", async (c) => {
         "SELECT user_email AS userEmail, flag_key AS flagKey, flag_value AS flagValue FROM user_feature_flags",
       ).all<{ userEmail: string; flagKey: string; flagValue: string }>(),
     ]);
-    const usersWithFlags = users.map((user) => ({
-      ...user,
-      flags: flags.filter((flag) => flag.userEmail === user.email),
-    }));
+    const flagsByEmail = new Map<string, Array<{ flagKey: string; flagValue: string }>>();
+    for (const { userEmail, ...flag } of flags) {
+      const userFlags = flagsByEmail.get(userEmail) ?? [];
+      userFlags.push(flag);
+      flagsByEmail.set(userEmail, userFlags);
+    }
+    const usersWithFlags = users.map((user) => ({ ...user, flags: flagsByEmail.get(user.email) ?? [] }));
     return c.html(SiteAdminPage(c.get("user"), usersWithFlags));
   } catch (error) {
     console.error("Error rendering site admin page:", error);
