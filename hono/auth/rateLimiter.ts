@@ -7,7 +7,7 @@ type RateLimitOptions = {
   onLimitExceeded: (c: Context<Env>) => Response | Promise<Response>;
 };
 
-const MAX_TRACKED_CLIENTS = 10_000;
+export const MAX_TRACKED_CLIENTS = 10_000;
 
 export function createRateLimiter({
   windowMs,
@@ -18,15 +18,18 @@ export function createRateLimiter({
 
   return async (c, next) => {
     const now = Date.now();
-    if (windowsByClient.size >= MAX_TRACKED_CLIENTS) {
-      for (const [client, window] of windowsByClient) {
-        if (window.resetsAt <= now) windowsByClient.delete(client);
-      }
-      if (windowsByClient.size >= MAX_TRACKED_CLIENTS) windowsByClient.clear();
-    }
-
     const client = c.req.header("cf-connecting-ip") ?? "unknown";
     const existingWindow = windowsByClient.get(client);
+    if (!existingWindow && windowsByClient.size >= MAX_TRACKED_CLIENTS) {
+      for (const [trackedClient, window] of windowsByClient) {
+        if (window.resetsAt <= now) windowsByClient.delete(trackedClient);
+      }
+      if (windowsByClient.size >= MAX_TRACKED_CLIENTS) {
+        const [oldestTrackedClient] = windowsByClient.keys();
+        windowsByClient.delete(oldestTrackedClient);
+      }
+    }
+
     const window =
       existingWindow && existingWindow.resetsAt > now ? existingWindow : { count: 0, resetsAt: now + windowMs };
     if (window.count >= maxRequests) {

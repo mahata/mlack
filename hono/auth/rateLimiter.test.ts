@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../types.js";
-import { createRateLimiter } from "./rateLimiter.js";
+import { createRateLimiter, MAX_TRACKED_CLIENTS } from "./rateLimiter.js";
 
 function createLimitedApp(maxRequests: number, windowMs = 60_000) {
   const app = new Hono<Env>();
@@ -51,5 +51,16 @@ describe("createRateLimiter", () => {
 
     expect((await limitedRequest()).status).toBe(200);
     expect((await otherLimitedRequest()).status).toBe(200);
+  });
+
+  it("should keep blocking a client when the tracked clients reach capacity", async () => {
+    const request = createLimitedApp(1);
+    expect((await request("10.0.0.1")).status).toBe(200);
+    for (let index = 1; index < MAX_TRACKED_CLIENTS; index++) {
+      await request(`10.1.${index >> 8}.${index & 255}`);
+    }
+
+    expect((await request("10.0.0.1")).status).toBe(429);
+    expect((await request("10.2.0.1")).status).toBe(200);
   });
 });
