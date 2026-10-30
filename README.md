@@ -20,7 +20,7 @@ A real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare Work
 
 ### Prerequisites
 
-- Node.js (v24 or higher)
+- Node.js (`^24.22.0` or `^26.12.0`, as required by the `cf` CLI)
 - pnpm (v10.34.9, pinned via `packageManager` in `package.json`)
 
 ### Installation
@@ -31,7 +31,7 @@ pnpm install
 
 ### Environment Configuration
 
-Wrangler dev reads secrets from `.dev.vars`. Copy the sample file and fill in your values:
+`cf dev` reads secrets from `.dev.vars`. Copy the sample file and fill in your values:
 
 ```bash
 cp .env.sample .dev.vars
@@ -43,11 +43,11 @@ Required variables in `.dev.vars`:
 - `RESEND_API_KEY`: API key from [Resend](https://resend.com/) for sending verification emails
 - `RESEND_FROM_EMAIL`: Sender address for verification emails (e.g. `noreply@yourdomain.com`)
 
-> **Note**: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are only required in production. In local development (`NODE_ENV=development`), verification codes are logged to the Wrangler console instead of sending real emails.
+> **Note**: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are only required in production. In local development (`NODE_ENV=development`), verification codes are logged to the `cf dev` console instead of sending real emails. `cf dev` also prints a "Missing required secrets" warning for every secret that is absent from `.dev.vars`; it is harmless for the secrets you don't need locally.
 
 ### Database Setup
 
-mlack uses Cloudflare D1 (SQLite) with plain SQL queries. For local development, wrangler manages a local D1 instance automatically.
+mlack uses Cloudflare D1 (SQLite) with plain SQL queries. For local development, `cf` manages a local D1 instance automatically.
 
 ```bash
 # Apply migrations to local D1
@@ -57,16 +57,18 @@ pnpm db:migrate
 pnpm db:seed
 
 # Create an empty migration file in hono/db/migrations, then write its SQL by hand
-pnpm exec wrangler d1 migrations create mlack-db <migration-name>
+pnpm exec cf d1 migrations create <migration-name> --dir hono/db/migrations
 
 # Query the local database
-pnpm exec wrangler d1 execute mlack-db --local --command "SELECT email, name FROM users"
+pnpm exec cf d1 raw 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --sql "SELECT email, name FROM users"
 ```
+
+`cf d1` addresses databases by ID. The local database uses the placeholder ID `00000000-0000-4000-8000-000000000000` from `cloudflare.config.ts`, and `--persist-to .wrangler/state` points `cf d1` at the state used by `cf dev`.
 
 ### Development
 
 ```bash
-# Start development server (wrangler dev)
+# Start development server (cf dev)
 pnpm dev
 
 # Compile the client scripts into public/static and type-check everything
@@ -98,23 +100,16 @@ pnpm lint:fix
 1. **Authenticate with Cloudflare**:
 
    ```bash
-   npx wrangler login
+   pnpm exec cf auth login
    ```
 
 2. **Create the D1 database**:
 
    ```bash
-   npx wrangler d1 create mlack-db
+   pnpm exec cf d1 create --name mlack-db
    ```
 
-   Copy the `database_id` from the output and update `wrangler.toml`:
-
-   ```toml
-   [[d1_databases]]
-   binding = "DB"
-   database_name = "mlack-db"
-   database_id = "<YOUR_DATABASE_ID>"
-   ```
+   Copy the database ID from the output into `PRODUCTION_DATABASE_ID` in `cloudflare.config.ts`, and into the `db:migrate:prod` and `db:seed:prod` scripts in `package.json`.
 
 3. **Apply migrations to the remote database**:
 
@@ -128,21 +123,21 @@ pnpm lint:fix
    pnpm db:seed:prod
    ```
 
-5. **Set production secrets**:
-
-   ```bash
-   npx wrangler secret put SESSION_SECRET --env production
-   npx wrangler secret put RESEND_API_KEY --env production
-   npx wrangler secret put RESEND_FROM_EMAIL --env production
-   ```
-
-   For `RESEND_API_KEY`, create an API key at [Resend](https://resend.com/). For `RESEND_FROM_EMAIL`, use a verified domain in your Resend account (e.g. `noreply@yourdomain.com`).
-
-6. **Deploy**:
+5. **Deploy**:
 
    ```bash
    pnpm run deploy
    ```
+
+6. **Set production secrets** (secrets belong to an existing Worker, so set them after the first deploy; later deploys leave them untouched):
+
+   ```bash
+   pnpm exec cf workers secrets update SESSION_SECRET --worker mlack-production --type secret_text --text "<value>"
+   pnpm exec cf workers secrets update RESEND_API_KEY --worker mlack-production --type secret_text --text "<value>"
+   pnpm exec cf workers secrets update RESEND_FROM_EMAIL --worker mlack-production --type secret_text --text "<value>"
+   ```
+
+   The app responds with errors until `SESSION_SECRET` is set. For `RESEND_API_KEY`, create an API key at [Resend](https://resend.com/). For `RESEND_FROM_EMAIL`, use a verified domain in your Resend account (e.g. `noreply@yourdomain.com`).
 
 ### Automated Deployment (CI/CD)
 
@@ -166,7 +161,7 @@ git push origin prod
 
 The deploy job requires two repository secrets. Add them under **Settings > Secrets and variables > Actions > New repository secret**:
 
-1. **`CLOUDFLARE_API_TOKEN`** — Create a token in the [Cloudflare dashboard](https://dash.cloudflare.com/profile/api-tokens) using the **"Edit Cloudflare Workers"** template, then add **D1 Edit** permission to it. The template includes Workers Scripts Write, Account Settings Read, User Memberships Read, and other permissions Wrangler needs.
+1. **`CLOUDFLARE_API_TOKEN`** — Create a token in the [Cloudflare dashboard](https://dash.cloudflare.com/profile/api-tokens) using the **"Edit Cloudflare Workers"** template, then add **D1 Edit** permission to it. The template includes Workers Scripts Write, Account Settings Read, User Memberships Read, and other permissions the `cf` CLI needs.
 2. **`CLOUDFLARE_ACCOUNT_ID`** — Your Cloudflare account ID. Find it on the [Workers & Pages overview page](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/) in the right sidebar.
 
 The E2E job reuses the existing `SESSION_SECRET` secret already configured for CI.
@@ -205,7 +200,8 @@ mlack/
 ├── public/                 # Static assets served by Workers
 │   ├── components/         # Page stylesheets
 │   └── static/             # Compiled client scripts (generated, not committed)
-├── wrangler.toml           # Cloudflare Workers configuration
+├── cloudflare.config.ts    # Cloudflare Workers configuration (cf)
+├── wrangler.config.ts      # Bundler configuration used by cf
 ├── package.json            # Dependencies and scripts
 ├── playwright.config.ts    # Playwright configuration
 ├── tsconfig.json           # TypeScript configuration

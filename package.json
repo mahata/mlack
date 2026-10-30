@@ -5,7 +5,7 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "pnpm build:client && wrangler dev",
+    "dev": "pnpm build:client && cf dev",
     "build": "pnpm build:client && pnpm build:check",
     "build:client": "tsc --project tsconfig.client.json",
     "build:check": "tsc --noEmit",
@@ -14,11 +14,11 @@
     "test:e2e": "playwright test",
     "lint": "biome check --verbose .",
     "lint:fix": "biome check --verbose --write .",
-    "db:migrate": "wrangler d1 migrations apply mlack-db --local",
-    "db:seed": "wrangler d1 execute mlack-db --local --file=hono/db/seed.sql",
-    "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote --env production",
-    "db:seed:prod": "wrangler d1 execute mlack-db --remote --env production --file=hono/db/seed.sql",
-    "deploy": "pnpm build:client && wrangler deploy --env production"
+    "db:migrate": "cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --dir hono/db/migrations",
+    "db:seed": "cf d1 raw 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --sql \"$(cat hono/db/seed.sql)\"",
+    "db:migrate:prod": "cf d1 migrations apply d6405044-202a-4a50-9612-089512467c9e --dir hono/db/migrations",
+    "db:seed:prod": "cf d1 raw d6405044-202a-4a50-9612-089512467c9e --sql \"$(cat hono/db/seed.sql)\"",
+    "deploy": "pnpm build:client && cf deploy --mode production"
   },
   "keywords": [
     "hono",
@@ -36,6 +36,7 @@
     "@cloudflare/workers-types": "^5.20261027.1",
     "@playwright/test": "^1.64.1",
     "@types/node": "^24.12.2",
+    "cf": "1.0.0-beta.26",
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
