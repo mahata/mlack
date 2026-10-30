@@ -20,7 +20,7 @@ vi.mock("../db/index.js", () => ({
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
 }));
 
-const authenticatedUser = { email: "test@example.com", name: "Test User", picture: "test.jpg" };
+const authenticatedUser = { email: "test@example.com", name: "Test User" };
 
 function createStorageMock() {
   return { put: mockPut, get: mockGet } as unknown as R2Bucket;

@@ -16,7 +16,7 @@ vi.mock("../db/index.js", () => ({
   users: { email: "email", name: "name" },
 }));
 
-const authenticatedUser = { email: "test@example.com", name: "Test User", picture: "test.jpg" };
+const authenticatedUser = { email: "test@example.com", name: "Test User" };
 const CSRF_HEADERS = { Origin: "http://localhost" };
 
 describe("Channels API", () => {

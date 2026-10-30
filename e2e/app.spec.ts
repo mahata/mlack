@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { loginWithMock, TEST_ORIGIN } from "./auth-helpers";
+import { loginWithMock, TEST_ORIGIN, TEST_USER_EMAIL } from "./auth-helpers";
 
 test.beforeEach(async ({ page }) => {
   // Wait for a server to be ready before running tests
@@ -19,7 +19,7 @@ test("App renders Hello, world! text", async ({ page }) => {
   await page.goto("/");
 
   // Verify that the user info is correct
-  await expect(page.locator(".user-email")).toContainText(process.env.E2E_GMAIL_ACCOUNT || "test@example.com");
+  await expect(page.locator(".user-email")).toContainText(TEST_USER_EMAIL);
 
   // Verify that the page contains "Hello, world!" heading
   await expect(page.locator("h1")).toContainText("Hello, world!");

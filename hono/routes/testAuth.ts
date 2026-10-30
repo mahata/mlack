@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { Env } from "../types.js";
+import type { Env, User } from "../types.js";
 
 const testAuthRoute = new Hono<Env>();
 
@@ -10,10 +10,9 @@ testAuthRoute.post("/test/login", async (c) => {
 
   const session = c.get("session");
 
-  const testUser = {
-    email: c.env.E2E_GMAIL_ACCOUNT || "test@example.com",
+  const testUser: User = {
+    email: "test@example.com",
     name: "Test User",
-    picture: "",
   };
 
   console.log("Test login - saving user to session:", testUser);

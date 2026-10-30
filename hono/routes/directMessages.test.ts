@@ -21,7 +21,7 @@ vi.mock("../db/index.js", () => ({
   users: { email: "email", name: "name" },
 }));
 
-const authenticatedUser = { email: "alice@example.com", name: "Alice", picture: "alice.jpg" };
+const authenticatedUser = { email: "alice@example.com", name: "Alice" };
 
 describe("DM Conversations API", () => {
   describe("GET /api/dm/conversations", () => {

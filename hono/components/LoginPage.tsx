@@ -22,14 +22,6 @@ export async function LoginPage(error?: string) {
           </button>
         </form>
 
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
-
-        <a href="/auth/google" className="google-button">
-          Login with Google
-        </a>
-
         <p className="auth-link">
           Don't have an account? <a href="/auth/register">Register</a>
         </p>

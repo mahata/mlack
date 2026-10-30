@@ -76,8 +76,6 @@ jobs:
       - name: Run Playwright tests
         env:
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          E2E_GMAIL_ACCOUNT: ${{ secrets.E2E_GMAIL_ACCOUNT }}
-          E2E_GMAIL_PASSWORD: ${{ secrets.E2E_GMAIL_PASSWORD }}
         run: pnpm test:e2e
 
       - name: Upload test artifacts

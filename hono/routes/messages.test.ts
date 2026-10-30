@@ -12,7 +12,7 @@ vi.mock("../db/index.js", () => ({
   channelMembers: { channelId: "channel_id", userEmail: "user_email" },
 }));
 
-const authenticatedUser = { email: "test@example.com", name: "Test User", picture: "test.jpg" };
+const authenticatedUser = { email: "test@example.com", name: "Test User" };
 
 describe("Messages API endpoint", () => {
   it("should return messages for authenticated member with channelId", async () => {
