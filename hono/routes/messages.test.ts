@@ -1,106 +1,74 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createTestApp } from "../testApp.js";
-
-const mockSelect = vi.fn();
-
-vi.mock("../db/index.js", () => ({
-  getDb: () => ({
-    select: (...args: unknown[]) => mockSelect(...args),
-  }),
-  messages: { channelId: "channel_id", createdAt: "created_at" },
-  channels: { id: "id" },
-  channelMembers: { channelId: "channel_id", userEmail: "user_email" },
-}));
 
 const authenticatedUser = { email: "test@example.com", name: "Test User" };
 
 describe("Messages API endpoint", () => {
-  it("should return messages for authenticated member with channelId", async () => {
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
-      }),
-    });
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, channelId: 1, userEmail: "test@example.com" }]),
-      }),
-    });
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: 1,
-                content: "Test message",
-                userEmail: "test@example.com",
-                userName: "Test User",
-                channelId: 1,
-                createdAt: "2025-01-01T00:00:00.000Z",
-              },
-            ]),
-          }),
-        }),
-      }),
-    });
+  it("should return the channel's messages oldest first for a member", async () => {
+    const { app, db } = createTestApp({ authenticatedUser });
+    await db.exec(`
+      INSERT INTO channels (id, name, created_by_email) VALUES (2, 'random', 'test@example.com');
+      INSERT INTO channel_members (channel_id, user_email) VALUES (1, 'test@example.com');
+      INSERT INTO messages (content, user_email, user_name, channel_id, created_at) VALUES
+        ('first', 'test@example.com', 'Test User', 1, '2025-01-01 00:00:00'),
+        ('second', 'other@example.com', 'Other User', 1, '2025-01-01 00:00:00'),
+        ('elsewhere', 'test@example.com', 'Test User', 2, '2025-01-01 00:00:01');
+    `);
 
-    const { app } = createTestApp({ authenticatedUser });
     const response = await app.request("/api/messages?channelId=1");
-    expect(response.status).toBe(200);
 
-    const body = (await response.json()) as { messages: unknown[] };
-    expect(body).toHaveProperty("messages");
-    expect(Array.isArray(body.messages)).toBe(true);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { messages: Array<Record<string, unknown>> };
+    expect(body.messages.map((message) => message.content)).toEqual(["first", "second"]);
+    expect(body.messages[1]).toMatchObject({
+      userEmail: "other@example.com",
+      userName: "Other User",
+      channelId: 1,
+      attachmentKey: null,
+    });
   });
 
   it("should return 403 when user is not a member of the channel", async () => {
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
-      }),
-    });
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
-
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/api/messages?channelId=1");
-    expect(response.status).toBe(403);
 
-    const body = (await response.json()) as { error: string };
-    expect(body.error).toBe("Not a member of this channel");
+    const response = await app.request("/api/messages?channelId=1");
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "Not a member of this channel" });
+  });
+
+  it("should return 404 when the channel does not exist", async () => {
+    const { app } = createTestApp({ authenticatedUser });
+
+    const response = await app.request("/api/messages?channelId=999");
+
+    expect(response.status).toBe(404);
   });
 
   it("should return 400 when channelId is missing", async () => {
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/api/messages");
-    expect(response.status).toBe(400);
 
-    const body = await response.json();
-    expect(body).toHaveProperty("error", "channelId query parameter is required");
+    const response = await app.request("/api/messages");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "channelId query parameter is required" });
   });
 
   it("should return 400 when channelId is invalid", async () => {
     const { app } = createTestApp({ authenticatedUser });
-    const response = await app.request("/api/messages?channelId=abc");
-    expect(response.status).toBe(400);
 
-    const body = await response.json();
-    expect(body).toHaveProperty("error", "Invalid channelId");
+    const response = await app.request("/api/messages?channelId=abc");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid channelId" });
   });
 
   it("should return 401 for unauthenticated user", async () => {
-    const { app } = createTestApp({
-      authenticatedUser: null,
-    });
+    const { app } = createTestApp();
 
     const response = await app.request("/api/messages?channelId=1");
-    expect(response.status).toBe(401);
 
-    const body = await response.json();
-    expect(body).toHaveProperty("error", "Unauthorized");
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthorized" });
   });
 });

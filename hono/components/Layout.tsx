@@ -1,35 +1,34 @@
+import { raw } from "hono/html";
 import type { Child } from "hono/jsx";
 
 type LayoutProps = {
-  title: string;
-  css: string | string[];
-  scripts?: string[];
+  title?: string;
+  css: string;
+  script?: string;
   viewportFit?: boolean;
   children: Child;
 };
 
-export function Layout({ title, css, scripts, viewportFit, children }: LayoutProps) {
-  const cssFiles = ["/components/common.css", ...(Array.isArray(css) ? css : [css])];
-  const viewportContent = viewportFit
-    ? "width=device-width, initial-scale=1.0, viewport-fit=cover"
-    : "width=device-width, initial-scale=1.0";
-
+export function Layout({ title, css, script, viewportFit, children }: LayoutProps) {
   return (
-    <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content={viewportContent} />
-        <title>{title} - Mlack</title>
-        {cssFiles.map((href) => (
-          <link rel="stylesheet" href={href} />
-        ))}
-      </head>
-      <body>
-        {children}
-        {scripts?.map((src) => (
-          <script src={src} />
-        ))}
-      </body>
-    </html>
+    <>
+      {raw("<!DOCTYPE html>")}
+      <html lang="en">
+        <head>
+          <meta charSet="UTF-8" />
+          <meta
+            name="viewport"
+            content={`width=device-width, initial-scale=1.0${viewportFit ? ", viewport-fit=cover" : ""}`}
+          />
+          <title>{title ? `${title} - Mlack` : "Mlack"}</title>
+          <link rel="stylesheet" href="/components/common.css" />
+          <link rel="stylesheet" href={css} />
+        </head>
+        <body>
+          {children}
+          {script && <script src={script} />}
+        </body>
+      </html>
+    </>
   );
 }

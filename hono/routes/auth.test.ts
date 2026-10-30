@@ -1,22 +1,5 @@
-import { Hono } from "hono";
-import type { Session } from "hono-sessions";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createTestApp } from "../testApp.js";
-import type { Env } from "../types.js";
-import { authRoute } from "./auth.js";
-
-function createAuthApp() {
-  const deleteSession = vi.fn();
-  const app = new Hono<Env>();
-
-  app.use("*", async (c, next) => {
-    c.set("session", { get: vi.fn(), set: vi.fn(), deleteSession } as unknown as Session);
-    await next();
-  });
-
-  app.route("/", authRoute);
-  return { app, deleteSession };
-}
 
 describe("Auth routes", () => {
   it("should not serve Google login", async () => {
@@ -27,13 +10,15 @@ describe("Auth routes", () => {
     expect(response.status).toBe(404);
   });
 
-  it("should delete the session and redirect to the root page on logout", async () => {
-    const { app, deleteSession } = createAuthApp();
+  it("should clear the session cookie and redirect to the root page on logout", async () => {
+    const { app } = createTestApp({ authenticatedUser: { email: "test@example.com", name: "Test User" } });
 
-    const response = await app.request("/auth/logout", { method: "POST" });
+    const response = await app.request("/auth/logout", { method: "POST", headers: { Origin: "http://localhost" } });
 
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/");
-    expect(deleteSession).toHaveBeenCalledOnce();
+    const setCookies = response.headers.getSetCookie();
+    expect(setCookies).toHaveLength(1);
+    expect(setCookies[0]).toMatch(/^session=; Max-Age=0;/);
   });
 });

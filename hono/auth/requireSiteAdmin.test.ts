@@ -1,30 +1,21 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { Env } from "../types.js";
 import { requireSiteAdmin } from "./requireSiteAdmin.js";
 
 function createTestApp(options: { userEmail?: string; siteAdminEmail?: string }) {
   const app = new Hono<Env>();
 
-  app.use("*", async (c, next) => {
-    const mockSession = {
-      get: vi.fn().mockReturnValue(options.userEmail ? { email: options.userEmail, name: "Test User" } : null),
-      set: vi.fn(),
-      deleteSession: vi.fn(),
-    };
-    c.set("session", mockSession as never);
-
-    if (!c.env) {
-      (c as never as Record<string, unknown>).env = {};
+  app.use(async (c, next) => {
+    if (options.userEmail) {
+      c.set("user", { email: options.userEmail, name: "Test User" });
     }
-    c.env.SITE_ADMIN_EMAIL = options.siteAdminEmail ?? "";
     await next();
   });
-
-  app.use("*", requireSiteAdmin);
+  app.use(requireSiteAdmin);
   app.get("/site-admin", (c) => c.json({ ok: true }));
 
-  return app;
+  return { request: (path: string) => app.request(path, {}, { SITE_ADMIN_EMAIL: options.siteAdminEmail ?? "" }) };
 }
 
 describe("requireSiteAdmin", () => {

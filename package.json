@@ -5,24 +5,20 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "pnpm run build:client && pnpm run build:assets && wrangler dev",
-    "build": "rm -rf dist public && pnpm run build:client && pnpm run build:assets && tsc --project tsconfig.prod.json",
+    "dev": "pnpm build:client && wrangler dev",
+    "build": "pnpm build:client && pnpm build:check",
     "build:client": "tsc --project tsconfig.client.json",
-    "build:client:watch": "tsc --project tsconfig.client.json --watch",
-    "build:assets": "mkdir -p public/components public/static && cp hono/components/*.css public/components/ && cp hono/static/*.js hono/static/*.js.map public/static/",
     "build:check": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run --logHeapUsage",
     "test:e2e": "playwright test",
     "lint": "biome check --verbose .",
     "lint:fix": "biome check --verbose --write .",
-    "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply mlack-db --local",
     "db:seed": "wrangler d1 execute mlack-db --local --file=hono/db/seed.sql",
-    "db:studio": "drizzle-kit studio",
     "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote --env production",
     "db:seed:prod": "wrangler d1 execute mlack-db --remote --env production --file=hono/db/seed.sql",
-    "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production"
+    "deploy": "pnpm build:client && wrangler deploy --env production"
   },
   "keywords": [
     "hono",
@@ -33,18 +29,13 @@
   "license": "ISC",
   "packageManager": "pnpm@10.34.9",
   "dependencies": {
-    "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.13",
-    "hono-sessions": "^0.8.1"
+    "hono": "^4.13.13"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.3",
     "@cloudflare/workers-types": "^5.20261024.1",
-    "@libsql/client": "^0.17.2",
     "@playwright/test": "^1.64.1",
     "@types/node": "^24.12.2",
-    "drizzle-kit": "^0.31.11",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",

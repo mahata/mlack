@@ -13,9 +13,6 @@ updates:
         patterns:
           - "@hono/*"
           - "hono"
-          - "hono-sessions"
-          - "dotenv"
-          - "ws"
         update-types:
           - "minor"
           - "patch"
@@ -25,7 +22,6 @@ updates:
           - "@biomejs/*"
           - "@playwright/*"
           - "@types/*"
-          - "tsx"
           - "typescript"
           - "vitest"
         update-types:

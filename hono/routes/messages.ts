@@ -1,7 +1,5 @@
-import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { getDb, messages } from "../db/index.js";
-import { getChannelById, isChannelMember } from "../db/queries/index.js";
+import { ATTACHMENT_COLUMNS, getChannelById, isChannelMember } from "../db/queries.js";
 import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
@@ -19,28 +17,23 @@ messagesRoute.get("/api/messages", async (c) => {
       return c.json({ error: "Invalid channelId" }, 400);
     }
 
-    const db = getDb(c.env.DB);
-    const user = c.get("user");
-
-    const channel = await getChannelById(db, channelId);
-    if (!channel) {
+    if (!(await getChannelById(c.env.DB, channelId))) {
       return c.json({ error: "Channel not found" }, 404);
     }
 
-    const isMember = await isChannelMember(db, channelId, user.email);
-
-    if (!isMember) {
+    if (!(await isChannelMember(c.env.DB, channelId, c.get("user").email))) {
       return c.json({ error: "Not a member of this channel" }, 403);
     }
 
-    const latestMessages = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.channelId, channelId))
-      .orderBy(desc(messages.createdAt))
-      .limit(100);
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, content, user_email AS userEmail, user_name AS userName, channel_id AS channelId,
+         ${ATTACHMENT_COLUMNS}, created_at AS createdAt
+       FROM messages WHERE channel_id = ? ORDER BY created_at DESC, id DESC LIMIT 100`,
+    )
+      .bind(channelId)
+      .all();
 
-    return c.json({ messages: latestMessages.reverse() });
+    return c.json({ messages: results.reverse() });
   } catch (error) {
     console.error("Error fetching messages:", error);
     return c.json({ error: "Failed to fetch messages" }, 500);

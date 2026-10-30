@@ -8,7 +8,7 @@ Package manager is **pnpm** (pinned via `packageManager` in `package.json`). Jav
 
 ```bash
 pnpm install                  # Install dependencies
-pnpm build                    # Full build (client + server)
+pnpm build                    # Compile client scripts into public/static + type-check everything
 pnpm build:check              # Type-check only (no emit)
 pnpm lint                     # Biome lint + format check
 pnpm lint:fix                 # Biome auto-fix
@@ -19,16 +19,20 @@ pnpm test:run                 # Single run (CI)
 npx vitest run hono/routes/health.test.ts          # Run a single test file
 npx vitest run -t "should return 401"              # Run tests matching a name
 
-# E2E tests (Playwright — requires running Postgres)
+# E2E tests (Playwright, against `wrangler dev` with the local D1)
+pnpm db:migrate && pnpm db:seed                    # Prepare the local D1 first
 pnpm test:e2e                 # Run all E2E tests
 npx playwright test e2e/app.spec.ts                # Run a single E2E file
 
-# Database (Drizzle ORM)
-pnpm db:generate              # Generate migration from schema changes
-pnpm db:migrate               # Apply migrations
+# Database (Cloudflare D1, plain SQL)
+pnpm db:migrate               # Apply migrations to the local D1
+pnpm db:seed                  # Seed #general into the local D1
+pnpm exec wrangler d1 migrations create mlack-db <name>   # New empty migration; write the SQL by hand
 ```
 
-CI runs: `pnpm test:run` then `pnpm lint` then `pnpm build`. All three must pass.
+Unit tests run route handlers against an in-memory SQLite database (`node:sqlite`) that has the real migrations applied. Use `createTestApp()` from `hono/testApp.ts` and seed rows through its `db`.
+
+CI runs `pnpm test:run`, `pnpm lint` and `pnpm build` in one job and the E2E tests in another. All of them must pass, and `deploy.yml` reuses the same workflow before deploying.
 
 Task completion order: `pnpm test:run` → `pnpm lint` → `pnpm build` → Copilot CLI review → commit.
 
@@ -36,8 +40,8 @@ Task completion order: `pnpm test:run` → `pnpm lint` → `pnpm build` → Copi
 
 - Strict mode enabled. Avoid `any`.
 - Use `type` aliases (not `interface`) for data structures.
-- Hono app instances are typed with `Hono<{ Variables: Variables }>`.
-- Session user is accessed via `session.get("user") as User | undefined`.
+- Hono app instances are typed with `Hono<Env>`.
+- The session middleware (`hono/auth/session.ts`) stores the signed-in user in `c.get("user")`. Behind `requireUser`/`requireSiteAdmin` it is always set; elsewhere read it as `c.get("user") as User | undefined`. Use `startSession`/`endSession` to log users in and out.
 
 ### Comments
 

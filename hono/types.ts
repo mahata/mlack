@@ -1,22 +1,6 @@
-import type { Session } from "hono-sessions";
-
 export type User = {
   email: string;
   name: string;
-};
-
-export type Channel = {
-  id: number;
-  name: string;
-  createdByEmail: string;
-  createdAt: string | null;
-};
-
-export type DirectConversation = {
-  id: number;
-  user1Email: string;
-  user2Email: string;
-  createdAt: string | null;
 };
 
 export type Bindings = {
@@ -31,7 +15,6 @@ export type Bindings = {
 };
 
 export type Variables = {
-  session: Session;
   user: User;
 };
 

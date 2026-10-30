@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
 
 jobs:
   test:
@@ -30,8 +31,8 @@ jobs:
       - name: Run tests
         run: pnpm test:run
 
-      - name: Run linter (without build artifacts)
-        run: rm -rf dist && rm -f hono/static/*.js hono/static/*.js.map && pnpm lint
+      - name: Run linter
+        run: pnpm lint
 
       - name: Run build
         run: pnpm build
@@ -58,9 +59,6 @@ jobs:
 
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps chromium
-
-      - name: Build JavaScript files
-        run: pnpm build
 
       - name: Run database migrations
         run: pnpm db:migrate

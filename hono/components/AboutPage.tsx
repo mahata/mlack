@@ -1,6 +1,6 @@
 import { Layout } from "./Layout.js";
 
-export async function AboutPage() {
+export function AboutPage() {
   return (
     <Layout title="About" css="/components/AboutPage.css">
       <div className="about-container">

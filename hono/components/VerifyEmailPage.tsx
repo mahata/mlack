@@ -6,7 +6,7 @@ type VerifyEmailPageProps = {
   success?: string;
 };
 
-export async function VerifyEmailPage({ email, error, success }: VerifyEmailPageProps) {
+export function VerifyEmailPage({ email, error, success }: VerifyEmailPageProps) {
   return (
     <Layout title="Verify Email" css="/components/AuthPage.css">
       <div className="auth-container">

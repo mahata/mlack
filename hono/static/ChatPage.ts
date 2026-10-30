@@ -36,11 +36,6 @@
   const huddleEndButton = document.getElementById("huddleEndButton") as HTMLButtonElement;
   const remoteAudio = document.getElementById("remoteAudio") as HTMLAudioElement;
 
-  const STATUS_CLASS = "status";
-  const CONNECTED_CLASS = "connected";
-  const DISCONNECTED_CLASS = "disconnected";
-  const RECONNECTING_CLASS = "reconnecting";
-  const MESSAGE_CLASS = "message";
   const MESSAGES_TIMEOUT_MS = 15000;
 
   const INITIAL_RECONNECT_DELAY_MS = 1000;
@@ -51,8 +46,7 @@
 
   const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm"]);
 
-  const container = document.querySelector("[data-ws-url]") as HTMLElement;
-  const wsUrl = container.getAttribute("data-ws-url") as string;
+  const wsUrl = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`;
   const apiBase = "/api";
 
   type Channel = {
@@ -109,10 +103,6 @@
     return window.innerWidth <= MOBILE_BREAKPOINT;
   }
 
-  function isTabletView(): boolean {
-    return window.innerWidth <= TABLET_BREAKPOINT;
-  }
-
   function openSidebar(): void {
     sidebar.classList.add("open");
     sidebarOverlay.classList.remove("hidden");
@@ -166,21 +156,13 @@
 
   function displayMessage(msg: MessageData): void {
     const messageElement = document.createElement("div");
-    messageElement.className = MESSAGE_CLASS;
+    messageElement.className = "message";
 
     const senderName = msg.userName || msg.userEmail;
-
-    if (msg.content) {
-      const textEl = document.createElement("div");
-      textEl.className = "message-text";
-      textEl.textContent = `${senderName}: ${msg.content}`;
-      messageElement.appendChild(textEl);
-    } else {
-      const textEl = document.createElement("div");
-      textEl.className = "message-text";
-      textEl.textContent = `${senderName}:`;
-      messageElement.appendChild(textEl);
-    }
+    const textEl = document.createElement("div");
+    textEl.className = "message-text";
+    textEl.textContent = msg.content ? `${senderName}: ${msg.content}` : `${senderName}:`;
+    messageElement.appendChild(textEl);
 
     if (msg.attachmentKey && msg.attachmentType) {
       const attachEl = document.createElement("div");
@@ -219,34 +201,20 @@
     messagesDiv.innerHTML = "";
   }
 
-  async function loadMessagesForChannel(channelId: number): Promise<void> {
+  async function loadMessages(url: string): Promise<void> {
     clearMessages();
-    const controller = new AbortController();
-    const timeoutId = MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
     try {
-      const response = await fetch(`${apiBase}/messages?channelId=${channelId}`, { signal: controller.signal });
-      if (response.ok) {
-        const data = (await response.json()) as {
-          messages?: MessageData[];
-        };
-        if (data.messages) {
-          data.messages.forEach((msg) => {
-            displayMessage(msg);
-          });
-        }
-      } else {
+      const response = await fetch(url, { signal: AbortSignal.timeout(MESSAGES_TIMEOUT_MS) });
+      if (!response.ok) {
         console.error("Failed to load messages:", response.status);
-      }
-    } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        console.info("Loading messages was aborted (timeout).");
         return;
       }
-      console.error("Error loading messages:", error);
-    } finally {
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
+      const data = (await response.json()) as { messages?: MessageData[] };
+      for (const msg of data.messages ?? []) {
+        displayMessage(msg);
       }
+    } catch (error) {
+      console.error("Error loading messages:", error);
     }
   }
 
@@ -383,37 +351,6 @@
     }
   }
 
-  async function loadDmMessages(conversationId: number): Promise<void> {
-    clearMessages();
-    const controller = new AbortController();
-    const timeoutId = MESSAGES_TIMEOUT_MS > 0 ? setTimeout(() => controller.abort(), MESSAGES_TIMEOUT_MS) : undefined;
-    try {
-      const response = await fetch(`${apiBase}/dm/conversations/${conversationId}/messages`, {
-        signal: controller.signal,
-      });
-      if (response.ok) {
-        const data = (await response.json()) as { messages?: MessageData[] };
-        if (data.messages) {
-          for (const msg of data.messages) {
-            displayMessage(msg);
-          }
-        }
-      } else {
-        console.error("Failed to load DM messages:", response.status);
-      }
-    } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        console.info("Loading DM messages was aborted (timeout).");
-        return;
-      }
-      console.error("Error loading DM messages:", error);
-    } finally {
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
-    }
-  }
-
   async function switchToDm(conversationId: number, otherUserName: string): Promise<void> {
     if (viewMode === "dm" && conversationId === activeDmConversationId) {
       if (isMobileView()) closeSidebar();
@@ -428,7 +365,7 @@
     renderChannelLists();
     renderDmList();
     if (isMobileView()) closeSidebar();
-    await loadDmMessages(conversationId);
+    await loadMessages(`${apiBase}/dm/conversations/${conversationId}/messages`);
     messageInput.focus();
   }
 
@@ -437,9 +374,7 @@
     activeDmConversationId = null;
     toggleMembersButton.classList.remove("hidden");
     updateHuddleButtonVisibility();
-    if (membersPanelVisible) {
-      membersPanel.classList.remove("hidden");
-    }
+    membersPanel.classList.toggle("hidden", !membersPanelVisible);
     renderDmList();
   }
 
@@ -501,7 +436,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetEmail }),
       });
-      if (response.ok || response.status === 201) {
+      if (response.ok) {
         const data = (await response.json()) as { conversation: DmConversation };
         const conv = data.conversation;
 
@@ -521,11 +456,7 @@
   }
 
   function updateHuddleButtonVisibility(): void {
-    if (viewMode === "dm" && !huddleActive) {
-      startHuddleButton.classList.remove("hidden");
-    } else {
-      startHuddleButton.classList.add("hidden");
-    }
+    startHuddleButton.classList.toggle("hidden", viewMode !== "dm" || huddleActive);
   }
 
   function createPeerConnection(): RTCPeerConnection {
@@ -760,11 +691,7 @@
       track.enabled = !huddleMuted;
     }
     huddleMuteButton.setAttribute("aria-pressed", String(huddleMuted));
-    if (huddleMuted) {
-      huddleMuteButton.classList.add("muted");
-    } else {
-      huddleMuteButton.classList.remove("muted");
-    }
+    huddleMuteButton.classList.toggle("muted", huddleMuted);
   }
 
   function endHuddle(): void {
@@ -793,7 +720,7 @@
     await fetchDmConversations();
 
     if (activeChannelId) {
-      await loadMessagesForChannel(activeChannelId);
+      await loadMessages(`${apiBase}/messages?channelId=${activeChannelId}`);
       await fetchChannelMembers(activeChannelId);
     }
   }
@@ -811,14 +738,14 @@
     renderChannelLists();
     renderDmList();
     if (isMobileView()) closeSidebar();
-    await loadMessagesForChannel(channelId);
+    await loadMessages(`${apiBase}/messages?channelId=${channelId}`);
     await fetchChannelMembers(channelId);
     messageInput.focus();
   }
 
   function notifyMembershipChange(type: "memberJoin" | "memberLeave", channelId: number): void {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type, channelId, userEmail: currentUserEmail, userName: currentUserEmail }));
+      ws.send(JSON.stringify({ type, channelId }));
     }
   }
 
@@ -885,16 +812,14 @@
 
   sidebarOverlay.addEventListener("click", closeSidebar);
 
-  toggleMembersButton.addEventListener("click", () => {
-    membersPanelVisible = !membersPanelVisible;
-    if (membersPanelVisible) {
-      membersPanel.classList.remove("hidden");
-      toggleMembersButton.classList.add("active");
-    } else {
-      membersPanel.classList.add("hidden");
-      toggleMembersButton.classList.remove("active");
-    }
-  });
+  function setMembersPanelVisible(visible: boolean): void {
+    membersPanelVisible = visible;
+    membersPanel.classList.toggle("hidden", !visible);
+    toggleMembersButton.classList.toggle("active", visible);
+    toggleMembersButton.setAttribute("aria-expanded", String(visible));
+  }
+
+  toggleMembersButton.addEventListener("click", () => setMembersPanelVisible(!membersPanelVisible));
 
   createChannelButton.addEventListener("click", () => {
     createChannelModal.classList.remove("hidden");
@@ -906,21 +831,18 @@
     createChannelModal.classList.add("hidden");
   });
 
-  confirmCreateChannel.addEventListener("click", () => {
+  function submitNewChannel(): void {
     const name = newChannelNameInput.value.trim();
     if (name) {
       createChannelModal.classList.add("hidden");
       createChannel(name);
     }
-  });
+  }
 
+  confirmCreateChannel.addEventListener("click", submitNewChannel);
   newChannelNameInput.addEventListener("keypress", (e: KeyboardEvent) => {
     if (e.key === "Enter") {
-      const name = newChannelNameInput.value.trim();
-      if (name) {
-        createChannelModal.classList.add("hidden");
-        createChannel(name);
-      }
+      submitNewChannel();
     }
   });
 
@@ -961,10 +883,20 @@
     }
   }
 
+  function setStatus(text: string, state: "connected" | "disconnected" | "reconnecting"): void {
+    statusDiv.textContent = text;
+    statusDiv.className = `status ${state}`;
+  }
+
+  function setMessageControlsEnabled(enabled: boolean): void {
+    messageInput.disabled = !enabled;
+    sendButton.disabled = !enabled;
+    attachButton.disabled = !enabled;
+  }
+
   function scheduleReconnect(): void {
     cancelScheduledReconnect();
-    statusDiv.textContent = `Reconnecting in ${reconnectDelay / 1000}s...`;
-    statusDiv.className = `${STATUS_CLASS} ${RECONNECTING_CLASS}`;
+    setStatus(`Reconnecting in ${reconnectDelay / 1000}s...`, "reconnecting");
 
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined;
@@ -995,27 +927,17 @@
       if (ws !== socket) return;
       console.log("Connected to WebSocket");
       reconnectDelay = INITIAL_RECONNECT_DELAY_MS;
-      statusDiv.textContent = "Connected";
-      statusDiv.className = `${STATUS_CLASS} ${CONNECTED_CLASS}`;
-      messageInput.disabled = false;
-      sendButton.disabled = false;
-      attachButton.disabled = false;
+      setStatus("Connected", "connected");
+      setMessageControlsEnabled(true);
     };
 
     socket.onmessage = (event: MessageEvent) => {
       if (ws !== socket) return;
       try {
-        const data = JSON.parse(event.data as string) as {
+        const data = JSON.parse(event.data as string) as MessageData & {
           type: string;
           channelId?: number;
           conversationId?: number;
-          userName?: string;
-          userEmail: string;
-          content: string;
-          attachmentKey?: string | null;
-          attachmentName?: string | null;
-          attachmentType?: string | null;
-          attachmentSize?: number | null;
           offer?: RTCSessionDescriptionInit;
           answer?: RTCSessionDescriptionInit;
           candidate?: RTCIceCandidateInit;
@@ -1023,12 +945,11 @@
         if (data.type === "message" && viewMode === "channel" && data.channelId === activeChannelId) {
           displayMessage(data);
         }
-        if (data.type === "dm" && viewMode === "dm" && data.conversationId === activeDmConversationId) {
-          displayMessage(data);
-        }
         if (data.type === "dm") {
-          const existingConv = dmConversations.find((c) => c.id === data.conversationId);
-          if (!existingConv) {
+          if (viewMode === "dm" && data.conversationId === activeDmConversationId) {
+            displayMessage(data);
+          }
+          if (!dmConversations.some((conversation) => conversation.id === data.conversationId)) {
             fetchDmConversations();
           }
         }
@@ -1055,17 +976,14 @@
     socket.onclose = (event: CloseEvent) => {
       if (ws !== socket) return;
       console.log("Disconnected from WebSocket");
-      messageInput.disabled = true;
-      sendButton.disabled = true;
-      attachButton.disabled = true;
+      setMessageControlsEnabled(false);
 
       if (huddleActive) {
         cleanupHuddle();
       }
 
       if (event.code === UNAUTHORIZED_CLOSE_CODE) {
-        statusDiv.textContent = "Disconnected (unauthorized)";
-        statusDiv.className = `${STATUS_CLASS} ${DISCONNECTED_CLASS}`;
+        setStatus("Disconnected (unauthorized)", "disconnected");
         return;
       }
 
@@ -1250,14 +1168,7 @@
 
   window.addEventListener("load", () => {
     detectCurrentUserEmail();
-    if (isTabletView()) {
-      membersPanelVisible = false;
-      membersPanel.classList.add("hidden");
-      toggleMembersButton.classList.remove("active");
-      toggleMembersButton.setAttribute("aria-expanded", "false");
-    } else {
-      toggleMembersButton.classList.add("active");
-    }
+    setMembersPanelVisible(window.innerWidth > TABLET_BREAKPOINT);
     messageInput.focus();
     initChannels();
   });

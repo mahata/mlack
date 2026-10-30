@@ -1,255 +1,246 @@
 import type { User } from "../types.js";
+import { Layout } from "./Layout.js";
 
-export async function ChatPage(wsUrl?: string, user?: User) {
+export function ChatPage(user: User) {
   return (
-    <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        <title>Mlack</title>
-        <link rel="stylesheet" href="/components/ChatPage.css" />
-      </head>
-      <body>
-        <div className="app-layout" data-ws-url={wsUrl || "ws://localhost:3000/ws"}>
-          <aside id="sidebar" className="sidebar">
-            <div className="sidebar-header">
-              <h2>Mlack</h2>
-            </div>
-            <div className="sidebar-channels">
-              <div className="sidebar-section-header">
-                <span>Channels</span>
-                <button
-                  type="button"
-                  id="createChannelButton"
-                  className="create-channel-button"
-                  title="Create channel"
-                  aria-label="Create channel"
-                >
-                  +
-                </button>
-              </div>
-              <ul id="channelList" className="channel-list"></ul>
-            </div>
+    <Layout css="/components/ChatPage.css" script="/static/ChatPage.js" viewportFit>
+      <div className="app-layout">
+        <aside id="sidebar" className="sidebar">
+          <div className="sidebar-header">
+            <h2>Mlack</h2>
+          </div>
+          <div className="sidebar-channels">
             <div className="sidebar-section-header">
-              <span>Browse</span>
-            </div>
-            <ul id="browseChannelList" className="channel-list browse-list"></ul>
-            <div className="sidebar-section-header">
-              <span>Direct Messages</span>
+              <span>Channels</span>
               <button
                 type="button"
-                id="dmComposeButton"
+                id="createChannelButton"
                 className="create-channel-button"
-                title="New direct message"
-                aria-label="New direct message"
+                title="Create channel"
+                aria-label="Create channel"
               >
                 +
               </button>
             </div>
-            <ul id="dmList" className="channel-list dm-list"></ul>
-            <div className="sidebar-user">
-              <span className="user-email">{user?.email}</span>
-              <form method="post" action="/auth/logout" style={{ display: "inline" }}>
-                <button type="submit" className="logout-button" title="Logout">
-                  Logout
-                </button>
-              </form>
-            </div>
-          </aside>
+            <ul id="channelList" className="channel-list"></ul>
+          </div>
+          <div className="sidebar-section-header">
+            <span>Browse</span>
+          </div>
+          <ul id="browseChannelList" className="channel-list browse-list"></ul>
+          <div className="sidebar-section-header">
+            <span>Direct Messages</span>
+            <button
+              type="button"
+              id="dmComposeButton"
+              className="create-channel-button"
+              title="New direct message"
+              aria-label="New direct message"
+            >
+              +
+            </button>
+          </div>
+          <ul id="dmList" className="channel-list dm-list"></ul>
+          <div className="sidebar-user">
+            <span className="user-email">{user.email}</span>
+            <form method="post" action="/auth/logout" style={{ display: "inline" }}>
+              <button type="submit" className="logout-button" title="Logout">
+                Logout
+              </button>
+            </form>
+          </div>
+        </aside>
 
-          <div id="sidebarOverlay" className="sidebar-overlay hidden"></div>
+        <div id="sidebarOverlay" className="sidebar-overlay hidden"></div>
 
-          <main className="chat-main">
-            <div className="chat-header">
-              <h1>Hello, world!</h1>
-              <div className="chat-header-row">
-                <button
-                  type="button"
-                  id="sidebarToggle"
-                  className="sidebar-toggle"
-                  title="Toggle sidebar"
-                  aria-label="Toggle sidebar"
-                  aria-controls="sidebar"
-                  aria-expanded="false"
+        <main className="chat-main">
+          <div className="chat-header">
+            <h1>Hello, world!</h1>
+            <div className="chat-header-row">
+              <button
+                type="button"
+                id="sidebarToggle"
+                className="sidebar-toggle"
+                title="Toggle sidebar"
+                aria-label="Toggle sidebar"
+                aria-controls="sidebar"
+                aria-expanded="false"
+              >
+                <span className="sidebar-toggle-icon"></span>
+              </button>
+              <h2 id="channelName">#general</h2>
+              <button
+                type="button"
+                id="startHuddleButton"
+                className="start-huddle-button hidden"
+                title="Start a huddle"
+                aria-label="Start a huddle"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  role="img"
+                  aria-label="Huddle"
                 >
-                  <span className="sidebar-toggle-icon"></span>
-                </button>
-                <h2 id="channelName">#general</h2>
+                  <title>Huddle</title>
+                  <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94M1 15.42V21a1 1 0 0 0 1 1h5.58a2 2 0 0 0 1.45-.63l8.58-9.59a2 2 0 0 0-.04-2.72L13.2 4.52a2 2 0 0 0-2.72-.04L1.63 13.97a2 2 0 0 0-.63 1.45z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                id="toggleMembersButton"
+                className="toggle-members-button"
+                title="Toggle members panel"
+                aria-controls="membersPanel"
+                aria-expanded="true"
+              >
+                Members
+              </button>
+            </div>
+          </div>
+          <div id="huddleIncomingBanner" className="huddle-incoming-banner hidden">
+            <div className="huddle-incoming-info">
+              <span id="huddleCallerName" className="huddle-caller-name"></span>
+              <span className="huddle-incoming-label">is starting a huddle</span>
+            </div>
+            <div className="huddle-incoming-actions">
+              <button type="button" id="huddleAcceptButton" className="huddle-accept-button">
+                Accept
+              </button>
+              <button type="button" id="huddleDeclineButton" className="huddle-decline-button">
+                Decline
+              </button>
+            </div>
+          </div>
+          <div id="huddleBar" className="huddle-bar hidden">
+            <div className="huddle-bar-info">
+              <span className="huddle-bar-indicator"></span>
+              <span id="huddleStatus" className="huddle-bar-status">
+                Huddle
+              </span>
+            </div>
+            <div className="huddle-bar-controls">
+              <button
+                type="button"
+                id="huddleMuteButton"
+                className="huddle-control-button"
+                title="Toggle mute"
+                aria-label="Toggle mute"
+                aria-pressed="false"
+              >
+                <svg
+                  id="huddleMuteIcon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  role="img"
+                  aria-label="Microphone"
+                >
+                  <title>Microphone</title>
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                id="huddleEndButton"
+                className="huddle-control-button huddle-end-button"
+                title="End huddle"
+              >
+                End
+              </button>
+            </div>
+            {/* biome-ignore lint/a11y/useMediaCaption: audio-only huddle stream has no captions */}
+            <audio id="remoteAudio" autoplay={true} />
+          </div>
+          <div id="status" className="status disconnected">
+            Connecting...
+          </div>
+          <div className="chat-content">
+            <div className="chat-messages-area">
+              <div id="messages"></div>
+              <div className="input-container">
+                <input
+                  type="file"
+                  id="fileInput"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+                  style={{ display: "none" }}
+                />
                 <button
                   type="button"
-                  id="startHuddleButton"
-                  className="start-huddle-button hidden"
-                  title="Start a huddle"
-                  aria-label="Start a huddle"
+                  id="attachButton"
+                  className="attach-button"
+                  title="Attach image or video"
+                  disabled
                 >
                   <svg
-                    width="18"
-                    height="18"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                     role="img"
-                    aria-label="Huddle"
+                    aria-label="Attach file"
                   >
-                    <title>Huddle</title>
-                    <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94M1 15.42V21a1 1 0 0 0 1 1h5.58a2 2 0 0 0 1.45-.63l8.58-9.59a2 2 0 0 0-.04-2.72L13.2 4.52a2 2 0 0 0-2.72-.04L1.63 13.97a2 2 0 0 0-.63 1.45z" />
+                    <title>Attach file</title>
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  id="toggleMembersButton"
-                  className="toggle-members-button"
-                  title="Toggle members panel"
-                  aria-controls="membersPanel"
-                  aria-expanded="true"
-                >
-                  Members
+                <input type="text" id="messageInput" placeholder="Type your message..." disabled />
+                <button type="button" id="sendButton" disabled>
+                  Send
                 </button>
               </div>
+              <div id="attachmentPreview" className="attachment-preview hidden"></div>
             </div>
-            <div id="huddleIncomingBanner" className="huddle-incoming-banner hidden">
-              <div className="huddle-incoming-info">
-                <span id="huddleCallerName" className="huddle-caller-name"></span>
-                <span className="huddle-incoming-label">is starting a huddle</span>
+            <aside id="membersPanel" className="members-panel">
+              <div className="members-panel-header">
+                <h3>Members</h3>
               </div>
-              <div className="huddle-incoming-actions">
-                <button type="button" id="huddleAcceptButton" className="huddle-accept-button">
-                  Accept
-                </button>
-                <button type="button" id="huddleDeclineButton" className="huddle-decline-button">
-                  Decline
-                </button>
-              </div>
-            </div>
-            <div id="huddleBar" className="huddle-bar hidden">
-              <div className="huddle-bar-info">
-                <span className="huddle-bar-indicator"></span>
-                <span id="huddleStatus" className="huddle-bar-status">
-                  Huddle
-                </span>
-              </div>
-              <div className="huddle-bar-controls">
-                <button
-                  type="button"
-                  id="huddleMuteButton"
-                  className="huddle-control-button"
-                  title="Toggle mute"
-                  aria-label="Toggle mute"
-                  aria-pressed="false"
-                >
-                  <svg
-                    id="huddleMuteIcon"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    role="img"
-                    aria-label="Microphone"
-                  >
-                    <title>Microphone</title>
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  id="huddleEndButton"
-                  className="huddle-control-button huddle-end-button"
-                  title="End huddle"
-                >
-                  End
-                </button>
-              </div>
-              {/* biome-ignore lint/a11y/useMediaCaption: audio-only huddle stream has no captions */}
-              <audio id="remoteAudio" autoplay={true} />
-            </div>
-            <div id="status" className="status disconnected">
-              Connecting to {wsUrl}...
-            </div>
-            <div className="chat-content">
-              <div className="chat-messages-area">
-                <div id="messages"></div>
-                <div className="input-container">
-                  <input
-                    type="file"
-                    id="fileInput"
-                    accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
-                    style={{ display: "none" }}
-                  />
-                  <button
-                    type="button"
-                    id="attachButton"
-                    className="attach-button"
-                    title="Attach image or video"
-                    disabled
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      role="img"
-                      aria-label="Attach file"
-                    >
-                      <title>Attach file</title>
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-                    </svg>
-                  </button>
-                  <input type="text" id="messageInput" placeholder="Type your message..." disabled />
-                  <button type="button" id="sendButton" disabled>
-                    Send
-                  </button>
-                </div>
-                <div id="attachmentPreview" className="attachment-preview hidden"></div>
-              </div>
-              <aside id="membersPanel" className="members-panel">
-                <div className="members-panel-header">
-                  <h3>Members</h3>
-                </div>
-                <ul id="membersList" className="members-list"></ul>
-              </aside>
-            </div>
-          </main>
-        </div>
+              <ul id="membersList" className="members-list"></ul>
+            </aside>
+          </div>
+        </main>
+      </div>
 
-        <div id="createChannelModal" className="modal hidden">
-          <div className="modal-content">
-            <h3>Create Channel</h3>
-            <input type="text" id="newChannelName" placeholder="channel-name" />
-            <div className="modal-actions">
-              <button type="button" id="cancelCreateChannel">
-                Cancel
-              </button>
-              <button type="button" id="confirmCreateChannel">
-                Create
-              </button>
-            </div>
+      <div id="createChannelModal" className="modal hidden">
+        <div className="modal-content">
+          <h3>Create Channel</h3>
+          <input type="text" id="newChannelName" placeholder="channel-name" />
+          <div className="modal-actions">
+            <button type="button" id="cancelCreateChannel">
+              Cancel
+            </button>
+            <button type="button" id="confirmCreateChannel">
+              Create
+            </button>
           </div>
         </div>
+      </div>
 
-        <div
-          id="dmComposeModal"
-          className="modal hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="dmComposeTitle"
-        >
-          <div className="modal-content">
-            <h3 id="dmComposeTitle">New Direct Message</h3>
-            <input type="text" id="dmSearchInput" placeholder="Search members..." />
-            <ul id="dmMemberList" className="dm-member-list"></ul>
-          </div>
+      <div
+        id="dmComposeModal"
+        className="modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dmComposeTitle"
+      >
+        <div className="modal-content">
+          <h3 id="dmComposeTitle">New Direct Message</h3>
+          <input type="text" id="dmSearchInput" placeholder="Search members..." />
+          <ul id="dmMemberList" className="dm-member-list"></ul>
         </div>
-
-        <script src="/static/ChatPage.js"></script>
-      </body>
-    </html>
+      </div>
+    </Layout>
   );
 }

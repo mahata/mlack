@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { eq, lt } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import {
   createExpiresAt,
   generateVerificationCode,
@@ -9,42 +8,31 @@ import {
 } from "../auth/emailVerification.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { createRateLimiter } from "../auth/rateLimiter.js";
+import { startSession } from "../auth/session.js";
 import { LoginPage } from "../components/LoginPage.js";
 import { RegisterPage } from "../components/RegisterPage.js";
 import { VerifyEmailPage } from "../components/VerifyEmailPage.js";
-import { getDb, pendingRegistrations, users } from "../db/index.js";
-import { renderPage } from "../helpers/renderPage.js";
 import type { Bindings, Env } from "../types.js";
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MESSAGE = "Too many attempts. Please try again later.";
 
-const loginRateLimiter = createRateLimiter("auth-login", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 10,
-  onLimitExceeded: (c) => renderPage(c, LoginPage(RATE_LIMIT_MESSAGE), 429),
-});
-const registerRateLimiter = createRateLimiter("auth-register", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 5,
-  onLimitExceeded: (c) => renderPage(c, RegisterPage(RATE_LIMIT_MESSAGE), 429),
-});
-const verifyRateLimiter = createRateLimiter("auth-verify", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 10,
-  onLimitExceeded: (c) => {
-    const email = c.req.query("email") || "";
-    return renderPage(c, VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
-  },
-});
-const resendRateLimiter = createRateLimiter("auth-resend", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 5,
-  onLimitExceeded: (c) => {
-    const email = c.req.query("email") || "";
-    return renderPage(c, VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
-  },
-});
+function rateLimit(maxRequests: number, renderRateLimitedPage: (c: Context<Env>) => ReturnType<typeof LoginPage>) {
+  return createRateLimiter({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    maxRequests,
+    onLimitExceeded: (c) => c.html(renderRateLimitedPage(c), 429),
+  });
+}
+
+function rateLimitedVerifyEmailPage(c: Context<Env>) {
+  return VerifyEmailPage({ email: c.req.query("email") || "", error: RATE_LIMIT_MESSAGE });
+}
+
+const loginRateLimiter = rateLimit(10, () => LoginPage(RATE_LIMIT_MESSAGE));
+const registerRateLimiter = rateLimit(5, () => RegisterPage(RATE_LIMIT_MESSAGE));
+const verifyRateLimiter = rateLimit(10, rateLimitedVerifyEmailPage);
+const resendRateLimiter = rateLimit(5, rateLimitedVerifyEmailPage);
 
 const emailAuthRoute = new Hono<Env>();
 
@@ -60,16 +48,7 @@ async function sendOrLogVerificationEmail(
   return sendVerificationEmail(env.RESEND_API_KEY, env.RESEND_FROM_EMAIL, email, verificationCode);
 }
 
-emailAuthRoute.get("/auth/login", async (c) => {
-  const error = c.req.query("error");
-  let errorMessage: string | undefined;
-  if (error === "invalid_credentials") {
-    errorMessage = "Invalid email or password.";
-  } else if (error === "login_failed") {
-    errorMessage = "Login failed. Please try again.";
-  }
-  return renderPage(c, LoginPage(errorMessage));
-});
+emailAuthRoute.get("/auth/login", (c) => c.html(LoginPage()));
 
 emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
   try {
@@ -78,44 +57,32 @@ emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
     const password = typeof body.password === "string" ? body.password : "";
 
     if (!email || !password) {
-      return renderPage(c, LoginPage("Email and password are required."), 400);
+      return c.html(LoginPage("Email and password are required."), 400);
     }
 
-    const db = getDb(c.env.DB);
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = await c.env.DB.prepare("SELECT email, name, password_hash AS passwordHash FROM users WHERE email = ?")
+      .bind(email)
+      .first<{ email: string; name: string; passwordHash: string }>();
 
     if (!user) {
-      return renderPage(c, LoginPage("Invalid email or password."), 401);
+      return c.html(LoginPage("Invalid email or password."), 401);
     }
 
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
-      return renderPage(c, LoginPage("Invalid email or password."), 401);
+      return c.html(LoginPage("Invalid email or password."), 401);
     }
 
-    const session = c.get("session");
-    session.set("user", {
-      email: user.email,
-      name: user.name,
-    });
+    await startSession(c, { email: user.email, name: user.name });
 
     return c.redirect("/");
   } catch (error) {
     console.error("Login error:", error);
-    return renderPage(c, LoginPage("Login failed. Please try again."), 500);
+    return c.html(LoginPage("Login failed. Please try again."), 500);
   }
 });
 
-emailAuthRoute.get("/auth/register", async (c) => {
-  const error = c.req.query("error");
-  let errorMessage: string | undefined;
-  if (error === "email_exists") {
-    errorMessage = "An account with this email already exists.";
-  } else if (error === "registration_failed") {
-    errorMessage = "Registration failed. Please try again.";
-  }
-  return renderPage(c, RegisterPage(errorMessage));
-});
+emailAuthRoute.get("/auth/register", (c) => c.html(RegisterPage()));
 
 emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
   try {
@@ -125,42 +92,44 @@ emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
     const password = typeof body.password === "string" ? body.password : "";
 
     if (!name || !email || !password) {
-      return renderPage(c, RegisterPage("All fields are required."), 400);
+      return c.html(RegisterPage("All fields are required."), 400);
     }
 
     if (password.length < 8) {
-      return renderPage(c, RegisterPage("Password must be at least 8 characters."), 400);
+      return c.html(RegisterPage("Password must be at least 8 characters."), 400);
     }
 
-    const db = getDb(c.env.DB);
-    const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (existing) {
-      return renderPage(c, RegisterPage("An account with this email already exists."), 409);
+    const db = c.env.DB;
+    const existingUser = await db.prepare("SELECT 1 FROM users WHERE email = ?").bind(email).first();
+    if (existingUser) {
+      return c.html(RegisterPage("An account with this email already exists."), 409);
     }
 
     const passwordHash = await hashPassword(password);
     const verificationCode = generateVerificationCode();
     const expiresAt = createExpiresAt();
 
-    await db.delete(pendingRegistrations).where(lt(pendingRegistrations.expiresAt, new Date().toISOString()));
+    await db.prepare("DELETE FROM pending_registrations WHERE expires_at < ?").bind(new Date().toISOString()).run();
 
     await db
-      .insert(pendingRegistrations)
-      .values({ email, name, passwordHash, verificationCode, expiresAt })
-      .onConflictDoUpdate({
-        target: pendingRegistrations.email,
-        set: { name, passwordHash, verificationCode, expiresAt },
-      });
+      .prepare(
+        `INSERT INTO pending_registrations (email, name, password_hash, verification_code, expires_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (email) DO UPDATE SET name = excluded.name, password_hash = excluded.password_hash,
+           verification_code = excluded.verification_code, expires_at = excluded.expires_at`,
+      )
+      .bind(email, name, passwordHash, verificationCode, expiresAt)
+      .run();
 
     const emailResult = await sendOrLogVerificationEmail(c.env, email, verificationCode);
     if (!emailResult.success) {
-      return renderPage(c, RegisterPage("Failed to send verification email. Please try again."), 500);
+      return c.html(RegisterPage("Failed to send verification email. Please try again."), 500);
     }
 
     return c.redirect(`/auth/verify-email?email=${encodeURIComponent(email)}`);
   } catch (error) {
     console.error("Registration error:", error);
-    return renderPage(c, RegisterPage("Registration failed. Please try again."), 500);
+    return c.html(RegisterPage("Registration failed. Please try again."), 500);
   }
 });
 
@@ -169,7 +138,7 @@ emailAuthRoute.get("/auth/verify-email", async (c) => {
   if (!email) {
     return c.redirect("/auth/register");
   }
-  return renderPage(c, VerifyEmailPage({ email }));
+  return c.html(VerifyEmailPage({ email }));
 });
 
 emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
@@ -180,31 +149,26 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
     const code = typeof body.code === "string" ? body.code.trim() : "";
 
     if (!email || !code) {
-      return renderPage(c, VerifyEmailPage({ email: email || "", error: "Email and code are required." }), 400);
+      return c.html(VerifyEmailPage({ email: email || "", error: "Email and code are required." }), 400);
     }
 
-    const db = getDb(c.env.DB);
-    const [pending] = await db
-      .select()
-      .from(pendingRegistrations)
-      .where(eq(pendingRegistrations.email, email))
-      .limit(1);
+    const db = c.env.DB;
+    const pending = await db
+      .prepare(
+        `SELECT name, password_hash AS passwordHash, verification_code AS verificationCode, expires_at AS expiresAt
+         FROM pending_registrations WHERE email = ?`,
+      )
+      .bind(email)
+      .first<{ name: string; passwordHash: string; verificationCode: string; expiresAt: string }>();
+    const deletePending = db.prepare("DELETE FROM pending_registrations WHERE email = ?").bind(email);
 
     if (!pending) {
-      return renderPage(
-        c,
-        VerifyEmailPage({ email, error: "No pending registration found. Please register again." }),
-        400,
-      );
+      return c.html(VerifyEmailPage({ email, error: "No pending registration found. Please register again." }), 400);
     }
 
     if (isExpired(pending.expiresAt)) {
-      await db.delete(pendingRegistrations).where(eq(pendingRegistrations.email, email));
-      return renderPage(
-        c,
-        VerifyEmailPage({ email, error: "Verification code has expired. Please register again." }),
-        400,
-      );
+      await deletePending.run();
+      return c.html(VerifyEmailPage({ email, error: "Verification code has expired. Please register again." }), 400);
     }
 
     const storedCodeBuffer = Buffer.from(pending.verificationCode);
@@ -212,27 +176,21 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
     const codeMatches =
       storedCodeBuffer.length === submittedCodeBuffer.length && timingSafeEqual(storedCodeBuffer, submittedCodeBuffer);
     if (!codeMatches) {
-      return renderPage(c, VerifyEmailPage({ email, error: "Invalid verification code." }), 400);
+      return c.html(VerifyEmailPage({ email, error: "Invalid verification code." }), 400);
     }
 
-    await db.insert(users).values({
-      email: pending.email,
-      name: pending.name,
-      passwordHash: pending.passwordHash,
-    });
+    await db
+      .prepare("INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)")
+      .bind(email, pending.name, pending.passwordHash)
+      .run();
+    await deletePending.run();
 
-    await db.delete(pendingRegistrations).where(eq(pendingRegistrations.email, email));
-
-    const session = c.get("session");
-    session.set("user", {
-      email: pending.email,
-      name: pending.name,
-    });
+    await startSession(c, { email, name: pending.name });
 
     return c.redirect("/");
   } catch (error) {
     console.error("Verification error:", error);
-    return renderPage(c, VerifyEmailPage({ email, error: "Verification failed. Please try again." }), 500);
+    return c.html(VerifyEmailPage({ email, error: "Verification failed. Please try again." }), 500);
   }
 });
 
@@ -246,42 +204,26 @@ emailAuthRoute.post("/auth/resend-code", resendRateLimiter, async (c) => {
       return c.redirect("/auth/register");
     }
 
-    const db = getDb(c.env.DB);
-    const [pending] = await db
-      .select()
-      .from(pendingRegistrations)
-      .where(eq(pendingRegistrations.email, email))
-      .limit(1);
-
-    if (!pending) {
-      return renderPage(
-        c,
-        VerifyEmailPage({ email, error: "No pending registration found. Please register again." }),
-        400,
-      );
-    }
-
     const verificationCode = generateVerificationCode();
-    const expiresAt = createExpiresAt();
+    const { meta } = await c.env.DB.prepare(
+      "UPDATE pending_registrations SET verification_code = ?, expires_at = ? WHERE email = ?",
+    )
+      .bind(verificationCode, createExpiresAt(), email)
+      .run();
 
-    await db
-      .update(pendingRegistrations)
-      .set({ verificationCode, expiresAt })
-      .where(eq(pendingRegistrations.email, email));
+    if (meta.changes === 0) {
+      return c.html(VerifyEmailPage({ email, error: "No pending registration found. Please register again." }), 400);
+    }
 
     const emailResult = await sendOrLogVerificationEmail(c.env, email, verificationCode);
     if (!emailResult.success) {
-      return renderPage(
-        c,
-        VerifyEmailPage({ email, error: "Failed to resend verification email. Please try again." }),
-        500,
-      );
+      return c.html(VerifyEmailPage({ email, error: "Failed to resend verification email. Please try again." }), 500);
     }
 
-    return renderPage(c, VerifyEmailPage({ email, success: "A new verification code has been sent." }));
+    return c.html(VerifyEmailPage({ email, success: "A new verification code has been sent." }));
   } catch (error) {
     console.error("Resend code error:", error);
-    return renderPage(c, VerifyEmailPage({ email, error: "Failed to resend code. Please try again." }), 500);
+    return c.html(VerifyEmailPage({ email, error: "Failed to resend code. Please try again." }), 500);
   }
 });
 

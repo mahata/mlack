@@ -39,7 +39,7 @@ cp .env.sample .dev.vars
 
 Required variables in `.dev.vars`:
 
-- `SESSION_SECRET`: A secure secret for session encryption
+- `SESSION_SECRET`: A secure secret for signing session cookies (HS256 JWT)
 - `RESEND_API_KEY`: API key from [Resend](https://resend.com/) for sending verification emails
 - `RESEND_FROM_EMAIL`: Sender address for verification emails (e.g. `noreply@yourdomain.com`)
 
@@ -47,7 +47,7 @@ Required variables in `.dev.vars`:
 
 ### Database Setup
 
-mlack uses Cloudflare D1 (SQLite) via Drizzle ORM. For local development, wrangler manages a local D1 instance automatically.
+mlack uses Cloudflare D1 (SQLite) with plain SQL queries. For local development, wrangler manages a local D1 instance automatically.
 
 ```bash
 # Apply migrations to local D1
@@ -56,11 +56,11 @@ pnpm db:migrate
 # Seed the #general channel
 pnpm db:seed
 
-# Generate new migration files after schema changes
-pnpm db:generate
+# Create an empty migration file in hono/db/migrations, then write its SQL by hand
+pnpm exec wrangler d1 migrations create mlack-db <migration-name>
 
-# Open Drizzle Studio to view/edit data
-pnpm db:studio
+# Query the local database
+pnpm exec wrangler d1 execute mlack-db --local --command "SELECT email, name FROM users"
 ```
 
 ### Development
@@ -69,7 +69,7 @@ pnpm db:studio
 # Start development server (wrangler dev)
 pnpm dev
 
-# Build the project
+# Compile the client scripts into public/static and type-check everything
 pnpm build
 
 # Type-check only (no emit)
@@ -150,9 +150,8 @@ Production deployments are automated via GitHub Actions. Pushing to the `prod` b
 
 **Pipeline overview:**
 
-1. **`test` job** — Runs unit tests, linter, and full build
-2. **`e2e` job** — Runs Playwright E2E tests (in parallel with `test`)
-3. **`deploy` job** — Applies D1 migrations and deploys to Cloudflare Workers (only runs after both `test` and `e2e` pass)
+1. **`ci` job** — Runs the CI workflow (`.github/workflows/ci.yml`): unit tests, linter and build, plus Playwright E2E tests in parallel
+2. **`deploy` job** — Applies D1 migrations and deploys to Cloudflare Workers (only runs after `ci` passes)
 
 **Typical workflow:**
 
@@ -193,16 +192,19 @@ mlack/
 ├── e2e/                    # Playwright E2E tests
 ├── hono/                   # Application source
 │   ├── auth/               # Password hashing, email verification utilities
-│   ├── components/         # Server-rendered JSX pages + CSS
-│   ├── db/                 # Drizzle schema, connection, migrations
+│   ├── components/         # Server-rendered JSX pages
+│   ├── db/                 # SQL migrations, seed data, shared queries
 │   ├── durableObjects/     # Cloudflare Durable Objects
 │   │   └── ChatRoom.ts     # WebSocket server with hibernation
 │   ├── routes/             # Route handlers
-│   ├── static/             # Client-side TypeScript
-│   ├── app.tsx             # App factory, middleware, route registration
+│   ├── static/             # Client-side TypeScript (compiled into public/static)
+│   ├── app.tsx             # Middleware and route registration
 │   ├── index.ts            # Entry point (exports app + Durable Objects)
-│   ├── testApp.ts          # Test helper with mock session
+│   ├── testApp.ts          # Test helpers (bindings, signed session cookies)
 │   └── types.ts            # Shared types (User, Bindings, Variables)
+├── public/                 # Static assets served by Workers
+│   ├── components/         # Page stylesheets
+│   └── static/             # Compiled client scripts (generated, not committed)
 ├── wrangler.toml           # Cloudflare Workers configuration
 ├── package.json            # Dependencies and scripts
 ├── playwright.config.ts    # Playwright configuration
@@ -216,7 +218,7 @@ mlack/
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - **Framework**: [Hono](https://hono.dev/)
 - **WebSocket**: [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/) with WebSocket Hibernation API
-- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) with [Drizzle ORM](https://orm.drizzle.team/)
+- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)
 - **Language**: TypeScript
 - **Testing**: [Vitest](https://vitest.dev/) for unit tests, [Playwright](https://playwright.dev/) for E2E tests
 - **Linting**: [Biome](https://biomejs.dev/)
@@ -240,9 +242,9 @@ Health check endpoint.
 
 Retrieve message history for a channel (requires authentication).
 
-### GET /api/channels
+### GET /api/channels/memberships
 
-List all channels (requires authentication).
+List the channels the user has joined (`myChannels`) and the rest (`otherChannels`) (requires authentication).
 
 ### POST /api/channels
 

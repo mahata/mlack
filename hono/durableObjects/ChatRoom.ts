@@ -1,58 +1,47 @@
 import { DurableObject } from "cloudflare:workers";
-import { directMessages, getDb, messages } from "../db/index.js";
-import { getChannelMemberEmails, getConversationForParticipant, isChannelMember } from "../db/queries/index.js";
+import { getConversationForParticipant, isChannelMember } from "../db/queries.js";
 import type { Bindings } from "../types.js";
 
-type SessionAttachment = {
+type SocketUser = {
   userEmail: string;
   userName: string;
 };
 
-type IncomingMessage = {
-  type: string;
-  channelId: number;
-  content: string;
+type IncomingEvent = {
+  type?: string;
+  channelId?: number;
+  conversationId?: number;
+  content?: string;
   attachmentKey?: string;
   attachmentName?: string;
   attachmentType?: string;
   attachmentSize?: number;
-};
-
-type IncomingDm = {
-  type: string;
-  conversationId: number;
-  content: string;
-  attachmentKey?: string;
-  attachmentName?: string;
-  attachmentType?: string;
-  attachmentSize?: number;
-};
-
-type MembershipEvent = {
-  type: string;
-  channelId: number;
-  userEmail: string;
-  userName: string;
-};
-
-type IncomingHuddleSignal = {
-  type: string;
-  conversationId: number;
   offer?: RTCSessionDescriptionInit;
   answer?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
 };
 
-const HUDDLE_TYPES = new Set(["huddle-offer", "huddle-answer", "huddle-ice-candidate", "huddle-end"]);
+const HUDDLE_SIGNAL_REQUIRED_FIELDS = new Map<string, "offer" | "answer" | "candidate" | null>([
+  ["huddle-offer", "offer"],
+  ["huddle-answer", "answer"],
+  ["huddle-ice-candidate", "candidate"],
+  ["huddle-end", null],
+]);
 
 const MAX_MESSAGE_LENGTH = 4096;
 const MAX_WEBSOCKET_PAYLOAD_BYTES = 65536;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
-export class ChatRoom extends DurableObject<Bindings> {
-  private dmAuthCache = new Map<string, string>();
+function insertMessageSql(table: string, targetColumn: string): string {
+  return `INSERT INTO ${table} (content, user_email, user_name, ${targetColumn}, attachment_key, attachment_name, attachment_type, attachment_size)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+}
 
+const INSERT_CHANNEL_MESSAGE_SQL = insertMessageSql("messages", "channel_id");
+const INSERT_DIRECT_MESSAGE_SQL = insertMessageSql("direct_messages", "conversation_id");
+
+export class ChatRoom extends DurableObject<Bindings> {
   constructor(ctx: DurableObjectState, env: Bindings) {
     super(ctx, env);
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
@@ -67,323 +56,173 @@ export class ChatRoom extends DurableObject<Bindings> {
       return new Response("Missing user info", { status: 400 });
     }
 
-    const webSocketPair = new WebSocketPair();
-    const [client, server] = Object.values(webSocketPair);
-
+    const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-
-    const attachment: SessionAttachment = { userEmail, userName };
-    server.serializeAttachment(attachment);
+    server.serializeAttachment({ userEmail, userName } satisfies SocketUser);
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
-    const attachment = ws.deserializeAttachment() as SessionAttachment | null;
-    if (!attachment) {
+    const sender = ws.deserializeAttachment() as SocketUser | null;
+    if (!sender) {
       return;
     }
 
     const payloadBytes = typeof message === "string" ? textEncoder.encode(message).byteLength : message.byteLength;
     if (payloadBytes > MAX_WEBSOCKET_PAYLOAD_BYTES) {
-      try {
-        ws.send(JSON.stringify({ type: "error", error: "Message payload too large" }));
-      } catch {
-        // Socket may be closed
-      }
+      this.sendError(ws, "Message payload too large");
       return;
     }
 
-    const rawStr = typeof message === "string" ? message : textDecoder.decode(message);
-
-    let parsed: IncomingMessage | IncomingDm | MembershipEvent | IncomingHuddleSignal;
+    let event: IncomingEvent;
     try {
-      parsed = JSON.parse(rawStr);
+      event = JSON.parse(typeof message === "string" ? message : textDecoder.decode(message));
     } catch {
       return;
     }
 
-    if (parsed.type === "memberJoin" || parsed.type === "memberLeave") {
-      await this.handleMembershipEvent(parsed as MembershipEvent);
-      return;
-    }
-
-    if (parsed.type === "dm") {
-      await this.handleDirectMessage(ws, attachment, parsed as IncomingDm);
-      return;
-    }
-
-    if (HUDDLE_TYPES.has(parsed.type)) {
-      await this.handleHuddleSignal(ws, attachment, parsed as IncomingHuddleSignal);
-      return;
-    }
-
-    const msg = parsed as IncomingMessage;
-    if (msg.type !== "message" || !msg.channelId) {
-      return;
-    }
-
-    const hasContent = Boolean(msg.content?.trim());
-    const hasAttachment = Boolean(msg.attachmentKey);
-    if (!hasContent && !hasAttachment) {
-      return;
-    }
-
-    if (msg.content && msg.content.length > MAX_MESSAGE_LENGTH) {
-      try {
-        ws.send(JSON.stringify({ type: "error", error: "Message too long" }));
-      } catch {
-        // Socket may be closed
-      }
-      return;
-    }
-
-    const channelId = msg.channelId;
-    const trimmedMessage = msg.content?.trim() || "";
-
-    const db = getDb(this.env.DB);
-
-    const isMember = await isChannelMember(db, channelId, attachment.userEmail);
-
-    if (!isMember) {
-      try {
-        ws.send(JSON.stringify({ type: "error", error: "Not a member of this channel" }));
-      } catch {
-        // Socket may be closed
-      }
-      return;
-    }
-
     try {
-      await db.insert(messages).values({
-        content: trimmedMessage,
-        userEmail: attachment.userEmail,
-        userName: attachment.userName,
-        channelId,
-        attachmentKey: msg.attachmentKey || null,
-        attachmentName: msg.attachmentName || null,
-        attachmentType: msg.attachmentType || null,
-        attachmentSize: msg.attachmentSize || null,
-      });
-    } catch (error) {
-      console.error("Error saving message to database:", error);
-    }
-
-    const outgoing = JSON.stringify({
-      type: "message",
-      channelId,
-      content: trimmedMessage,
-      userName: attachment.userName,
-      userEmail: attachment.userEmail,
-      attachmentKey: msg.attachmentKey || null,
-      attachmentName: msg.attachmentName || null,
-      attachmentType: msg.attachmentType || null,
-      attachmentSize: msg.attachmentSize || null,
-    });
-
-    try {
-      const memberEmailsList = await getChannelMemberEmails(db, channelId);
-      const memberEmails = new Set(memberEmailsList);
-      const allSockets = this.ctx.getWebSockets();
-
-      for (const socket of allSockets) {
-        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
-        if (socketAttachment && memberEmails.has(socketAttachment.userEmail)) {
-          try {
-            socket.send(outgoing);
-          } catch {
-            // Socket may have been closed between iteration and send
-          }
-        }
+      if (event.type === "message" || event.type === "dm") {
+        await this.handleChatMessage(ws, sender, event);
+      } else if (event.type === "memberJoin" || event.type === "memberLeave") {
+        await this.announceMembershipChange(sender, event.type, event.channelId);
+      } else if (event.type && HUDDLE_SIGNAL_REQUIRED_FIELDS.has(event.type)) {
+        await this.relayHuddleSignal(ws, sender, event);
       }
     } catch (error) {
-      console.error("Error broadcasting message:", error);
+      console.error(`Error handling ${event.type} event:`, error);
     }
   }
 
-  private async handleDirectMessage(ws: WebSocket, sender: SessionAttachment, dm: IncomingDm): Promise<void> {
-    if (!dm.conversationId) {
-      return;
-    }
-
-    const hasContent = Boolean(dm.content?.trim());
-    const hasAttachment = Boolean(dm.attachmentKey);
-    if (!hasContent && !hasAttachment) {
-      return;
-    }
-
-    if (dm.content && dm.content.length > MAX_MESSAGE_LENGTH) {
-      try {
-        ws.send(JSON.stringify({ type: "error", error: "Message too long" }));
-      } catch {
-        // Socket may be closed
-      }
-      return;
-    }
-
-    const trimmedContent = dm.content?.trim() || "";
-    const db = getDb(this.env.DB);
-
-    const conv = await getConversationForParticipant(db, dm.conversationId, sender.userEmail);
-
-    if (!conv) {
-      try {
-        ws.send(JSON.stringify({ type: "error", error: "Not a participant in this conversation" }));
-      } catch {
-        // Socket may be closed
-      }
-      return;
-    }
-
-    try {
-      await db.insert(directMessages).values({
-        content: trimmedContent,
-        userEmail: sender.userEmail,
-        userName: sender.userName,
-        conversationId: dm.conversationId,
-        attachmentKey: dm.attachmentKey || null,
-        attachmentName: dm.attachmentName || null,
-        attachmentType: dm.attachmentType || null,
-        attachmentSize: dm.attachmentSize || null,
-      });
-    } catch (error) {
-      console.error("Error saving DM to database:", error);
-    }
-
-    const outgoing = JSON.stringify({
-      type: "dm",
-      conversationId: dm.conversationId,
-      content: trimmedContent,
-      userName: sender.userName,
-      userEmail: sender.userEmail,
-      attachmentKey: dm.attachmentKey || null,
-      attachmentName: dm.attachmentName || null,
-      attachmentType: dm.attachmentType || null,
-      attachmentSize: dm.attachmentSize || null,
-    });
-
-    try {
-      const participantEmails = new Set([conv.user1Email, conv.user2Email]);
-      const allSockets = this.ctx.getWebSockets();
-
-      for (const socket of allSockets) {
-        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
-        if (socketAttachment && participantEmails.has(socketAttachment.userEmail)) {
-          try {
-            socket.send(outgoing);
-          } catch {
-            // Socket may have been closed between iteration and send
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error broadcasting DM:", error);
-    }
+  async webSocketClose(ws: WebSocket): Promise<void> {
+    ws.close();
   }
 
-  private async handleHuddleSignal(
-    ws: WebSocket,
-    sender: SessionAttachment,
-    signal: IncomingHuddleSignal,
-  ): Promise<void> {
-    if (!signal.conversationId) {
-      return;
-    }
-
-    if (signal.type === "huddle-offer" && !signal.offer) return;
-    if (signal.type === "huddle-answer" && !signal.answer) return;
-    if (signal.type === "huddle-ice-candidate" && !signal.candidate) return;
-
-    const cacheKey = `${sender.userEmail}:${signal.conversationId}`;
-    let otherEmail = this.dmAuthCache.get(cacheKey);
-
-    if (!otherEmail) {
-      const db = getDb(this.env.DB);
-
-      const conv = await getConversationForParticipant(db, signal.conversationId, sender.userEmail);
-
-      if (!conv) {
-        try {
-          ws.send(JSON.stringify({ type: "error", error: "Not a participant in this conversation" }));
-        } catch {
-          // Socket may be closed
-        }
-        return;
-      }
-
-      otherEmail = conv.user1Email === sender.userEmail ? conv.user2Email : conv.user1Email;
-      if (this.dmAuthCache.size >= 1000) {
-        this.dmAuthCache.clear();
-      }
-      this.dmAuthCache.set(cacheKey, otherEmail);
-    }
-
-    const outgoing = JSON.stringify({
-      ...signal,
-      userEmail: sender.userEmail,
-      userName: sender.userName,
-    });
-
-    try {
-      const allSockets = this.ctx.getWebSockets();
-      for (const socket of allSockets) {
-        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
-        if (socketAttachment && socketAttachment.userEmail === otherEmail) {
-          try {
-            socket.send(outgoing);
-          } catch {
-            // Socket may have been closed
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error relaying huddle signal:", error);
-    }
-  }
-
-  private async handleMembershipEvent(event: MembershipEvent): Promise<void> {
-    const outgoing = JSON.stringify({
-      type: event.type,
-      channelId: event.channelId,
-      userEmail: event.userEmail,
-      userName: event.userName,
-    });
-
-    try {
-      const db = getDb(this.env.DB);
-      const memberEmailsList = await getChannelMemberEmails(db, event.channelId);
-      const memberEmails = new Set(memberEmailsList);
-
-      if (event.type === "memberJoin") {
-        memberEmails.add(event.userEmail);
-      }
-
-      const allSockets = this.ctx.getWebSockets();
-      for (const socket of allSockets) {
-        const socketAttachment = socket.deserializeAttachment() as SessionAttachment | null;
-        if (socketAttachment && memberEmails.has(socketAttachment.userEmail)) {
-          try {
-            socket.send(outgoing);
-          } catch {
-            // Socket may be closed
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error broadcasting membership event:", error);
-    }
-  }
-
-  async webSocketClose(_ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {
-    // No action needed — the runtime has already closed the WebSocket.
-  }
-
-  async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
+  async webSocketError(ws: WebSocket): Promise<void> {
     console.error("WebSocket error in Durable Object");
     try {
       ws.close(1011, "Internal error");
-    } catch {
-      // Ignore
+    } catch {}
+  }
+
+  private async handleChatMessage(ws: WebSocket, sender: SocketUser, event: IncomingEvent): Promise<void> {
+    const isDirectMessage = event.type === "dm";
+    const targetId = isDirectMessage ? event.conversationId : event.channelId;
+    const content = event.content?.trim() ?? "";
+    if (!targetId || (!content && !event.attachmentKey)) {
+      return;
     }
+
+    if (content.length > MAX_MESSAGE_LENGTH) {
+      this.sendError(ws, "Message too long");
+      return;
+    }
+
+    const recipientEmails = isDirectMessage
+      ? await this.conversationRecipients(targetId, sender.userEmail)
+      : await this.channelRecipients(targetId, sender.userEmail);
+    if (!recipientEmails) {
+      this.sendError(ws, isDirectMessage ? "Not a participant in this conversation" : "Not a member of this channel");
+      return;
+    }
+
+    const attachment = {
+      attachmentKey: event.attachmentKey || null,
+      attachmentName: event.attachmentName || null,
+      attachmentType: event.attachmentType || null,
+      attachmentSize: event.attachmentSize || null,
+    };
+    await this.env.DB.prepare(isDirectMessage ? INSERT_DIRECT_MESSAGE_SQL : INSERT_CHANNEL_MESSAGE_SQL)
+      .bind(
+        content,
+        sender.userEmail,
+        sender.userName,
+        targetId,
+        attachment.attachmentKey,
+        attachment.attachmentName,
+        attachment.attachmentType,
+        attachment.attachmentSize,
+      )
+      .run();
+
+    this.broadcast(recipientEmails, {
+      type: event.type,
+      [isDirectMessage ? "conversationId" : "channelId"]: targetId,
+      content,
+      userName: sender.userName,
+      userEmail: sender.userEmail,
+      ...attachment,
+    });
+  }
+
+  private async announceMembershipChange(sender: SocketUser, type: string, channelId?: number): Promise<void> {
+    if (!channelId) {
+      return;
+    }
+
+    this.broadcast(await this.channelMemberEmails(channelId), {
+      type,
+      channelId,
+      userEmail: sender.userEmail,
+      userName: sender.userName,
+    });
+  }
+
+  private async relayHuddleSignal(ws: WebSocket, sender: SocketUser, event: IncomingEvent): Promise<void> {
+    const requiredField = HUDDLE_SIGNAL_REQUIRED_FIELDS.get(event.type ?? "");
+    if (!event.conversationId || (requiredField && !event[requiredField])) {
+      return;
+    }
+
+    const participants = await this.conversationRecipients(event.conversationId, sender.userEmail);
+    if (!participants) {
+      this.sendError(ws, "Not a participant in this conversation");
+      return;
+    }
+
+    const otherParticipants = participants.filter((email) => email !== sender.userEmail);
+    this.broadcast(otherParticipants, { ...event, userEmail: sender.userEmail, userName: sender.userName });
+  }
+
+  private async channelRecipients(channelId: number, senderEmail: string): Promise<string[] | null> {
+    if (!(await isChannelMember(this.env.DB, channelId, senderEmail))) {
+      return null;
+    }
+    return this.channelMemberEmails(channelId);
+  }
+
+  private async channelMemberEmails(channelId: number): Promise<string[]> {
+    const { results } = await this.env.DB.prepare(
+      "SELECT user_email AS email FROM channel_members WHERE channel_id = ?",
+    )
+      .bind(channelId)
+      .all<{ email: string }>();
+    return results.map((member) => member.email);
+  }
+
+  private async conversationRecipients(conversationId: number, senderEmail: string): Promise<string[] | null> {
+    const conversation = await getConversationForParticipant(this.env.DB, conversationId, senderEmail);
+    return conversation && [conversation.user1Email, conversation.user2Email];
+  }
+
+  private broadcast(recipientEmails: string[], payload: Record<string, unknown>): void {
+    const message = JSON.stringify(payload);
+    for (const socket of this.ctx.getWebSockets()) {
+      const user = socket.deserializeAttachment() as SocketUser | null;
+      if (user && recipientEmails.includes(user.userEmail)) {
+        this.trySend(socket, message);
+      }
+    }
+  }
+
+  private sendError(ws: WebSocket, error: string): void {
+    this.trySend(ws, JSON.stringify({ type: "error", error }));
+  }
+
+  private trySend(socket: WebSocket, message: string): void {
+    try {
+      socket.send(message);
+    } catch {}
   }
 }

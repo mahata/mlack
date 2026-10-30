@@ -1,6 +1,6 @@
 import { Layout } from "./Layout.js";
 
-export async function RegisterPage(error?: string) {
+export function RegisterPage(error?: string) {
   return (
     <Layout title="Register" css="/components/AuthPage.css">
       <div className="auth-container">

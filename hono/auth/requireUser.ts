@@ -1,14 +1,10 @@
 import { createMiddleware } from "hono/factory";
-import type { Env, User } from "../types.js";
+import type { Env } from "../types.js";
 
 export const requireUser = createMiddleware<Env>(async (c, next) => {
-  const session = c.get("session");
-  const user = session.get("user") as User | undefined;
-
-  if (!user) {
+  if (!c.get("user")) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  c.set("user", user);
   await next();
 });
