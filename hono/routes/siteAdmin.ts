@@ -1,38 +1,25 @@
-import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { SiteAdminPage } from "../components/SiteAdminPage.js";
-import { getDb, users } from "../db/index.js";
-import { deleteUserFeatureFlag, getAllFeatureFlagsGroupedByUser, setUserFeatureFlag } from "../db/queries/index.js";
-import type { Env } from "../types.js";
+import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
+import type { Env, User } from "../types.js";
 
-const VALID_FLAGS: Record<string, (value: string) => boolean> = {
-  maxTotalUploadBytes: (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) && Number.isInteger(n) && n > 0;
-  },
-};
-
-async function listUsersWithFlags(db: ReturnType<typeof getDb>) {
-  const [allUsers, flagsByUser] = await Promise.all([
-    db.select({ email: users.email, name: users.name }).from(users),
-    getAllFeatureFlagsGroupedByUser(db),
-  ]);
-
-  return allUsers.map((u) => ({
-    email: u.email,
-    name: u.name,
-    flags: flagsByUser.get(u.email) ?? [],
-  }));
-}
+const FLAG_VALIDATORS = new Map([["maxTotalUploadBytes", (value: string) => parsePositiveInt(value) !== null]]);
 
 const siteAdminRoute = new Hono<Env>();
 
 siteAdminRoute.get("/site-admin", async (c) => {
   try {
-    const user = c.get("user");
-    const db = getDb(c.env.DB);
-    const usersWithFlags = await listUsersWithFlags(db);
-    return c.html(`<!DOCTYPE html>${await SiteAdminPage(user, usersWithFlags)}`);
+    const [{ results: users }, { results: flags }] = await Promise.all([
+      c.env.DB.prepare("SELECT email, name FROM users").all<User>(),
+      c.env.DB.prepare(
+        "SELECT user_email AS userEmail, flag_key AS flagKey, flag_value AS flagValue FROM user_feature_flags",
+      ).all<{ userEmail: string; flagKey: string; flagValue: string }>(),
+    ]);
+    const usersWithFlags = users.map((user) => ({
+      ...user,
+      flags: flags.filter((flag) => flag.userEmail === user.email),
+    }));
+    return c.html(`<!DOCTYPE html>${await SiteAdminPage(c.get("user"), usersWithFlags)}`);
   } catch (error) {
     console.error("Error rendering site admin page:", error);
     return c.json({ error: "Failed to load site admin" }, 500);
@@ -41,33 +28,34 @@ siteAdminRoute.get("/site-admin", async (c) => {
 
 siteAdminRoute.put("/site-admin/api/users/:email/flags/:key", async (c) => {
   try {
-    const db = getDb(c.env.DB);
-    const admin = c.get("user");
     const email = c.req.param("email");
     const flagKey = c.req.param("key");
 
-    const validator = VALID_FLAGS[flagKey];
-    if (!validator) {
+    const isValidValue = FLAG_VALIDATORS.get(flagKey);
+    if (!isValidValue) {
       return c.json({ error: `Unknown flag key: ${flagKey}` }, 400);
     }
 
     const body = await c.req.json();
-    const flagValue = body.value;
-
-    if (typeof flagValue !== "string" || flagValue.trim() === "") {
+    const flagValue = typeof body.value === "string" ? body.value.trim() : "";
+    if (!flagValue) {
       return c.json({ error: "value is required and must be a non-empty string" }, 400);
     }
 
-    if (!validator(flagValue.trim())) {
+    if (!isValidValue(flagValue)) {
       return c.json({ error: `Invalid value for ${flagKey}` }, 400);
     }
 
-    const [existingUser] = await db.select({ email: users.email }).from(users).where(eq(users.email, email));
-    if (!existingUser) {
+    if (!(await c.env.DB.prepare("SELECT 1 FROM users WHERE email = ?").bind(email).first())) {
       return c.json({ error: "User not found" }, 404);
     }
 
-    await setUserFeatureFlag(db, email, flagKey, flagValue.trim(), admin.email);
+    await c.env.DB.prepare(
+      `INSERT INTO user_feature_flags (user_email, flag_key, flag_value, granted_by) VALUES (?, ?, ?, ?)
+       ON CONFLICT (user_email, flag_key) DO UPDATE SET flag_value = excluded.flag_value, granted_by = excluded.granted_by`,
+    )
+      .bind(email, flagKey, flagValue, c.get("user").email)
+      .run();
 
     return c.json({ message: "Flag set" });
   } catch (error) {
@@ -78,12 +66,10 @@ siteAdminRoute.put("/site-admin/api/users/:email/flags/:key", async (c) => {
 
 siteAdminRoute.delete("/site-admin/api/users/:email/flags/:key", async (c) => {
   try {
-    const db = getDb(c.env.DB);
-    const email = c.req.param("email");
-    const flagKey = c.req.param("key");
-
-    const deleted = await deleteUserFeatureFlag(db, email, flagKey);
-    if (!deleted) {
+    const { meta } = await c.env.DB.prepare("DELETE FROM user_feature_flags WHERE user_email = ? AND flag_key = ?")
+      .bind(c.req.param("email"), c.req.param("key"))
+      .run();
+    if (meta.changes === 0) {
       return c.json({ error: "Flag not found" }, 404);
     }
 

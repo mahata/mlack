@@ -1,133 +1,88 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createTestApp } from "../testApp.js";
 
-const mockSelect = vi.fn();
-const mockInsert = vi.fn();
-const mockDelete = vi.fn();
-
-vi.mock("../db/index.js", () => ({
-  getDb: () => ({
-    select: (...args: unknown[]) => mockSelect(...args),
-    insert: (...args: unknown[]) => mockInsert(...args),
-    delete: (...args: unknown[]) => mockDelete(...args),
-  }),
-  channels: { id: "id", name: "name" },
-  channelMembers: { channelId: "channel_id", userEmail: "user_email" },
-  users: { email: "email", name: "name" },
-}));
-
 const authenticatedUser = { email: "test@example.com", name: "Test User" };
-const CSRF_HEADERS = { Origin: "http://localhost" };
+
+function post(app: ReturnType<typeof createTestApp>["app"], path: string, body?: unknown) {
+  return app.request(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: "http://localhost" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+async function memberEmails(db: D1Database, channelId: number) {
+  const { results } = await db
+    .prepare("SELECT user_email AS email FROM channel_members WHERE channel_id = ? ORDER BY user_email")
+    .bind(channelId)
+    .all<{ email: string }>();
+  return results.map((row) => row.email);
+}
+
+async function createAppWithRandomChannel(options: { joined: boolean }) {
+  const testApp = createTestApp({ authenticatedUser });
+  await testApp.db.exec(`
+    INSERT INTO channels (id, name, created_by_email) VALUES (2, 'random', 'other@example.com');
+    INSERT INTO channel_members (channel_id, user_email) VALUES (1, 'test@example.com');
+    ${options.joined ? "INSERT INTO channel_members (channel_id, user_email) VALUES (2, 'test@example.com');" : ""}
+  `);
+  return testApp;
+}
 
 describe("Channels API", () => {
   describe("GET /api/channels/memberships", () => {
-    it("should return myChannels and otherChannels for authenticated user", async () => {
-      const mockAllChannels = [
-        {
-          id: 1,
-          name: "general",
-          createdByEmail: "system",
-          createdAt: "2025-01-01T00:00:00.000Z",
-        },
-        {
-          id: 2,
-          name: "random",
-          createdByEmail: "test@example.com",
-          createdAt: "2025-01-01T00:00:00.000Z",
-        },
-      ];
-      const mockMemberships = [{ channelId: 1 }];
+    it("should split channels into joined and other channels", async () => {
+      const { app } = await createAppWithRandomChannel({ joined: false });
 
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockResolvedValue(mockAllChannels),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(mockMemberships),
-        }),
-      });
-
-      const { app } = createTestApp({ authenticatedUser });
       const response = await app.request("/api/channels/memberships");
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { myChannels: unknown[]; otherChannels: unknown[] };
-      expect(body.myChannels).toHaveLength(1);
-      expect(body.otherChannels).toHaveLength(1);
+      expect(await response.json()).toEqual({
+        myChannels: [{ id: 1, name: "general", createdByEmail: "system", createdAt: expect.any(String) }],
+        otherChannels: [{ id: 2, name: "random", createdByEmail: "other@example.com", createdAt: expect.any(String) }],
+      });
     });
 
     it("should return 401 for unauthenticated user", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
+
       const response = await app.request("/api/channels/memberships");
 
       expect(response.status).toBe(401);
-      const body = await response.json();
-      expect(body).toHaveProperty("error", "Unauthorized");
+      expect(await response.json()).toEqual({ error: "Unauthorized" });
     });
   });
 
   describe("GET /api/channels/:id/members", () => {
-    it("should return members for a channel the user belongs to", async () => {
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ channelId: 1, userEmail: "test@example.com" }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ userEmail: "test@example.com" }, { userEmail: "other@example.com" }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            { email: "test@example.com", name: "Test User" },
-            { email: "other@example.com", name: "Other User" },
-          ]),
-        }),
-      });
+    it("should return the registered members of a channel the user belongs to", async () => {
+      const { app, db } = createTestApp({ authenticatedUser });
+      await db.exec(`
+        INSERT INTO users (email, name, password_hash) VALUES
+          ('test@example.com', 'Test User', 'x'), ('other@example.com', 'Other User', 'x');
+        INSERT INTO channel_members (channel_id, user_email) VALUES
+          (1, 'test@example.com'), (1, 'other@example.com');
+      `);
 
-      const { app } = createTestApp({ authenticatedUser });
       const response = await app.request("/api/channels/1/members");
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { members: { email: string; name: string }[] };
+      const body = (await response.json()) as { members: Array<{ email: string; name: string }> };
       expect(body.members).toHaveLength(2);
+      expect(body.members).toContainEqual({ email: "other@example.com", name: "Other User" });
     });
 
     it("should return 403 if user is not a member of the channel", async () => {
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "secret" }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
+      const { app } = await createAppWithRandomChannel({ joined: false });
 
-      const { app } = createTestApp({ authenticatedUser });
       const response = await app.request("/api/channels/2/members");
 
       expect(response.status).toBe(403);
-      const body = (await response.json()) as { error: string };
-      expect(body.error).toBe("Not a member of this channel");
+      expect(await response.json()).toEqual({ error: "Not a member of this channel" });
     });
 
     it("should return 404 for non-existent channel", async () => {
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
       const { app } = createTestApp({ authenticatedUser });
+
       const response = await app.request("/api/channels/999/members");
 
       expect(response.status).toBe(404);
@@ -135,13 +90,15 @@ describe("Channels API", () => {
 
     it("should return 400 for invalid channel ID", async () => {
       const { app } = createTestApp({ authenticatedUser });
+
       const response = await app.request("/api/channels/abc/members");
 
       expect(response.status).toBe(400);
     });
 
     it("should return 401 for unauthenticated user", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
+
       const response = await app.request("/api/channels/1/members");
 
       expect(response.status).toBe(401);
@@ -149,76 +106,38 @@ describe("Channels API", () => {
   });
 
   describe("POST /api/channels", () => {
-    it("should create a channel", async () => {
-      const created = {
-        id: 3,
-        name: "new-channel",
-        createdByEmail: "test@example.com",
-        createdAt: "2025-01-01T00:00:00.000Z",
-      };
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      mockInsert.mockReturnValueOnce({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([created]),
-        }),
-      });
-      mockInsert.mockReturnValueOnce({
-        values: vi.fn().mockReturnValue({
-          onConflictDoNothing: vi.fn().mockResolvedValue({}),
-        }),
-      });
+    it("should create a channel and make the creator a member", async () => {
+      const { app, db } = createTestApp({ authenticatedUser });
 
-      const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
-        body: JSON.stringify({ name: "new-channel" }),
-      });
+      const response = await post(app, "/api/channels", { name: " new-channel " });
 
       expect(response.status).toBe(201);
-      const body = (await response.json()) as { channel: { name: string } };
-      expect(body.channel.name).toBe("new-channel");
+      const body = (await response.json()) as { channel: { id: number; name: string; createdByEmail: string } };
+      expect(body.channel).toMatchObject({ name: "new-channel", createdByEmail: "test@example.com" });
+      expect(await memberEmails(db, body.channel.id)).toEqual(["test@example.com"]);
     });
 
     it("should return 400 if name is missing", async () => {
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
-        body: JSON.stringify({ name: "" }),
-      });
+
+      const response = await post(app, "/api/channels", { name: "" });
 
       expect(response.status).toBe(400);
     });
 
     it("should return 409 if channel name already exists", async () => {
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
-        }),
-      });
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
-        body: JSON.stringify({ name: "general" }),
-      });
+
+      const response = await post(app, "/api/channels", { name: "general" });
 
       expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "Channel name already exists" });
     });
 
     it("should return 401 for unauthenticated user", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("http://localhost/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
-        body: JSON.stringify({ name: "test" }),
-      });
+      const { app } = createTestApp();
+
+      const response = await post(app, "/api/channels", { name: "test" });
 
       expect(response.status).toBe(401);
     });
@@ -226,78 +145,36 @@ describe("Channels API", () => {
 
   describe("POST /api/channels/:id/join", () => {
     it("should join a channel", async () => {
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "random" }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      mockInsert.mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          onConflictDoNothing: vi.fn().mockResolvedValue({}),
-        }),
-      });
+      const { app, db } = await createAppWithRandomChannel({ joined: false });
 
-      const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/2/join", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+      const response = await post(app, "/api/channels/2/join");
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { message: string };
-      expect(body.message).toBe("Joined channel");
+      expect(await response.json()).toEqual({ message: "Joined channel" });
+      expect(await memberEmails(db, 2)).toEqual(["test@example.com"]);
     });
 
     it("should return 200 if already a member", async () => {
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "random" }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, channelId: 2, userEmail: "test@example.com" }]),
-        }),
-      });
+      const { app } = await createAppWithRandomChannel({ joined: true });
 
-      const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/2/join", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+      const response = await post(app, "/api/channels/2/join");
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { message: string };
-      expect(body.message).toBe("Already a member");
+      expect(await response.json()).toEqual({ message: "Already a member" });
     });
 
     it("should return 404 for non-existent channel", async () => {
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/999/join", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+
+      const response = await post(app, "/api/channels/999/join");
 
       expect(response.status).toBe(404);
     });
 
     it("should return 401 for unauthenticated user", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("http://localhost/api/channels/1/join", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+      const { app } = createTestApp();
+
+      const response = await post(app, "/api/channels/1/join");
 
       expect(response.status).toBe(401);
     });
@@ -305,66 +182,36 @@ describe("Channels API", () => {
 
   describe("POST /api/channels/:id/leave", () => {
     it("should leave a channel", async () => {
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 2, name: "random" }]),
-        }),
-      });
-      mockDelete.mockReturnValue({
-        where: vi.fn().mockResolvedValue({}),
-      });
+      const { app, db } = await createAppWithRandomChannel({ joined: true });
 
-      const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/2/leave", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+      const response = await post(app, "/api/channels/2/leave");
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { message: string };
-      expect(body.message).toBe("Left channel");
+      expect(await response.json()).toEqual({ message: "Left channel" });
+      expect(await memberEmails(db, 2)).toEqual([]);
     });
 
     it("should return 403 when leaving #general", async () => {
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, name: "general" }]),
-        }),
-      });
+      const { app } = await createAppWithRandomChannel({ joined: true });
 
-      const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/1/leave", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+      const response = await post(app, "/api/channels/1/leave");
 
       expect(response.status).toBe(403);
-      const body = (await response.json()) as { error: string };
-      expect(body.error).toBe("Cannot leave #general");
+      expect(await response.json()).toEqual({ error: "Cannot leave #general" });
     });
 
     it("should return 404 for non-existent channel", async () => {
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
       const { app } = createTestApp({ authenticatedUser });
-      const response = await app.request("http://localhost/api/channels/999/leave", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+
+      const response = await post(app, "/api/channels/999/leave");
 
       expect(response.status).toBe(404);
     });
 
     it("should return 401 for unauthenticated user", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
-      const response = await app.request("http://localhost/api/channels/1/leave", {
-        method: "POST",
-        headers: CSRF_HEADERS,
-      });
+      const { app } = createTestApp();
+
+      const response = await post(app, "/api/channels/1/leave");
 
       expect(response.status).toBe(401);
     });

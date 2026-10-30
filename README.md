@@ -47,7 +47,7 @@ Required variables in `.dev.vars`:
 
 ### Database Setup
 
-mlack uses Cloudflare D1 (SQLite) via Drizzle ORM. For local development, wrangler manages a local D1 instance automatically.
+mlack uses Cloudflare D1 (SQLite) with plain SQL queries. For local development, wrangler manages a local D1 instance automatically.
 
 ```bash
 # Apply migrations to local D1
@@ -56,11 +56,11 @@ pnpm db:migrate
 # Seed the #general channel
 pnpm db:seed
 
-# Generate new migration files after schema changes
-pnpm db:generate
+# Create an empty migration file in hono/db/migrations, then write its SQL by hand
+pnpm exec wrangler d1 migrations create mlack-db <migration-name>
 
-# Open Drizzle Studio to view/edit data
-pnpm db:studio
+# Query the local database
+pnpm exec wrangler d1 execute mlack-db --local --command "SELECT email, name FROM users"
 ```
 
 ### Development
@@ -194,7 +194,7 @@ mlack/
 ├── hono/                   # Application source
 │   ├── auth/               # Password hashing, email verification utilities
 │   ├── components/         # Server-rendered JSX pages + CSS
-│   ├── db/                 # Drizzle schema, connection, migrations
+│   ├── db/                 # SQL migrations, seed data, shared queries
 │   ├── durableObjects/     # Cloudflare Durable Objects
 │   │   └── ChatRoom.ts     # WebSocket server with hibernation
 │   ├── routes/             # Route handlers
@@ -216,7 +216,7 @@ mlack/
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - **Framework**: [Hono](https://hono.dev/)
 - **WebSocket**: [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/) with WebSocket Hibernation API
-- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) with [Drizzle ORM](https://orm.drizzle.team/)
+- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)
 - **Language**: TypeScript
 - **Testing**: [Vitest](https://vitest.dev/) for unit tests, [Playwright](https://playwright.dev/) for E2E tests
 - **Linting**: [Biome](https://biomejs.dev/)

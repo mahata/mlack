@@ -1,69 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { hashPassword } from "../auth/password.js";
 import { createTestApp } from "../testApp.js";
 
-const {
-  mockUsersSelectLimit,
-  mockPendingSelectLimit,
-  mockDeleteWhere,
-  mockUpdateSetWhere,
-  mockInsertValues,
-  mockOnConflictDoUpdate,
-  mockVerifyPassword,
-  mockSendVerificationEmail,
-  mockGenerateVerificationCode,
-  mockIsExpired,
-} = vi.hoisted(() => ({
-  mockUsersSelectLimit: vi.fn().mockResolvedValue([]),
-  mockPendingSelectLimit: vi.fn().mockResolvedValue([]),
-  mockDeleteWhere: vi.fn().mockResolvedValue(undefined),
-  mockUpdateSetWhere: vi.fn().mockResolvedValue(undefined),
-  mockInsertValues: vi.fn().mockResolvedValue(undefined),
-  mockOnConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-  mockVerifyPassword: vi.fn().mockResolvedValue(false),
+const { mockSendVerificationEmail } = vi.hoisted(() => ({
   mockSendVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
-  mockGenerateVerificationCode: vi.fn().mockReturnValue("123456"),
-  mockIsExpired: vi.fn().mockReturnValue(false),
 }));
 
-vi.mock("../db/index.js", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../db/index.js")>();
-  return {
-    ...original,
-    getDb: () => ({
-      select: vi.fn().mockReturnValue({
-        from: vi.fn((table: unknown) => ({
-          where: vi.fn().mockReturnValue({
-            limit: table === original.pendingRegistrations ? mockPendingSelectLimit : mockUsersSelectLimit,
-          }),
-        })),
-      }),
-      insert: vi.fn().mockImplementation((table: unknown) => ({
-        values:
-          table === original.pendingRegistrations
-            ? vi.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
-            : mockInsertValues,
-      })),
-      delete: vi.fn().mockReturnValue({
-        where: mockDeleteWhere,
-      }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: mockUpdateSetWhere,
-        }),
-      }),
-    }),
-  };
-});
-
-vi.mock("../auth/password.js", () => ({
-  hashPassword: vi.fn().mockResolvedValue("salt:hash"),
-  verifyPassword: mockVerifyPassword,
-}));
-
-vi.mock("../auth/emailVerification.js", () => ({
-  generateVerificationCode: mockGenerateVerificationCode,
-  createExpiresAt: vi.fn().mockReturnValue("2099-01-01T00:00:00.000Z"),
-  isExpired: mockIsExpired,
+vi.mock("../auth/emailVerification.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../auth/emailVerification.js")>()),
+  generateVerificationCode: () => "123456",
   sendVerificationEmail: mockSendVerificationEmail,
 }));
 
@@ -74,14 +19,46 @@ vi.mock("../auth/rateLimiter.js", () => ({
   },
 }));
 
+type TestApp = ReturnType<typeof createTestApp>["app"];
+
+beforeEach(() => {
+  mockSendVerificationEmail.mockClear();
+});
+
+function postForm(app: TestApp, path: string, fields: Record<string, string>, origin = "http://localhost") {
+  const body = new FormData();
+  for (const [name, value] of Object.entries(fields)) {
+    body.append(name, value);
+  }
+  return app.request(path, { method: "POST", body, headers: { Origin: origin } });
+}
+
+async function insertPendingRegistration(db: D1Database, options: { code?: string; expiresAt?: string } = {}) {
+  await db
+    .prepare(
+      `INSERT INTO pending_registrations (email, name, password_hash, verification_code, expires_at)
+       VALUES ('new@example.com', 'New User', 'salt:hash', ?, ?)`,
+    )
+    .bind(options.code ?? "123456", options.expiresAt ?? "2099-01-01T00:00:00.000Z")
+    .run();
+}
+
+function findPendingRegistration(db: D1Database) {
+  return db
+    .prepare(
+      "SELECT name, verification_code AS verificationCode, password_hash AS passwordHash FROM pending_registrations WHERE email = 'new@example.com'",
+    )
+    .first<{ name: string; verificationCode: string; passwordHash: string }>();
+}
+
 describe("Email Auth routes", () => {
   describe("GET /auth/login", () => {
     it("should return the login page", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
       const response = await app.request("/auth/login");
-      expect(response.status).toBe(200);
 
+      expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("Login to Mlack");
       expect(html).toContain('action="/auth/login"');
@@ -93,11 +70,11 @@ describe("Email Auth routes", () => {
 
   describe("GET /auth/register", () => {
     it("should return the registration page", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
       const response = await app.request("/auth/register");
-      expect(response.status).toBe(200);
 
+      expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("Create an Account");
       expect(html).toContain('action="/auth/register"');
@@ -109,256 +86,165 @@ describe("Email Auth routes", () => {
   });
 
   describe("POST /auth/login", () => {
+    async function createAppWithUser() {
+      const testApp = createTestApp();
+      await testApp.db
+        .prepare("INSERT INTO users (email, name, password_hash) VALUES ('user@example.com', 'Test User', ?)")
+        .bind(await hashPassword("correct-password"))
+        .run();
+      return testApp.app;
+    }
+
     it("should return 403 for cross-origin form submissions", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-      formData.append("password", "somepassword");
-
-      const response = await app.request("/auth/login", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://evil.example.com" },
-      });
+      const response = await postForm(
+        app,
+        "/auth/login",
+        { email: "user@example.com", password: "correct-password" },
+        "http://evil.example.com",
+      );
 
       expect(response.status).toBe(403);
     });
 
     it("should return 400 when email or password is missing", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-
-      const response = await app.request("/auth/login", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/login", { email: "user@example.com" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("Email and password are required.");
+      expect(await response.text()).toContain("Email and password are required.");
     });
 
     it("should return 401 when user is not found", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "unknown@example.com");
-      formData.append("password", "somepassword");
-
-      const response = await app.request("/auth/login", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/login", { email: "unknown@example.com", password: "whatever1" });
 
       expect(response.status).toBe(401);
-      const html = await response.text();
-      expect(html).toContain("Invalid email or password.");
+      expect(await response.text()).toContain("Invalid email or password.");
     });
 
     it("should return 401 when password is incorrect", async () => {
-      mockUsersSelectLimit.mockResolvedValueOnce([
-        { email: "user@example.com", name: "Test User", passwordHash: "salt:hash" },
-      ]);
-      mockVerifyPassword.mockResolvedValueOnce(false);
-      const { app } = createTestApp({ authenticatedUser: null });
+      const app = await createAppWithUser();
 
-      const formData = new FormData();
-      formData.append("email", "user@example.com");
-      formData.append("password", "wrongpassword");
-
-      const response = await app.request("/auth/login", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/login", { email: "user@example.com", password: "wrong-password" });
 
       expect(response.status).toBe(401);
-      const html = await response.text();
-      expect(html).toContain("Invalid email or password.");
+      expect(await response.text()).toContain("Invalid email or password.");
     });
 
-    it("should redirect to / on successful login", async () => {
-      mockUsersSelectLimit.mockResolvedValueOnce([
-        { email: "user@example.com", name: "Test User", passwordHash: "salt:hash" },
-      ]);
-      mockVerifyPassword.mockResolvedValueOnce(true);
-      const { app } = createTestApp({ authenticatedUser: null });
+    it("should start a session and redirect to / on successful login", async () => {
+      const app = await createAppWithUser();
 
-      const formData = new FormData();
-      formData.append("email", "user@example.com");
-      formData.append("password", "correctpassword");
-
-      const response = await app.request("/auth/login", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
+      const response = await postForm(app, "/auth/login", {
+        email: " User@Example.com ",
+        password: "correct-password",
       });
 
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/");
+      expect(response.headers.get("Set-Cookie")).toMatch(/^session=[^;]+;/);
     });
   });
 
   describe("POST /auth/register", () => {
+    const newUser = { name: "New User", email: "new@example.com", password: "password123" };
+
     it("should return 403 for cross-origin form submissions", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("name", "Evil User");
-      formData.append("email", "evil@example.com");
-      formData.append("password", "password123");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://evil.example.com" },
-      });
+      const response = await postForm(app, "/auth/register", newUser, "http://evil.example.com");
 
       expect(response.status).toBe(403);
     });
 
     it("should return 400 when fields are missing", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/register", { email: "new@example.com" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("All fields are required.");
+      expect(await response.text()).toContain("All fields are required.");
     });
 
     it("should return 400 when password is too short", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("name", "Test User");
-      formData.append("email", "test@example.com");
-      formData.append("password", "short");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/register", { ...newUser, password: "short" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("Password must be at least 8 characters.");
+      expect(await response.text()).toContain("Password must be at least 8 characters.");
     });
 
     it("should return 409 when email already exists in users table", async () => {
-      mockUsersSelectLimit.mockResolvedValueOnce([
-        { email: "existing@example.com", name: "Existing User", passwordHash: "salt:hash" },
-      ]);
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app, db } = createTestApp();
+      await db.exec(
+        "INSERT INTO users (email, name, password_hash) VALUES ('new@example.com', 'Existing User', 'salt:hash')",
+      );
 
-      const formData = new FormData();
-      formData.append("name", "New User");
-      formData.append("email", "existing@example.com");
-      formData.append("password", "password123");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/register", newUser);
 
       expect(response.status).toBe(409);
-      const html = await response.text();
-      expect(html).toContain("An account with this email already exists.");
+      expect(await response.text()).toContain("An account with this email already exists.");
     });
 
-    it("should redirect to verify-email on successful registration", async () => {
-      mockUsersSelectLimit.mockResolvedValueOnce([]);
-      const { app } = createTestApp({ authenticatedUser: null });
+    it("should store a pending registration, send the code and redirect to verify-email", async () => {
+      const { app, db } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("name", "New User");
-      formData.append("email", "new@example.com");
-      formData.append("password", "password123");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/register", newUser);
 
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/auth/verify-email?email=new%40example.com");
-      expect(mockOnConflictDoUpdate).toHaveBeenCalled();
-      expect(mockSendVerificationEmail).toHaveBeenCalled();
+      expect(mockSendVerificationEmail).toHaveBeenCalledWith(
+        "re_test_key",
+        "noreply@test.com",
+        "new@example.com",
+        "123456",
+      );
+      const pending = await findPendingRegistration(db);
+      expect(pending).toMatchObject({ name: "New User", verificationCode: "123456" });
+      expect(pending?.passwordHash).not.toContain("password123");
     });
 
-    it("should upsert pending registration when email already has a pending entry", async () => {
-      mockUsersSelectLimit.mockResolvedValueOnce([]);
-      const { app } = createTestApp({ authenticatedUser: null });
+    it("should replace an existing pending registration for the same email", async () => {
+      const { app, db } = createTestApp();
+      await insertPendingRegistration(db, { code: "000000" });
 
-      const formData = new FormData();
-      formData.append("name", "New Name");
-      formData.append("email", "existing@example.com");
-      formData.append("password", "password123");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/register", { ...newUser, name: "New Name" });
 
       expect(response.status).toBe(302);
-      expect(response.headers.get("Location")).toBe("/auth/verify-email?email=existing%40example.com");
-      expect(mockOnConflictDoUpdate).toHaveBeenCalled();
-      expect(mockSendVerificationEmail).toHaveBeenCalled();
+      expect(await findPendingRegistration(db)).toMatchObject({ name: "New Name", verificationCode: "123456" });
     });
 
     it("should return 500 when email sending fails", async () => {
-      mockUsersSelectLimit.mockResolvedValueOnce([]);
       mockSendVerificationEmail.mockResolvedValueOnce({ success: false, error: "API error" });
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("name", "New User");
-      formData.append("email", "new@example.com");
-      formData.append("password", "password123");
-
-      const response = await app.request("/auth/register", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/register", newUser);
 
       expect(response.status).toBe(500);
-      const html = await response.text();
-      expect(html).toContain("Failed to send verification email. Please try again.");
+      expect(await response.text()).toContain("Failed to send verification email. Please try again.");
     });
   });
 
   describe("GET /auth/verify-email", () => {
     it("should redirect to register when email is missing", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
       const response = await app.request("/auth/verify-email");
+
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/auth/register");
     });
 
     it("should return the verify email page", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
       const response = await app.request("/auth/verify-email?email=test%40example.com");
-      expect(response.status).toBe(200);
 
+      expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("Verify Your Email");
       expect(html).toContain("test@example.com");
@@ -367,251 +253,133 @@ describe("Email Auth routes", () => {
 
   describe("POST /auth/verify-email", () => {
     it("should return 403 for cross-origin form submissions", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-      formData.append("code", "123456");
-
-      const response = await app.request("/auth/verify-email", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://evil.example.com" },
-      });
+      const response = await postForm(
+        app,
+        "/auth/verify-email",
+        { email: "new@example.com", code: "123456" },
+        "http://evil.example.com",
+      );
 
       expect(response.status).toBe(403);
     });
 
     it("should return 400 when email or code is missing", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-
-      const response = await app.request("/auth/verify-email", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/verify-email", { email: "new@example.com" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("Email and code are required.");
+      expect(await response.text()).toContain("Email and code are required.");
     });
 
     it("should return 400 when no pending registration found", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([]);
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "unknown@example.com");
-      formData.append("code", "123456");
-
-      const response = await app.request("/auth/verify-email", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/verify-email", { email: "unknown@example.com", code: "123456" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("No pending registration found. Please register again.");
+      expect(await response.text()).toContain("No pending registration found. Please register again.");
     });
 
-    it("should return 400 when verification code has expired", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([
-        {
-          id: 1,
-          email: "test@example.com",
-          name: "Test User",
-          passwordHash: "salt:hash",
-          verificationCode: "123456",
-          expiresAt: "2020-01-01T00:00:00.000Z",
-        },
-      ]);
-      mockIsExpired.mockReturnValueOnce(true);
-      const { app } = createTestApp({ authenticatedUser: null });
+    it("should delete an expired pending registration", async () => {
+      const { app, db } = createTestApp();
+      await insertPendingRegistration(db, { expiresAt: "2020-01-01T00:00:00.000Z" });
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-      formData.append("code", "123456");
-
-      const response = await app.request("/auth/verify-email", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/verify-email", { email: "new@example.com", code: "123456" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("Verification code has expired. Please register again.");
-      expect(mockDeleteWhere).toHaveBeenCalled();
+      expect(await response.text()).toContain("Verification code has expired. Please register again.");
+      expect(await findPendingRegistration(db)).toBeNull();
     });
 
     it("should return 400 when verification code is incorrect", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([
-        {
-          id: 1,
-          email: "test@example.com",
-          name: "Test User",
-          passwordHash: "salt:hash",
-          verificationCode: "654321",
-          expiresAt: "2099-01-01T00:00:00.000Z",
-        },
-      ]);
-      mockIsExpired.mockReturnValueOnce(false);
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app, db } = createTestApp();
+      await insertPendingRegistration(db, { code: "654321" });
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-      formData.append("code", "000000");
-
-      const response = await app.request("/auth/verify-email", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/verify-email", { email: "new@example.com", code: "000000" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("Invalid verification code.");
+      expect(await response.text()).toContain("Invalid verification code.");
     });
 
-    it("should redirect to / on successful verification", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([
-        {
-          id: 1,
-          email: "test@example.com",
-          name: "Test User",
-          passwordHash: "salt:hash",
-          verificationCode: "123456",
-          expiresAt: "2099-01-01T00:00:00.000Z",
-        },
-      ]);
-      mockIsExpired.mockReturnValueOnce(false);
-      const { app } = createTestApp({ authenticatedUser: null });
+    it("should create the user, start a session and redirect to / on success", async () => {
+      const { app, db } = createTestApp();
+      await insertPendingRegistration(db);
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-      formData.append("code", "123456");
-
-      const response = await app.request("/auth/verify-email", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/verify-email", { email: "new@example.com", code: "123456" });
 
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/");
-      expect(mockInsertValues).toHaveBeenCalled();
-      expect(mockDeleteWhere).toHaveBeenCalled();
+      expect(response.headers.get("Set-Cookie")).toMatch(/^session=[^;]+;/);
+      expect(await db.prepare("SELECT email, name, password_hash AS passwordHash FROM users").first()).toEqual({
+        email: "new@example.com",
+        name: "New User",
+        passwordHash: "salt:hash",
+      });
+      expect(await findPendingRegistration(db)).toBeNull();
     });
   });
 
   describe("POST /auth/resend-code", () => {
     it("should return 403 for cross-origin form submissions", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-
-      const response = await app.request("/auth/resend-code", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://evil.example.com" },
-      });
+      const response = await postForm(
+        app,
+        "/auth/resend-code",
+        { email: "new@example.com" },
+        "http://evil.example.com",
+      );
 
       expect(response.status).toBe(403);
     });
 
     it("should redirect to register when email is missing", async () => {
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-
-      const response = await app.request("/auth/resend-code", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/resend-code", {});
 
       expect(response.status).toBe(302);
       expect(response.headers.get("Location")).toBe("/auth/register");
     });
 
     it("should return 400 when no pending registration found", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([]);
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app } = createTestApp();
 
-      const formData = new FormData();
-      formData.append("email", "unknown@example.com");
-
-      const response = await app.request("/auth/resend-code", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/resend-code", { email: "unknown@example.com" });
 
       expect(response.status).toBe(400);
-      const html = await response.text();
-      expect(html).toContain("No pending registration found. Please register again.");
+      expect(await response.text()).toContain("No pending registration found. Please register again.");
     });
 
-    it("should resend verification code successfully", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([
-        {
-          id: 1,
-          email: "test@example.com",
-          name: "Test User",
-          passwordHash: "salt:hash",
-          verificationCode: "000000",
-          expiresAt: "2099-01-01T00:00:00.000Z",
-        },
-      ]);
-      const { app } = createTestApp({ authenticatedUser: null });
+    it("should store and send a new verification code", async () => {
+      const { app, db } = createTestApp();
+      await insertPendingRegistration(db, { code: "000000" });
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-
-      const response = await app.request("/auth/resend-code", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/resend-code", { email: "new@example.com" });
 
       expect(response.status).toBe(200);
-      const html = await response.text();
-      expect(html).toContain("A new verification code has been sent.");
-      expect(mockUpdateSetWhere).toHaveBeenCalled();
-      expect(mockSendVerificationEmail).toHaveBeenCalled();
+      expect(await response.text()).toContain("A new verification code has been sent.");
+      expect(await findPendingRegistration(db)).toMatchObject({ verificationCode: "123456" });
+      expect(mockSendVerificationEmail).toHaveBeenCalledWith(
+        "re_test_key",
+        "noreply@test.com",
+        "new@example.com",
+        "123456",
+      );
     });
 
     it("should return 500 when email sending fails on resend", async () => {
-      mockPendingSelectLimit.mockResolvedValueOnce([
-        {
-          id: 1,
-          email: "test@example.com",
-          name: "Test User",
-          passwordHash: "salt:hash",
-          verificationCode: "000000",
-          expiresAt: "2099-01-01T00:00:00.000Z",
-        },
-      ]);
       mockSendVerificationEmail.mockResolvedValueOnce({ success: false, error: "API error" });
-      const { app } = createTestApp({ authenticatedUser: null });
+      const { app, db } = createTestApp();
+      await insertPendingRegistration(db);
 
-      const formData = new FormData();
-      formData.append("email", "test@example.com");
-
-      const response = await app.request("/auth/resend-code", {
-        method: "POST",
-        body: formData,
-        headers: { Origin: "http://localhost" },
-      });
+      const response = await postForm(app, "/auth/resend-code", { email: "new@example.com" });
 
       expect(response.status).toBe(500);
-      const html = await response.text();
-      expect(html).toContain("Failed to resend verification email. Please try again.");
+      expect(await response.text()).toContain("Failed to resend verification email. Please try again.");
     });
   });
 });

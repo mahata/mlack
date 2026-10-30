@@ -1,6 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { directMessages, getDb, messages } from "../db/index.js";
-import { getChannelMemberEmails, getConversationForParticipant, isChannelMember } from "../db/queries/index.js";
+import { getConversationForParticipant, isChannelMember } from "../db/queries.js";
 import type { Bindings } from "../types.js";
 
 type SessionAttachment = {
@@ -141,7 +140,7 @@ export class ChatRoom extends DurableObject<Bindings> {
     const channelId = msg.channelId;
     const trimmedMessage = msg.content?.trim() || "";
 
-    const db = getDb(this.env.DB);
+    const db = this.env.DB;
 
     const isMember = await isChannelMember(db, channelId, attachment.userEmail);
 
@@ -155,16 +154,22 @@ export class ChatRoom extends DurableObject<Bindings> {
     }
 
     try {
-      await db.insert(messages).values({
-        content: trimmedMessage,
-        userEmail: attachment.userEmail,
-        userName: attachment.userName,
-        channelId,
-        attachmentKey: msg.attachmentKey || null,
-        attachmentName: msg.attachmentName || null,
-        attachmentType: msg.attachmentType || null,
-        attachmentSize: msg.attachmentSize || null,
-      });
+      await db
+        .prepare(
+          `INSERT INTO messages (content, user_email, user_name, channel_id, attachment_key, attachment_name, attachment_type, attachment_size)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          trimmedMessage,
+          attachment.userEmail,
+          attachment.userName,
+          channelId,
+          msg.attachmentKey || null,
+          msg.attachmentName || null,
+          msg.attachmentType || null,
+          msg.attachmentSize || null,
+        )
+        .run();
     } catch (error) {
       console.error("Error saving message to database:", error);
     }
@@ -182,7 +187,7 @@ export class ChatRoom extends DurableObject<Bindings> {
     });
 
     try {
-      const memberEmailsList = await getChannelMemberEmails(db, channelId);
+      const memberEmailsList = await this.getChannelMemberEmails(channelId);
       const memberEmails = new Set(memberEmailsList);
       const allSockets = this.ctx.getWebSockets();
 
@@ -222,7 +227,7 @@ export class ChatRoom extends DurableObject<Bindings> {
     }
 
     const trimmedContent = dm.content?.trim() || "";
-    const db = getDb(this.env.DB);
+    const db = this.env.DB;
 
     const conv = await getConversationForParticipant(db, dm.conversationId, sender.userEmail);
 
@@ -236,16 +241,22 @@ export class ChatRoom extends DurableObject<Bindings> {
     }
 
     try {
-      await db.insert(directMessages).values({
-        content: trimmedContent,
-        userEmail: sender.userEmail,
-        userName: sender.userName,
-        conversationId: dm.conversationId,
-        attachmentKey: dm.attachmentKey || null,
-        attachmentName: dm.attachmentName || null,
-        attachmentType: dm.attachmentType || null,
-        attachmentSize: dm.attachmentSize || null,
-      });
+      await db
+        .prepare(
+          `INSERT INTO direct_messages (content, user_email, user_name, conversation_id, attachment_key, attachment_name, attachment_type, attachment_size)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          trimmedContent,
+          sender.userEmail,
+          sender.userName,
+          dm.conversationId,
+          dm.attachmentKey || null,
+          dm.attachmentName || null,
+          dm.attachmentType || null,
+          dm.attachmentSize || null,
+        )
+        .run();
     } catch (error) {
       console.error("Error saving DM to database:", error);
     }
@@ -298,7 +309,7 @@ export class ChatRoom extends DurableObject<Bindings> {
     let otherEmail = this.dmAuthCache.get(cacheKey);
 
     if (!otherEmail) {
-      const db = getDb(this.env.DB);
+      const db = this.env.DB;
 
       const conv = await getConversationForParticipant(db, signal.conversationId, sender.userEmail);
 
@@ -350,8 +361,7 @@ export class ChatRoom extends DurableObject<Bindings> {
     });
 
     try {
-      const db = getDb(this.env.DB);
-      const memberEmailsList = await getChannelMemberEmails(db, event.channelId);
+      const memberEmailsList = await this.getChannelMemberEmails(event.channelId);
       const memberEmails = new Set(memberEmailsList);
 
       if (event.type === "memberJoin") {
@@ -372,6 +382,15 @@ export class ChatRoom extends DurableObject<Bindings> {
     } catch (error) {
       console.error("Error broadcasting membership event:", error);
     }
+  }
+
+  private async getChannelMemberEmails(channelId: number): Promise<string[]> {
+    const { results } = await this.env.DB.prepare(
+      "SELECT user_email AS email FROM channel_members WHERE channel_id = ?",
+    )
+      .bind(channelId)
+      .all<{ email: string }>();
+    return results.map((member) => member.email);
   }
 
   async webSocketClose(_ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {

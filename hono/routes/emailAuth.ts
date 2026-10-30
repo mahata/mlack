@@ -1,5 +1,4 @@
 import { timingSafeEqual } from "node:crypto";
-import { eq, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import {
   createExpiresAt,
@@ -13,7 +12,6 @@ import { startSession } from "../auth/session.js";
 import { LoginPage } from "../components/LoginPage.js";
 import { RegisterPage } from "../components/RegisterPage.js";
 import { VerifyEmailPage } from "../components/VerifyEmailPage.js";
-import { getDb, pendingRegistrations, users } from "../db/index.js";
 import { renderPage } from "../helpers/renderPage.js";
 import type { Bindings, Env } from "../types.js";
 
@@ -73,8 +71,9 @@ emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
       return renderPage(c, LoginPage("Email and password are required."), 400);
     }
 
-    const db = getDb(c.env.DB);
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = await c.env.DB.prepare("SELECT email, name, password_hash AS passwordHash FROM users WHERE email = ?")
+      .bind(email)
+      .first<{ email: string; name: string; passwordHash: string }>();
 
     if (!user) {
       return renderPage(c, LoginPage("Invalid email or password."), 401);
@@ -111,9 +110,9 @@ emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
       return renderPage(c, RegisterPage("Password must be at least 8 characters."), 400);
     }
 
-    const db = getDb(c.env.DB);
-    const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (existing) {
+    const db = c.env.DB;
+    const existingUser = await db.prepare("SELECT 1 FROM users WHERE email = ?").bind(email).first();
+    if (existingUser) {
       return renderPage(c, RegisterPage("An account with this email already exists."), 409);
     }
 
@@ -121,15 +120,17 @@ emailAuthRoute.post("/auth/register", registerRateLimiter, async (c) => {
     const verificationCode = generateVerificationCode();
     const expiresAt = createExpiresAt();
 
-    await db.delete(pendingRegistrations).where(lt(pendingRegistrations.expiresAt, new Date().toISOString()));
+    await db.prepare("DELETE FROM pending_registrations WHERE expires_at < ?").bind(new Date().toISOString()).run();
 
     await db
-      .insert(pendingRegistrations)
-      .values({ email, name, passwordHash, verificationCode, expiresAt })
-      .onConflictDoUpdate({
-        target: pendingRegistrations.email,
-        set: { name, passwordHash, verificationCode, expiresAt },
-      });
+      .prepare(
+        `INSERT INTO pending_registrations (email, name, password_hash, verification_code, expires_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (email) DO UPDATE SET name = excluded.name, password_hash = excluded.password_hash,
+           verification_code = excluded.verification_code, expires_at = excluded.expires_at`,
+      )
+      .bind(email, name, passwordHash, verificationCode, expiresAt)
+      .run();
 
     const emailResult = await sendOrLogVerificationEmail(c.env, email, verificationCode);
     if (!emailResult.success) {
@@ -162,12 +163,15 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
       return renderPage(c, VerifyEmailPage({ email: email || "", error: "Email and code are required." }), 400);
     }
 
-    const db = getDb(c.env.DB);
-    const [pending] = await db
-      .select()
-      .from(pendingRegistrations)
-      .where(eq(pendingRegistrations.email, email))
-      .limit(1);
+    const db = c.env.DB;
+    const pending = await db
+      .prepare(
+        `SELECT name, password_hash AS passwordHash, verification_code AS verificationCode, expires_at AS expiresAt
+         FROM pending_registrations WHERE email = ?`,
+      )
+      .bind(email)
+      .first<{ name: string; passwordHash: string; verificationCode: string; expiresAt: string }>();
+    const deletePending = db.prepare("DELETE FROM pending_registrations WHERE email = ?").bind(email);
 
     if (!pending) {
       return renderPage(
@@ -178,7 +182,7 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
     }
 
     if (isExpired(pending.expiresAt)) {
-      await db.delete(pendingRegistrations).where(eq(pendingRegistrations.email, email));
+      await deletePending.run();
       return renderPage(
         c,
         VerifyEmailPage({ email, error: "Verification code has expired. Please register again." }),
@@ -194,15 +198,13 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
       return renderPage(c, VerifyEmailPage({ email, error: "Invalid verification code." }), 400);
     }
 
-    await db.insert(users).values({
-      email: pending.email,
-      name: pending.name,
-      passwordHash: pending.passwordHash,
-    });
+    await db
+      .prepare("INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)")
+      .bind(email, pending.name, pending.passwordHash)
+      .run();
+    await deletePending.run();
 
-    await db.delete(pendingRegistrations).where(eq(pendingRegistrations.email, email));
-
-    await startSession(c, { email: pending.email, name: pending.name });
+    await startSession(c, { email, name: pending.name });
 
     return c.redirect("/");
   } catch (error) {
@@ -221,28 +223,20 @@ emailAuthRoute.post("/auth/resend-code", resendRateLimiter, async (c) => {
       return c.redirect("/auth/register");
     }
 
-    const db = getDb(c.env.DB);
-    const [pending] = await db
-      .select()
-      .from(pendingRegistrations)
-      .where(eq(pendingRegistrations.email, email))
-      .limit(1);
+    const verificationCode = generateVerificationCode();
+    const { meta } = await c.env.DB.prepare(
+      "UPDATE pending_registrations SET verification_code = ?, expires_at = ? WHERE email = ?",
+    )
+      .bind(verificationCode, createExpiresAt(), email)
+      .run();
 
-    if (!pending) {
+    if (meta.changes === 0) {
       return renderPage(
         c,
         VerifyEmailPage({ email, error: "No pending registration found. Please register again." }),
         400,
       );
     }
-
-    const verificationCode = generateVerificationCode();
-    const expiresAt = createExpiresAt();
-
-    await db
-      .update(pendingRegistrations)
-      .set({ verificationCode, expiresAt })
-      .where(eq(pendingRegistrations.email, email));
 
     const emailResult = await sendOrLogVerificationEmail(c.env, email, verificationCode);
     if (!emailResult.success) {

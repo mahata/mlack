@@ -4,7 +4,7 @@ import { Layout } from "./Layout.js";
 type UserWithFlags = {
   email: string;
   name: string;
-  flags: Array<{ flagKey: string; flagValue: string; grantedBy: string; createdAt: string | null }>;
+  flags: Array<{ flagKey: string; flagValue: string }>;
 };
 
 export async function SiteAdminPage(admin: User, usersWithFlags: UserWithFlags[]) {

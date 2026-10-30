@@ -1,12 +1,5 @@
 import { Hono } from "hono";
-import { getDb } from "../db/index.js";
-import {
-  getChannelById,
-  getConversationForParticipant,
-  getUserFeatureFlag,
-  getUserTotalUploadSize,
-  isChannelMember,
-} from "../db/queries/index.js";
+import { getChannelById, getConversationForParticipant, isChannelMember } from "../db/queries.js";
 import { parsePositiveInt } from "../helpers/parsePositiveInt.js";
 import type { Env } from "../types.js";
 
@@ -26,19 +19,14 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 const MAX_TOTAL_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024;
 
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm"]);
-
-function getExtension(mimeType: string): string {
-  const map: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-    "video/mp4": "mp4",
-    "video/webm": "webm",
-  };
-  return map[mimeType] || "bin";
-}
+const FILE_EXTENSIONS_BY_TYPE = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/gif", "gif"],
+  ["image/webp", "webp"],
+  ["video/mp4", "mp4"],
+  ["video/webm", "webm"],
+]);
 
 const FILES_PATH_PREFIX = "/api/files/";
 
@@ -65,12 +53,12 @@ uploadsRoute.post("/api/upload", async (c) => {
       return c.json({ error: "File too large. Maximum size is 25 MB" }, 413);
     }
 
-    if (!ALLOWED_TYPES.has(file.type)) {
+    const ext = FILE_EXTENSIONS_BY_TYPE.get(file.type);
+    if (!ext) {
       return c.json({ error: "File type not allowed. Supported: JPEG, PNG, GIF, WebP, MP4, WebM" }, 415);
     }
 
-    const db = getDb(c.env.DB);
-    const ext = getExtension(file.type);
+    const db = c.env.DB;
     let key: string;
 
     if (conversationIdParam) {
@@ -104,11 +92,17 @@ uploadsRoute.post("/api/upload", async (c) => {
       key = `channels/${channelId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
     }
 
-    const currentUsage = await getUserTotalUploadSize(db, user.email);
-    const customLimit = await getUserFeatureFlag(db, user.email, "maxTotalUploadBytes");
-    const parsedCustomLimit = customLimit ? parsePositiveInt(customLimit) : null;
-    const effectiveLimit = parsedCustomLimit ?? MAX_TOTAL_UPLOAD_SIZE;
-    if (currentUsage + file.size > effectiveLimit) {
+    const quota = await db
+      .prepare(
+        `SELECT
+           (SELECT COALESCE(SUM(attachment_size), 0) FROM messages WHERE user_email = ?1)
+             + (SELECT COALESCE(SUM(attachment_size), 0) FROM direct_messages WHERE user_email = ?1) AS usedBytes,
+           (SELECT flag_value FROM user_feature_flags WHERE user_email = ?1 AND flag_key = 'maxTotalUploadBytes') AS customLimit`,
+      )
+      .bind(user.email)
+      .first<{ usedBytes: number; customLimit: string | null }>();
+    const effectiveLimit = parsePositiveInt(quota?.customLimit) ?? MAX_TOTAL_UPLOAD_SIZE;
+    if ((quota?.usedBytes ?? 0) + file.size > effectiveLimit) {
       return c.json(
         { error: `Storage quota exceeded. Maximum total upload size is ${formatUploadLimit(effectiveLimit)}` },
         413,
@@ -146,7 +140,7 @@ uploadsRoute.get(`${FILES_PATH_PREFIX}*`, async (c) => {
       return c.json({ error: "File not found" }, 404);
     }
 
-    const db = getDb(c.env.DB);
+    const db = c.env.DB;
 
     if (scope === "dm") {
       const conversation = await getConversationForParticipant(db, scopeId, user.email);
