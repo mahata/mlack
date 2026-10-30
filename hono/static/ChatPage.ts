@@ -818,7 +818,7 @@
 
   function notifyMembershipChange(type: "memberJoin" | "memberLeave", channelId: number): void {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type, channelId, userEmail: currentUserEmail, userName: currentUserEmail }));
+      ws.send(JSON.stringify({ type, channelId }));
     }
   }
 
