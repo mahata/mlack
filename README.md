@@ -69,7 +69,7 @@ pnpm exec wrangler d1 execute mlack-db --local --command "SELECT email, name FRO
 # Start development server (wrangler dev)
 pnpm dev
 
-# Build the project
+# Compile the client scripts into public/static and type-check everything
 pnpm build
 
 # Type-check only (no emit)
@@ -150,9 +150,8 @@ Production deployments are automated via GitHub Actions. Pushing to the `prod` b
 
 **Pipeline overview:**
 
-1. **`test` job** — Runs unit tests, linter, and full build
-2. **`e2e` job** — Runs Playwright E2E tests (in parallel with `test`)
-3. **`deploy` job** — Applies D1 migrations and deploys to Cloudflare Workers (only runs after both `test` and `e2e` pass)
+1. **`ci` job** — Runs the CI workflow (`.github/workflows/ci.yml`): unit tests, linter and build, plus Playwright E2E tests in parallel
+2. **`deploy` job** — Applies D1 migrations and deploys to Cloudflare Workers (only runs after `ci` passes)
 
 **Typical workflow:**
 
@@ -193,16 +192,19 @@ mlack/
 ├── e2e/                    # Playwright E2E tests
 ├── hono/                   # Application source
 │   ├── auth/               # Password hashing, email verification utilities
-│   ├── components/         # Server-rendered JSX pages + CSS
+│   ├── components/         # Server-rendered JSX pages
 │   ├── db/                 # SQL migrations, seed data, shared queries
 │   ├── durableObjects/     # Cloudflare Durable Objects
 │   │   └── ChatRoom.ts     # WebSocket server with hibernation
 │   ├── routes/             # Route handlers
-│   ├── static/             # Client-side TypeScript
-│   ├── app.tsx             # App factory, middleware, route registration
+│   ├── static/             # Client-side TypeScript (compiled into public/static)
+│   ├── app.tsx             # Middleware and route registration
 │   ├── index.ts            # Entry point (exports app + Durable Objects)
 │   ├── testApp.ts          # Test helpers (bindings, signed session cookies)
 │   └── types.ts            # Shared types (User, Bindings, Variables)
+├── public/                 # Static assets served by Workers
+│   ├── components/         # Page stylesheets
+│   └── static/             # Compiled client scripts (generated, not committed)
 ├── wrangler.toml           # Cloudflare Workers configuration
 ├── package.json            # Dependencies and scripts
 ├── playwright.config.ts    # Playwright configuration

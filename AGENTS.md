@@ -8,7 +8,7 @@ Package manager is **pnpm** (pinned via `packageManager` in `package.json`). Jav
 
 ```bash
 pnpm install                  # Install dependencies
-pnpm build                    # Full build (client + server)
+pnpm build                    # Compile client scripts into public/static + type-check everything
 pnpm build:check              # Type-check only (no emit)
 pnpm lint                     # Biome lint + format check
 pnpm lint:fix                 # Biome auto-fix

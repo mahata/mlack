@@ -5,11 +5,9 @@
   "main": "hono/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "pnpm run build:client && pnpm run build:assets && wrangler dev",
-    "build": "rm -rf dist public && pnpm run build:client && pnpm run build:assets && tsc --project tsconfig.prod.json",
+    "dev": "pnpm build:client && wrangler dev",
+    "build": "pnpm build:client && pnpm build:check",
     "build:client": "tsc --project tsconfig.client.json",
-    "build:client:watch": "tsc --project tsconfig.client.json --watch",
-    "build:assets": "mkdir -p public/components public/static && cp hono/components/*.css public/components/ && cp hono/static/*.js hono/static/*.js.map public/static/",
     "build:check": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run --logHeapUsage",
@@ -20,7 +18,7 @@
     "db:seed": "wrangler d1 execute mlack-db --local --file=hono/db/seed.sql",
     "db:migrate:prod": "wrangler d1 migrations apply mlack-db --remote --env production",
     "db:seed:prod": "wrangler d1 execute mlack-db --remote --env production --file=hono/db/seed.sql",
-    "deploy": "pnpm run build:client && pnpm run build:assets && wrangler deploy --env production"
+    "deploy": "pnpm build:client && wrangler deploy --env production"
   },
   "keywords": [
     "hono",

@@ -3,10 +3,7 @@ package-lock.json
 *.log
 *.tsbuildinfo
 
-hono/static/*.js
-hono/static/*.js.map
-dist/
-public/
+public/static/
 
 test-results/
 playwright-report/

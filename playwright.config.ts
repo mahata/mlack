@@ -50,7 +50,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: `pnpm build:client && pnpm run build:assets && wrangler dev --port 3015 --var SESSION_SECRET:${process.env.SESSION_SECRET || FALLBACK_SESSION_SECRET}`,
+    command: `pnpm build:client && wrangler dev --port 3015 --var SESSION_SECRET:${process.env.SESSION_SECRET || FALLBACK_SESSION_SECRET}`,
     url: "http://localhost:3015",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
