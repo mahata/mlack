@@ -34,8 +34,7 @@
   "packageManager": "pnpm@10.34.9",
   "dependencies": {
     "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.13",
-    "hono-sessions": "^0.8.1"
+    "hono": "^4.13.13"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.3",

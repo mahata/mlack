@@ -11,8 +11,7 @@ wsRoute.get("/ws", async (c) => {
     return c.text("Expected Upgrade: websocket", 426);
   }
 
-  const session = c.get("session");
-  const user = session.get("user") as User | undefined;
+  const user = c.get("user") as User | undefined;
 
   if (!user) {
     return c.text("Unauthorized", 401);

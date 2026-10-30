@@ -2,8 +2,7 @@ import { createMiddleware } from "hono/factory";
 import type { Env, User } from "../types.js";
 
 export const requireSiteAdmin = createMiddleware<Env>(async (c, next) => {
-  const session = c.get("session");
-  const user = session.get("user") as User | undefined;
+  const user = c.get("user") as User | undefined;
 
   if (!user) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -19,6 +18,5 @@ export const requireSiteAdmin = createMiddleware<Env>(async (c, next) => {
     return c.json({ error: "Site admin access required" }, 403);
   }
 
-  c.set("user", user);
   await next();
 });

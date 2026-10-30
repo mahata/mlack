@@ -9,8 +9,7 @@ import type { Env, User } from "../types.js";
 const indexRoute = new Hono<Env>();
 
 indexRoute.get("/", async (c) => {
-  const session = c.get("session");
-  const user = session.get("user") as User | undefined;
+  const user = c.get("user") as User | undefined;
 
   if (!user) {
     return c.redirect("/auth/login");

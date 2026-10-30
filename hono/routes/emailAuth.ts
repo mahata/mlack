@@ -9,6 +9,7 @@ import {
 } from "../auth/emailVerification.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { createRateLimiter } from "../auth/rateLimiter.js";
+import { startSession } from "../auth/session.js";
 import { LoginPage } from "../components/LoginPage.js";
 import { RegisterPage } from "../components/RegisterPage.js";
 import { VerifyEmailPage } from "../components/VerifyEmailPage.js";
@@ -84,11 +85,7 @@ emailAuthRoute.post("/auth/login", loginRateLimiter, async (c) => {
       return renderPage(c, LoginPage("Invalid email or password."), 401);
     }
 
-    const session = c.get("session");
-    session.set("user", {
-      email: user.email,
-      name: user.name,
-    });
+    await startSession(c, { email: user.email, name: user.name });
 
     return c.redirect("/");
   } catch (error) {
@@ -205,11 +202,7 @@ emailAuthRoute.post("/auth/verify-email", verifyRateLimiter, async (c) => {
 
     await db.delete(pendingRegistrations).where(eq(pendingRegistrations.email, email));
 
-    const session = c.get("session");
-    session.set("user", {
-      email: pending.email,
-      name: pending.name,
-    });
+    await startSession(c, { email: pending.email, name: pending.name });
 
     return c.redirect("/");
   } catch (error) {

@@ -33,11 +33,10 @@ describe("Playwright web server command", () => {
     vi.stubEnv("SESSION_SECRET", "");
     const sessionSecret = readWranglerVariable(await loadWebServerCommand(), "SESSION_SECRET");
 
-    const { createApp } = await import("./hono/app.js");
-    const { app } = createApp();
+    const { app } = await import("./hono/app.js");
     const response = await app.fetch(
       new Request("http://localhost/health", { headers: { Origin: "http://localhost" } }),
-      { SESSION_SECRET: sessionSecret, DB: {} as D1Database, CHAT_ROOM: {} as DurableObjectNamespace } as never,
+      { SESSION_SECRET: sessionSecret, DB: {} as D1Database, CHAT_ROOM: {} as DurableObjectNamespace },
     );
 
     expect(response.status).toBe(200);

@@ -36,8 +36,8 @@ Task completion order: `pnpm test:run` → `pnpm lint` → `pnpm build` → Copi
 
 - Strict mode enabled. Avoid `any`.
 - Use `type` aliases (not `interface`) for data structures.
-- Hono app instances are typed with `Hono<{ Variables: Variables }>`.
-- Session user is accessed via `session.get("user") as User | undefined`.
+- Hono app instances are typed with `Hono<Env>`.
+- The session middleware (`hono/auth/session.ts`) stores the signed-in user in `c.get("user")`. Behind `requireUser`/`requireSiteAdmin` it is always set; elsewhere read it as `c.get("user") as User | undefined`. Use `startSession`/`endSession` to log users in and out.
 
 ### Comments
 

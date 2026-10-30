@@ -1,8 +1,6 @@
-import type { Hono } from "hono";
 import type { MockInstance } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testApp.js";
-import type { Bindings, Variables } from "../types.js";
 
 const mockSelect = vi.fn();
 const mockInsert = vi.fn();
@@ -25,7 +23,7 @@ function mockSelectResult(rows: unknown[]) {
 }
 
 describe("Root page", () => {
-  let testApp: Hono<{ Bindings: Bindings; Variables: Variables }>;
+  let testApp: ReturnType<typeof createTestApp>["app"];
   let consoleErrorSpy: MockInstance;
 
   beforeEach(() => {

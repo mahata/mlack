@@ -39,7 +39,7 @@ cp .env.sample .dev.vars
 
 Required variables in `.dev.vars`:
 
-- `SESSION_SECRET`: A secure secret for session encryption
+- `SESSION_SECRET`: A secure secret for signing session cookies (HS256 JWT)
 - `RESEND_API_KEY`: API key from [Resend](https://resend.com/) for sending verification emails
 - `RESEND_FROM_EMAIL`: Sender address for verification emails (e.g. `noreply@yourdomain.com`)
 
@@ -201,7 +201,7 @@ mlack/
 │   ├── static/             # Client-side TypeScript
 │   ├── app.tsx             # App factory, middleware, route registration
 │   ├── index.ts            # Entry point (exports app + Durable Objects)
-│   ├── testApp.ts          # Test helper with mock session
+│   ├── testApp.ts          # Test helpers (bindings, signed session cookies)
 │   └── types.ts            # Shared types (User, Bindings, Variables)
 ├── wrangler.toml           # Cloudflare Workers configuration
 ├── package.json            # Dependencies and scripts

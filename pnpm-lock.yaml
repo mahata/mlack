@@ -18,9 +18,6 @@ importers:
       hono:
         specifier: ^4.13.13
         version: 4.13.13
-      hono-sessions:
-        specifier: ^0.8.1
-        version: 0.8.1(hono@4.13.13)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.6.3
@@ -1124,11 +1121,6 @@ packages:
   github-from-package@0.0.0:
     resolution: {integrity: sha512-SyHy3T1v2NUXn29OsWdxmK6RwHD+vkj3v8en8AOBZ1wBQ/hCAQ5bAQTD02kW4W9tUp/3Qh6J8r9EvntiyCmOOw==}
 
-  hono-sessions@0.8.1:
-    resolution: {integrity: sha512-YLSKuIP13yhXTQe2x3sCc1JWsqt1Z3WZB2DWE+oX+YpOsC3lv8uCHnCoNHcY9DPyflDw4XQJN+MFVvcp5QwWdw==}
-    peerDependencies:
-      hono: ^4.0.0
-
   hono@4.13.13:
     resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
     engines: {node: '>=16.9.0'}
@@ -1145,9 +1137,6 @@ packages:
 
   ini@1.3.8:
     resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
-
-  iron-webcrypto@1.2.1:
-    resolution: {integrity: sha512-feOM6FaSr6rEABp/eDfVseKyTMDt+KGpeB35SkVn9Tyn0CqvVsY3EwI0v5i8nMHyJnzCIQf7nsy3p41TPkJZhg==}
 
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
@@ -1289,9 +1278,6 @@ packages:
   obug@3.0.0:
     resolution: {integrity: sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==}
     engines: {node: '>=12.20.0'}
-
-  ohash@2.0.11:
-    resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -2390,12 +2376,6 @@ snapshots:
   github-from-package@0.0.0:
     optional: true
 
-  hono-sessions@0.8.1(hono@4.13.13):
-    dependencies:
-      hono: 4.13.13
-      iron-webcrypto: 1.2.1
-      ohash: 2.0.11
-
   hono@4.13.13: {}
 
   iconv-lite@0.6.3:
@@ -2411,8 +2391,6 @@ snapshots:
 
   ini@1.3.8:
     optional: true
-
-  iron-webcrypto@1.2.1: {}
 
   jiti@2.7.0:
     optional: true
@@ -2536,8 +2514,6 @@ snapshots:
       formdata-polyfill: 4.0.10
 
   obug@3.0.0: {}
-
-  ohash@2.0.11: {}
 
   once@1.4.0:
     dependencies:

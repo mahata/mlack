@@ -1,5 +1,3 @@
-import type { Session } from "hono-sessions";
-
 export type User = {
   email: string;
   name: string;
@@ -17,7 +15,6 @@ export type Bindings = {
 };
 
 export type Variables = {
-  session: Session;
   user: User;
 };
 

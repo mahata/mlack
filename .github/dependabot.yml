@@ -13,7 +13,6 @@ updates:
         patterns:
           - "@hono/*"
           - "hono"
-          - "hono-sessions"
         update-types:
           - "minor"
           - "patch"
