@@ -180,35 +180,6 @@ If you've added new database migrations, apply them before deploying:
 pnpm db:migrate:prod
 ```
 
-## Project Structure
-
-```
-mlack/
-├── e2e/                    # Playwright E2E tests
-├── hono/                   # Application source
-│   ├── auth/               # Password hashing, email verification utilities
-│   ├── components/         # Server-rendered JSX pages
-│   ├── db/                 # SQL migrations, seed data, shared queries
-│   ├── durableObjects/     # Cloudflare Durable Objects
-│   │   └── ChatRoom.ts     # WebSocket server with hibernation
-│   ├── routes/             # Route handlers
-│   ├── static/             # Client-side TypeScript (compiled into public/static)
-│   ├── app.tsx             # Middleware and route registration
-│   ├── index.ts            # Entry point (exports app + Durable Objects)
-│   ├── testApp.ts          # Test helpers (bindings, signed session cookies)
-│   └── types.ts            # Shared types (User, Bindings, Variables)
-├── public/                 # Static assets served by Workers
-│   ├── components/         # Page stylesheets
-│   └── static/             # Compiled client scripts (generated, not committed)
-├── cloudflare.config.ts    # Cloudflare Workers configuration (cf)
-├── wrangler.config.ts      # Bundler configuration used by cf
-├── package.json            # Dependencies and scripts
-├── playwright.config.ts    # Playwright configuration
-├── tsconfig.json           # TypeScript configuration
-├── vitest.config.ts        # Vitest configuration
-└── biome.json              # Biome linter/formatter configuration
-```
-
 ## Technology Stack
 
 - **Runtime**: [Cloudflare Workers](https://developers.cloudflare.com/workers/)
@@ -219,44 +190,6 @@ mlack/
 - **Testing**: [Vitest](https://vitest.dev/) for unit tests, [Playwright](https://playwright.dev/) for E2E tests
 - **Linting**: [Biome](https://biomejs.dev/)
 - **Package Manager**: pnpm
-
-## API Endpoints
-
-### GET /
-
-Chat interface. Redirects to `/auth/login` if not authenticated.
-
-### GET /health
-
-Health check endpoint.
-
-```json
-{ "status": "ok", "message": "Service is running" }
-```
-
-### GET /api/messages?channelId=1
-
-Retrieve message history for a channel (requires authentication).
-
-### GET /api/channels/memberships
-
-List the channels the user has joined (`myChannels`) and the rest (`otherChannels`) (requires authentication).
-
-### POST /api/channels
-
-Create a new channel (requires authentication).
-
-### POST /api/channels/:id/join
-
-Join a channel (requires authentication).
-
-### POST /api/channels/:id/leave
-
-Leave a channel (requires authentication).
-
-### WebSocket /ws
-
-Real-time messaging endpoint. Requires an authenticated session. Messages are routed through a Cloudflare Durable Object for reliable broadcasting across all connected clients.
 
 ## Testing
 
