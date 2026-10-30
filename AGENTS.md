@@ -5,6 +5,7 @@ Coding agent guide for the **mlack** repository — a real-time Slack-like chat 
 ## Build / Lint / Test Commands
 
 Package manager is **pnpm** (pinned via `packageManager` in `package.json`). JavaScript runtime is Node.js.
+The `cf` CLI must be installed globally and available on `PATH` (`npm install -g cf@1.0.0-beta.26`); use `cf` directly rather than `pnpm exec cf`.
 
 ```bash
 pnpm install                  # Install dependencies
@@ -27,7 +28,7 @@ npx playwright test e2e/app.spec.ts                # Run a single E2E file
 # Database (Cloudflare D1, plain SQL)
 pnpm db:migrate               # Apply migrations to the local D1
 pnpm db:seed                  # Seed #general into the local D1
-pnpm exec cf d1 migrations create <name> --dir hono/db/migrations   # New empty migration; write the SQL by hand
+cf d1 migrations create <name> --dir hono/db/migrations             # New empty migration; write the SQL by hand
 ```
 
 Unit tests run route handlers against an in-memory SQLite database (`node:sqlite`) that has the real migrations applied. Use `createTestApp()` from `hono/testApp.ts` and seed rows through its `db`.
