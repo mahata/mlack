@@ -32,7 +32,7 @@ pnpm exec wrangler d1 migrations create mlack-db <name>   # New empty migration;
 
 Unit tests run route handlers against an in-memory SQLite database (`node:sqlite`) that has the real migrations applied. Use `createTestApp()` from `hono/testApp.ts` and seed rows through its `db`.
 
-CI runs: `pnpm test:run` then `pnpm lint` then `pnpm build`. All three must pass.
+CI runs `pnpm test:run`, `pnpm lint` and `pnpm build` in one job and the E2E tests in another. All of them must pass, and `deploy.yml` reuses the same workflow before deploying.
 
 Task completion order: `pnpm test:run` → `pnpm lint` → `pnpm build` → Copilot CLI review → commit.
 
