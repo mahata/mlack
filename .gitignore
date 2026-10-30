@@ -15,6 +15,7 @@ playwright/.cache/
 .env.production
 .dev.vars
 .wrangler/
+.cloudflare/
 
 .github/prompts/*.md
 .vscode/*

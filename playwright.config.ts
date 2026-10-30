@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const FALLBACK_SESSION_SECRET = "e2e-test-session-secret-key-for-wrangler-dev";
+const FALLBACK_SESSION_SECRET = "e2e-test-session-secret-key-for-cf-dev";
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -50,7 +50,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: `pnpm build:client && wrangler dev --port 3015 --var SESSION_SECRET:${process.env.SESSION_SECRET || FALLBACK_SESSION_SECRET}`,
+    command: "pnpm build:client && cf dev --port 3015",
     url: "http://localhost:3015",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
@@ -58,6 +58,7 @@ export default defineConfig({
     stdout: "pipe",
     env: {
       NODE_ENV: "development",
+      SESSION_SECRET: process.env.SESSION_SECRET || FALLBACK_SESSION_SECRET,
     },
   },
 });

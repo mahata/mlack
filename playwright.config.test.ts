@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const MODULE_IMPORT_TIMEOUT_MS = 15000;
 
-async function loadWebServerCommand() {
+async function loadWebServerEnv() {
   vi.resetModules();
   const { default: playwrightConfig } = await import("./playwright.config.js");
   const webServer = Array.isArray(playwrightConfig.webServer)
@@ -11,27 +11,19 @@ async function loadWebServerCommand() {
   if (!webServer) {
     throw new Error("playwright.config.ts must define a webServer");
   }
-  return webServer.command;
+  return webServer.env ?? {};
 }
 
-function readWranglerVariable(command: string, name: string) {
-  const variable = command.match(new RegExp(`--var ${name}:(\\S*)`));
-  if (!variable) {
-    throw new Error(`${name} is not passed to wrangler`);
-  }
-  return variable[1];
-}
-
-describe("Playwright web server command", () => {
+describe("Playwright web server environment", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("passes a session secret the app accepts when SESSION_SECRET is empty, as in Dependabot runs", {
+  it("provides a session secret the app accepts when SESSION_SECRET is empty, as in Dependabot runs", {
     timeout: MODULE_IMPORT_TIMEOUT_MS,
   }, async () => {
     vi.stubEnv("SESSION_SECRET", "");
-    const sessionSecret = readWranglerVariable(await loadWebServerCommand(), "SESSION_SECRET");
+    const { SESSION_SECRET: sessionSecret } = await loadWebServerEnv();
 
     const { app } = await import("./hono/app.js");
     const response = await app.fetch(
@@ -48,6 +40,6 @@ describe("Playwright web server command", () => {
     const sessionSecret = "configured-session-secret-with-more-than-32-chars";
     vi.stubEnv("SESSION_SECRET", sessionSecret);
 
-    expect(readWranglerVariable(await loadWebServerCommand(), "SESSION_SECRET")).toBe(sessionSecret);
+    expect((await loadWebServerEnv()).SESSION_SECRET).toBe(sessionSecret);
   });
 });
