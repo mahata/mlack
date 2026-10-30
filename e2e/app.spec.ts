@@ -78,3 +78,18 @@ test("Logout functionality works correctly", async ({ page }) => {
   // Verify that the user is logged out (user info is no longer visible)
   await expect(page.locator(".user-email")).not.toBeVisible({ timeout: 10000 });
 });
+
+test("Create channel modal is hidden until opened and closes on Escape", async ({ page }) => {
+  await page.goto("/");
+
+  const createChannelModal = page.locator("#createChannelModal");
+  await expect(createChannelModal).toBeHidden();
+  await expect(page.locator("#dmComposeModal")).toBeHidden();
+
+  await page.locator("#createChannelButton").click();
+  await expect(createChannelModal).toBeVisible();
+  await expect(page.locator("#newChannelName")).toBeInViewport();
+
+  await page.keyboard.press("Escape");
+  await expect(createChannelModal).toBeHidden();
+});

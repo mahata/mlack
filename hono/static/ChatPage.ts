@@ -51,8 +51,7 @@
 
   const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm"]);
 
-  const container = document.querySelector("[data-ws-url]") as HTMLElement;
-  const wsUrl = container.getAttribute("data-ws-url") as string;
+  const wsUrl = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`;
   const apiBase = "/api";
 
   type Channel = {

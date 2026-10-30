@@ -53,14 +53,6 @@ describe("Root page", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("should point the chat page at the root WebSocket endpoint", async () => {
-    const { app } = createTestApp({ authenticatedUser });
-
-    const response = await app.request("http://localhost:3000/");
-
-    expect(await response.text()).toContain('data-ws-url="ws://localhost:3000/ws"');
-  });
-
   it("should redirect to login page when user is not logged in", async () => {
     const { app } = createTestApp();
 

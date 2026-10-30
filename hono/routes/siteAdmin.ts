@@ -19,7 +19,7 @@ siteAdminRoute.get("/site-admin", async (c) => {
       ...user,
       flags: flags.filter((flag) => flag.userEmail === user.email),
     }));
-    return c.html(`<!DOCTYPE html>${await SiteAdminPage(c.get("user"), usersWithFlags)}`);
+    return c.html(SiteAdminPage(c.get("user"), usersWithFlags));
   } catch (error) {
     console.error("Error rendering site admin page:", error);
     return c.json({ error: "Failed to load site admin" }, 500);

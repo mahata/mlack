@@ -7,9 +7,9 @@ type UserWithFlags = {
   flags: Array<{ flagKey: string; flagValue: string }>;
 };
 
-export async function SiteAdminPage(admin: User, usersWithFlags: UserWithFlags[]) {
+export function SiteAdminPage(admin: User, usersWithFlags: UserWithFlags[]) {
   return (
-    <Layout title="Site Admin" css="/components/SiteAdminPage.css" scripts={["/static/siteAdmin.js"]}>
+    <Layout title="Site Admin" css="/components/SiteAdminPage.css" script="/static/siteAdmin.js">
       <div className="site-admin-container">
         <div className="site-admin-header">
           <h1>Site Admin</h1>
