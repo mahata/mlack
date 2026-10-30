@@ -1,62 +1,43 @@
 (() => {
-  document.addEventListener("click", async (e: Event) => {
-    const target = e.target as HTMLElement;
+  async function updateFlag(email: string, flagKey: string, init: RequestInit, failureMessage: string) {
+    const response = await fetch(
+      `/site-admin/api/users/${encodeURIComponent(email)}/flags/${encodeURIComponent(flagKey)}`,
+      init,
+    );
+    if (response.ok) {
+      window.location.reload();
+      return;
+    }
+    const body = (await response.json()) as { error?: string };
+    alert(body.error || failureMessage);
+  }
+
+  document.addEventListener("click", (event: Event) => {
+    const target = event.target as HTMLElement;
+    const email = target.dataset.email;
+    if (!email) return;
 
     if (target.classList.contains("set-flag-button")) {
-      const email = target.dataset.email;
-      if (!email) return;
-
       const row = target.closest("tr");
-      if (!row) return;
-
-      const select = row.querySelector(".flag-key-select") as HTMLSelectElement | null;
-      const input = row.querySelector(".flag-value-input") as HTMLInputElement | null;
-      if (!select || !input) return;
-
-      const flagKey = select.value;
-      const flagValue = input.value.trim();
+      const flagKey = (row?.querySelector(".flag-key-select") as HTMLSelectElement | null)?.value;
+      const flagValue = (row?.querySelector(".flag-value-input") as HTMLInputElement | null)?.value.trim();
+      if (!flagKey) return;
       if (!flagValue) {
         alert("Please enter a value.");
         return;
       }
-
-      const response = await fetch(
-        `/site-admin/api/users/${encodeURIComponent(email)}/flags/${encodeURIComponent(flagKey)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: flagValue }),
-        },
+      updateFlag(
+        email,
+        flagKey,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: flagValue }) },
+        "Failed to set flag",
       );
-
-      if (response.ok) {
-        window.location.reload();
-      } else {
-        const body = (await response.json()) as { error?: string };
-        alert(body.error || "Failed to set flag");
-      }
     }
 
     if (target.classList.contains("remove-flag-button")) {
-      const email = target.dataset.email;
       const flagKey = target.dataset.flagKey;
-      if (!email || !flagKey) return;
-
-      if (!confirm(`Remove flag "${flagKey}" from ${email}?`)) return;
-
-      const response = await fetch(
-        `/site-admin/api/users/${encodeURIComponent(email)}/flags/${encodeURIComponent(flagKey)}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (response.ok) {
-        window.location.reload();
-      } else {
-        const body = (await response.json()) as { error?: string };
-        alert(body.error || "Failed to remove flag");
-      }
+      if (!flagKey || !confirm(`Remove flag "${flagKey}" from ${email}?`)) return;
+      updateFlag(email, flagKey, { method: "DELETE" }, "Failed to remove flag");
     }
   });
 })();
