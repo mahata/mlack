@@ -37,7 +37,6 @@ describe("Root page", () => {
       authenticatedUser: {
         email: "test@example.com",
         name: "Test User",
-        picture: "https://via.placeholder.com/32",
       },
     });
     testApp = app;

@@ -220,13 +220,6 @@ body {
   background-color: #19171d;
 }
 
-.profile-picture {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
 .user-email {
   font-size: 12px;
   color: #ababad;

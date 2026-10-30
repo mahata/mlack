@@ -33,14 +33,6 @@ export async function RegisterPage(error?: string) {
           </button>
         </form>
 
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
-
-        <a href="/auth/google" className="google-button">
-          Sign up with Google
-        </a>
-
         <p className="auth-link">
           Already have an account? <a href="/auth/login">Login</a>
         </p>

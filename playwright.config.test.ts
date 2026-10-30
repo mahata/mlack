@@ -43,23 +43,12 @@ describe("Playwright web server command", () => {
     expect(response.status).toBe(200);
   });
 
-  it("falls back to the default Gmail account when E2E_GMAIL_ACCOUNT is empty", {
-    timeout: MODULE_IMPORT_TIMEOUT_MS,
-  }, async () => {
-    vi.stubEnv("E2E_GMAIL_ACCOUNT", "");
-
-    expect(readWranglerVariable(await loadWebServerCommand(), "E2E_GMAIL_ACCOUNT")).toBe("test@example.com");
-  });
-
-  it("passes SESSION_SECRET and E2E_GMAIL_ACCOUNT through when they are set", {
+  it("passes SESSION_SECRET through when it is set", {
     timeout: MODULE_IMPORT_TIMEOUT_MS,
   }, async () => {
     const sessionSecret = "configured-session-secret-with-more-than-32-chars";
     vi.stubEnv("SESSION_SECRET", sessionSecret);
-    vi.stubEnv("E2E_GMAIL_ACCOUNT", "configured@example.com");
-    const command = await loadWebServerCommand();
 
-    expect(readWranglerVariable(command, "SESSION_SECRET")).toBe(sessionSecret);
-    expect(readWranglerVariable(command, "E2E_GMAIL_ACCOUNT")).toBe("configured@example.com");
+    expect(readWranglerVariable(await loadWebServerCommand(), "SESSION_SECRET")).toBe(sessionSecret);
   });
 });

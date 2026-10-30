@@ -87,6 +87,7 @@ describe("Email Auth routes", () => {
       expect(html).toContain('action="/auth/login"');
       expect(html).toContain('name="email"');
       expect(html).toContain('name="password"');
+      expect(html).not.toContain("/auth/google");
     });
 
     it("should show error message for invalid_credentials", async () => {
@@ -111,6 +112,7 @@ describe("Email Auth routes", () => {
       expect(html).toContain('name="name"');
       expect(html).toContain('name="email"');
       expect(html).toContain('name="password"');
+      expect(html).not.toContain("/auth/google");
     });
 
     it("should show error message for email_exists", async () => {

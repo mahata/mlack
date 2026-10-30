@@ -9,7 +9,7 @@ A real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare Work
 - **Real-time Chat**: WebSocket-powered chat with instant messaging via Cloudflare Durable Objects
 - **Channels**: Create, join, and leave channels. Messages are scoped to channels
 - **Persistent Storage**: Messages stored in Cloudflare D1 (SQLite) and persist across sessions
-- **Authentication**: Google OAuth and email/password registration with email verification (6-digit OTP)
+- **Authentication**: Email/password registration with email verification (6-digit OTP)
 - **WebSocket Hibernation**: Cost-efficient WebSocket management that hibernates idle connections
 - **Health Check Endpoint**: `/health` endpoint for monitoring
 - **TypeScript**: Full TypeScript with strict type checking
@@ -40,10 +40,6 @@ cp .env.sample .dev.vars
 Required variables in `.dev.vars`:
 
 - `SESSION_SECRET`: A secure secret for session encryption
-- `GOOGLE_ID`: Google OAuth client ID
-- `GOOGLE_SECRET`: Google OAuth client secret
-- `GOOGLE_REDIRECT_URI`: Google OAuth redirect URI (e.g. `http://localhost:8787/auth/google`)
-- `E2E_GMAIL_ACCOUNT`: Gmail account for E2E testing
 - `RESEND_API_KEY`: API key from [Resend](https://resend.com/) for sending verification emails
 - `RESEND_FROM_EMAIL`: Sender address for verification emails (e.g. `noreply@yourdomain.com`)
 
@@ -136,14 +132,9 @@ pnpm lint:fix
 
    ```bash
    npx wrangler secret put SESSION_SECRET --env production
-   npx wrangler secret put GOOGLE_ID --env production
-   npx wrangler secret put GOOGLE_SECRET --env production
-   npx wrangler secret put GOOGLE_REDIRECT_URI --env production
    npx wrangler secret put RESEND_API_KEY --env production
    npx wrangler secret put RESEND_FROM_EMAIL --env production
    ```
-
-   For `GOOGLE_REDIRECT_URI`, use your production URL (e.g. `https://mlack.<your-subdomain>.workers.dev/auth/google`). Make sure this URL is also added as an **Authorized redirect URI** in the Google Cloud Console under [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials), by clicking on your OAuth 2.0 Client ID.
 
    For `RESEND_API_KEY`, create an API key at [Resend](https://resend.com/). For `RESEND_FROM_EMAIL`, use a verified domain in your Resend account (e.g. `noreply@yourdomain.com`).
 
@@ -179,7 +170,7 @@ The deploy job requires two repository secrets. Add them under **Settings > Secr
 1. **`CLOUDFLARE_API_TOKEN`** — Create a token in the [Cloudflare dashboard](https://dash.cloudflare.com/profile/api-tokens) using the **"Edit Cloudflare Workers"** template, then add **D1 Edit** permission to it. The template includes Workers Scripts Write, Account Settings Read, User Memberships Read, and other permissions Wrangler needs.
 2. **`CLOUDFLARE_ACCOUNT_ID`** — Your Cloudflare account ID. Find it on the [Workers & Pages overview page](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/) in the right sidebar.
 
-The E2E job reuses the existing `SESSION_SECRET`, `E2E_GMAIL_ACCOUNT`, and `E2E_GMAIL_PASSWORD` secrets already configured for CI.
+The E2E job reuses the existing `SESSION_SECRET` secret already configured for CI.
 
 ### Manual Deployment
 

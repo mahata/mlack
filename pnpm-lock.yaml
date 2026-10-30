@@ -12,9 +12,6 @@ importers:
 
   .:
     dependencies:
-      '@hono/oauth-providers':
-        specifier: ^0.9.0
-        version: 0.9.0(hono@4.13.13)
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@cloudflare/workers-types@5.20261024.1)(@libsql/client-wasm@0.15.10)(@libsql/client@0.17.2(encoding@0.1.13))(@types/pg@8.20.0)(better-sqlite3@12.8.0)(pg@8.20.0)
@@ -505,12 +502,6 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
-
-  '@hono/oauth-providers@0.9.0':
-    resolution: {integrity: sha512-OgDPB+AM6OgA5ys1y+7G24bkb8V4OINr+6JFDSuSYni80Mmd7BGpJ0e02StQDMPL9ebuWI8ABhxx1bk+9VBcBA==}
-    engines: {node: '>=18.4.0'}
-    peerDependencies:
-      hono: '>=3.0.0'
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1916,10 +1907,6 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
-
-  '@hono/oauth-providers@0.9.0(hono@4.13.13)':
-    dependencies:
-      hono: 4.13.13
 
   '@img/colour@1.1.0': {}
 

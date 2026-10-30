@@ -2,12 +2,9 @@ import type { MiddlewareHandler } from "hono/types";
 import type { Session } from "hono-sessions";
 import { vi } from "vitest";
 import { createApp } from "./app.js";
-import type { Env } from "./types.js";
+import type { Env, User } from "./types.js";
 
-export function createTestApp(options?: {
-  authenticatedUser?: { email: string; name: string; picture: string } | null;
-  storageMock?: R2Bucket;
-}) {
+export function createTestApp(options?: { authenticatedUser?: User | null; storageMock?: R2Bucket }) {
   const testSessionMiddleware: MiddlewareHandler<Env> = async (c, next) => {
     const mockSession = {
       get: vi.fn().mockReturnValue(options?.authenticatedUser || null),

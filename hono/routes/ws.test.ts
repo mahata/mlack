@@ -53,7 +53,7 @@ describe("WebSocket endpoint", () => {
   });
 
   it("should forward authenticated WebSocket upgrades to the shared CHAT_ROOM", async () => {
-    const user: User = { email: "test@example.com", name: "Test User", picture: "pic.jpg" };
+    const user: User = { email: "test@example.com", name: "Test User" };
     const { app, mockGetByName, mockFetch } = createWsApp({ user });
 
     const response = await app.request("/ws", { headers: WS_UPGRADE_HEADERS });
