@@ -6,21 +6,35 @@ import type { Env, User } from "../types.js";
 
 export const SESSION_COOKIE_NAME = "session";
 const SESSION_TTL_SECONDS = 60 * 60;
+const SESSION_REFRESH_INTERVAL_SECONDS = 10 * 60;
 
-export function createSessionToken(user: User, secret: string): Promise<string> {
-  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  return sign({ email: user.email, name: user.name, exp: expiresAt }, secret, "HS256");
+type Session = {
+  user: User;
+  expiresAt: number;
+};
+
+function nowInSeconds(): number {
+  return Math.floor(Date.now() / 1000);
 }
 
-async function readSessionUser(c: Context<Env>): Promise<User | null> {
+export function createSessionToken(user: User, secret: string): Promise<string> {
+  return sign({ email: user.email, name: user.name, exp: nowInSeconds() + SESSION_TTL_SECONDS }, secret, "HS256");
+}
+
+async function readSession(c: Context<Env>): Promise<Session | null> {
   const token = getCookie(c, SESSION_COOKIE_NAME);
   if (!token) return null;
   try {
-    const { email, name } = await verify(token, c.env.SESSION_SECRET, "HS256");
-    return typeof email === "string" && typeof name === "string" ? { email, name } : null;
+    const { email, name, exp } = await verify(token, c.env.SESSION_SECRET, "HS256");
+    if (typeof email !== "string" || typeof name !== "string" || typeof exp !== "number") return null;
+    return { user: { email, name }, expiresAt: exp };
   } catch {
     return null;
   }
+}
+
+function isDueForRefresh(session: Session): boolean {
+  return session.expiresAt - nowInSeconds() < SESSION_TTL_SECONDS - SESSION_REFRESH_INTERVAL_SECONDS;
 }
 
 export async function startSession(c: Context<Env>, user: User): Promise<void> {
@@ -41,14 +55,14 @@ export const sessionMiddleware = createMiddleware<Env>(async (c, next) => {
     throw new Error("SESSION_SECRET environment variable is required");
   }
 
-  const user = await readSessionUser(c);
-  if (user) {
-    c.set("user", user);
+  const session = await readSession(c);
+  if (session) {
+    c.set("user", session.user);
   }
 
   await next();
 
-  if (user && !c.res.headers.has("Set-Cookie")) {
-    await startSession(c, user);
+  if (session && isDueForRefresh(session) && !c.res.headers.has("Set-Cookie")) {
+    await startSession(c, session.user);
   }
 });

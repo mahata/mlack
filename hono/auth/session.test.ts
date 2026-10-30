@@ -15,6 +15,10 @@ app.post("/logout", (c) => {
   return c.body(null, 204);
 });
 
+function tokenExpiringIn(seconds: number) {
+  return sign({ ...USER, exp: Math.floor(Date.now() / 1000) + seconds }, SESSION_SECRET, "HS256");
+}
+
 function request(path: string, options: { token?: string; method?: string; nodeEnv?: string } = {}) {
   const headers = options.token ? { Cookie: `session=${options.token}` } : undefined;
   return app.request(
@@ -32,18 +36,22 @@ describe("sessionMiddleware", () => {
     expect(response.headers.has("Set-Cookie")).toBe(false);
   });
 
-  it("restores the user from a valid session cookie and extends the session", async () => {
+  it("restores the user from a fresh session cookie without re-issuing it", async () => {
     const response = await request("/me", { token: await createSessionToken(USER, SESSION_SECRET) });
+
+    expect(await response.json()).toEqual({ user: USER });
+    expect(response.headers.has("Set-Cookie")).toBe(false);
+  });
+
+  it("extends sessions issued more than ten minutes ago", async () => {
+    const response = await request("/me", { token: await tokenExpiringIn(45 * 60) });
 
     expect(await response.json()).toEqual({ user: USER });
     expect(response.headers.get("Set-Cookie")).toMatch(/^session=[^;]+; Path=\/; HttpOnly; SameSite=Lax$/);
   });
 
   it("marks the refreshed cookie as Secure in production", async () => {
-    const response = await request("/me", {
-      token: await createSessionToken(USER, SESSION_SECRET),
-      nodeEnv: "production",
-    });
+    const response = await request("/me", { token: await tokenExpiringIn(45 * 60), nodeEnv: "production" });
 
     expect(response.headers.get("Set-Cookie")).toContain("; Secure");
   });
@@ -55,18 +63,13 @@ describe("sessionMiddleware", () => {
   });
 
   it("ignores expired session cookies", async () => {
-    const expiredToken = await sign({ ...USER, exp: Math.floor(Date.now() / 1000) - 1 }, SESSION_SECRET, "HS256");
-
-    const response = await request("/me", { token: expiredToken });
+    const response = await request("/me", { token: await tokenExpiringIn(-1) });
 
     expect(await response.json()).toEqual({ user: null });
   });
 
   it("does not re-issue the session when the handler ends it", async () => {
-    const response = await request("/logout", {
-      method: "POST",
-      token: await createSessionToken(USER, SESSION_SECRET),
-    });
+    const response = await request("/logout", { method: "POST", token: await tokenExpiringIn(45 * 60) });
 
     expect(response.headers.getSetCookie()).toEqual([expect.stringMatching(/^session=; Max-Age=0;/)]);
   });
