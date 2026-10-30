@@ -22,6 +22,7 @@ A real-time Slack-like chat app built with Hono, TypeScript, and Cloudflare Work
 
 - Node.js (`^24.22.0` or `^26.12.0`, as required by the `cf` CLI)
 - pnpm (v10.34.9, pinned via `packageManager` in `package.json`)
+- The `cf` CLI (`npm install -g cf@1.0.0-beta.26`)
 
 ### Installation
 
@@ -57,10 +58,10 @@ pnpm db:migrate
 pnpm db:seed
 
 # Create an empty migration file in hono/db/migrations, then write its SQL by hand
-pnpm exec cf d1 migrations create <migration-name> --dir hono/db/migrations
+cf d1 migrations create <migration-name> --dir hono/db/migrations
 
 # Query the local database
-pnpm exec cf d1 raw 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --sql "SELECT email, name FROM users"
+cf d1 raw 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --sql "SELECT email, name FROM users"
 ```
 
 `cf d1` addresses databases by ID. The local database uses the placeholder ID `00000000-0000-4000-8000-000000000000` from `cloudflare.config.ts`, and `--persist-to .wrangler/state` points `cf d1` at the state used by `cf dev`.
@@ -100,13 +101,13 @@ pnpm lint:fix
 1. **Authenticate with Cloudflare**:
 
    ```bash
-   pnpm exec cf auth login
+   cf auth login
    ```
 
 2. **Create the D1 database**:
 
    ```bash
-   pnpm exec cf d1 create --name mlack-db
+   cf d1 create --name mlack-db
    ```
 
    Copy the database ID from the output into `PRODUCTION_DATABASE_ID` in `cloudflare.config.ts`, and into the `db:migrate:prod` and `db:seed:prod` scripts in `package.json`.
@@ -132,9 +133,9 @@ pnpm lint:fix
 6. **Set production secrets** (secrets belong to an existing Worker, so set them after the first deploy; later deploys leave them untouched):
 
    ```bash
-   pnpm exec cf workers secrets update SESSION_SECRET --worker mlack-production --type secret_text --text "<value>"
-   pnpm exec cf workers secrets update RESEND_API_KEY --worker mlack-production --type secret_text --text "<value>"
-   pnpm exec cf workers secrets update RESEND_FROM_EMAIL --worker mlack-production --type secret_text --text "<value>"
+   cf workers secrets update SESSION_SECRET --worker mlack-production --type secret_text --text "<value>"
+   cf workers secrets update RESEND_API_KEY --worker mlack-production --type secret_text --text "<value>"
+   cf workers secrets update RESEND_FROM_EMAIL --worker mlack-production --type secret_text --text "<value>"
    ```
 
    The app responds with errors until `SESSION_SECRET` is set. For `RESEND_API_KEY`, create an API key at [Resend](https://resend.com/). For `RESEND_FROM_EMAIL`, use a verified domain in your Resend account (e.g. `noreply@yourdomain.com`).
