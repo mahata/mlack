@@ -89,10 +89,6 @@ body {
   z-index: 49;
 }
 
-.sidebar-overlay.hidden {
-  display: none !important;
-}
-
 .sidebar-header {
   padding: 16px;
   border-bottom: 1px solid #35373b;
@@ -339,10 +335,6 @@ body {
   overflow-y: auto;
 }
 
-.members-panel.hidden {
-  display: none;
-}
-
 .members-panel-header {
   padding: 12px 16px;
   border-bottom: 1px solid #35373b;
@@ -424,10 +416,6 @@ body {
   padding: 8px 20px;
   background-color: #222529;
   border-top: 1px solid #35373b;
-}
-
-.attachment-preview.hidden {
-  display: none;
 }
 
 .attachment-preview-thumb {
@@ -585,10 +573,6 @@ body {
   justify-content: center;
   z-index: 100;
   background-color: rgba(0, 0, 0, 0.6);
-}
-
-.modal.hidden {
-  display: none;
 }
 
 .modal-content {
@@ -760,10 +744,6 @@ body {
   border-color: #fff;
 }
 
-.start-huddle-button.hidden {
-  display: none;
-}
-
 /* Huddle: Incoming call banner */
 .huddle-incoming-banner {
   display: flex;
@@ -774,10 +754,6 @@ body {
   color: #fff;
   font-size: 14px;
   animation: huddle-pulse 2s ease-in-out infinite;
-}
-
-.huddle-incoming-banner.hidden {
-  display: none;
 }
 
 @keyframes huddle-pulse {
@@ -849,10 +825,6 @@ body {
   background-color: #0d2e25;
   border-bottom: 1px solid #007a5a;
   font-size: 13px;
-}
-
-.huddle-bar.hidden {
-  display: none;
 }
 
 .huddle-bar-info {
