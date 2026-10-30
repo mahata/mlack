@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import {
   createExpiresAt,
   generateVerificationCode,
@@ -17,32 +17,22 @@ import type { Bindings, Env } from "../types.js";
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MESSAGE = "Too many attempts. Please try again later.";
 
-const loginRateLimiter = createRateLimiter("auth-login", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 10,
-  onLimitExceeded: (c) => c.html(LoginPage(RATE_LIMIT_MESSAGE), 429),
-});
-const registerRateLimiter = createRateLimiter("auth-register", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 5,
-  onLimitExceeded: (c) => c.html(RegisterPage(RATE_LIMIT_MESSAGE), 429),
-});
-const verifyRateLimiter = createRateLimiter("auth-verify", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 10,
-  onLimitExceeded: (c) => {
-    const email = c.req.query("email") || "";
-    return c.html(VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
-  },
-});
-const resendRateLimiter = createRateLimiter("auth-resend", {
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  maxRequests: 5,
-  onLimitExceeded: (c) => {
-    const email = c.req.query("email") || "";
-    return c.html(VerifyEmailPage({ email, error: RATE_LIMIT_MESSAGE }), 429);
-  },
-});
+function rateLimit(maxRequests: number, renderRateLimitedPage: (c: Context<Env>) => ReturnType<typeof LoginPage>) {
+  return createRateLimiter({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    maxRequests,
+    onLimitExceeded: (c) => c.html(renderRateLimitedPage(c), 429),
+  });
+}
+
+function rateLimitedVerifyEmailPage(c: Context<Env>) {
+  return VerifyEmailPage({ email: c.req.query("email") || "", error: RATE_LIMIT_MESSAGE });
+}
+
+const loginRateLimiter = rateLimit(10, () => LoginPage(RATE_LIMIT_MESSAGE));
+const registerRateLimiter = rateLimit(5, () => RegisterPage(RATE_LIMIT_MESSAGE));
+const verifyRateLimiter = rateLimit(10, rateLimitedVerifyEmailPage);
+const resendRateLimiter = rateLimit(5, rateLimitedVerifyEmailPage);
 
 const emailAuthRoute = new Hono<Env>();
 
