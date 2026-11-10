@@ -40,7 +40,7 @@ function isDueForRefresh(session: Session): boolean {
 export async function startSession(c: Context<Env>, user: User): Promise<void> {
   setCookie(c, SESSION_COOKIE_NAME, await createSessionToken(user, c.env.SESSION_SECRET), {
     httpOnly: true,
-    secure: c.env.NODE_ENV === "production",
+    secure: c.env.NODE_ENV === "production" || c.env.NODE_ENV === "staging",
     sameSite: "Lax",
     path: "/",
   });
