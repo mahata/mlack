@@ -167,6 +167,27 @@ The deploy job requires two repository secrets. Add them under **Settings > Secr
 
 The E2E job reuses the existing `SESSION_SECRET` secret already configured for CI.
 
+### Staging (staging.mlack.uk)
+
+Every push to `main` that passes CI is deployed to [staging.mlack.uk](https://staging.mlack.uk) by the `deploy-staging` job in `.github/workflows/ci.yml`. The job applies the staging D1 migrations, deploys with `cf deploy --mode staging`, and checks `/health`. It skips commits that are no longer the head of `main`, and it can also be run manually with **Run workflow**.
+
+Staging runs as a separate Worker (`mlack-staging`) with `NODE_ENV=staging`, its own D1 database (`mlack-db-staging`), R2 bucket (`mlack-uploads-staging`), Durable Objects and secrets. Like production, it uses Secure cookies, sends real verification emails and rejects the test login routes. It uses the same `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets, and the job runs in the `staging` GitHub Environment, which is limited to `main`.
+
+The job fails before deploying unless `SESSION_SECRET`, `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set on the Worker:
+
+```bash
+cf workers secrets update SESSION_SECRET --worker mlack-staging --type secret_text --text "<value>"
+```
+
+Dependabot PRs are auto-merged with `GITHUB_TOKEN`, which does not trigger push workflows, so they reach staging with the next human merge to `main`.
+
+To deploy staging by hand:
+
+```bash
+pnpm db:migrate:staging
+pnpm deploy:staging
+```
+
 ### Manual Deployment
 
 You can still deploy manually if needed:

@@ -33,7 +33,7 @@ cf d1 migrations create <name> --dir hono/db/migrations             # New empty 
 
 Unit tests run route handlers against an in-memory SQLite database (`node:sqlite`) that has the real migrations applied. Use `createTestApp()` from `hono/testApp.ts` and seed rows through its `db`.
 
-CI runs `pnpm test:run`, `pnpm lint` and `pnpm build` in one job and the E2E tests in another. All of them must pass, and `deploy.yml` reuses the same workflow before deploying.
+CI runs `pnpm test:run`, `pnpm lint` and `pnpm build` in one job and the E2E tests in another. All of them must pass. On pushes to `main`, the `deploy-staging` job then deploys to staging.mlack.uk (`pnpm db:migrate:staging`, `pnpm deploy:staging`). `deploy.yml` reuses the same workflow (without the staging job) before deploying `prod` to mlack.uk. Staging (`NODE_ENV=staging`) must keep its own D1, R2 and secrets, Secure cookies, real email and disabled test login.
 
 Task completion order: `pnpm test:run` → `pnpm lint` → `pnpm build` → Copilot CLI review → commit.
 

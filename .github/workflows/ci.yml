@@ -5,7 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
   workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -78,3 +82,84 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+  deploy-staging:
+    needs: [test, e2e]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    environment:
+      name: staging
+      url: https://staging.mlack.uk
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Check that the tested commit is still main
+        id: revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [ "$MAIN_SHA" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping superseded commit $GITHUB_SHA; main is now $MAIN_SHA."
+          fi
+
+      - name: Checkout code
+        if: steps.revision.outputs.current == 'true'
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        if: steps.revision.outputs.current == 'true'
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        if: steps.revision.outputs.current == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        if: steps.revision.outputs.current == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Check staging Worker secrets
+        if: steps.revision.outputs.current == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          WORKER_SECRETS=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/mlack-staging/secrets")
+          if ! jq -e '.success == true and ((["SESSION_SECRET", "RESEND_API_KEY", "RESEND_FROM_EMAIL"] - [.result[].name]) | length == 0)' <<< "$WORKER_SECRETS" > /dev/null; then
+            echo "::error::Configure SESSION_SECRET, RESEND_API_KEY and RESEND_FROM_EMAIL on mlack-staging before deploying. See README.md."
+            exit 1
+          fi
+
+      - name: Apply staging D1 database migrations
+        if: steps.revision.outputs.current == 'true'
+        run: pnpm db:migrate:staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to staging
+        if: steps.revision.outputs.current == 'true'
+        run: pnpm deploy:staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Check staging health
+        if: steps.revision.outputs.current == 'true'
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            https://staging.mlack.uk/health | jq -e '.status == "ok"'

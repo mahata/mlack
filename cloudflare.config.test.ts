@@ -43,6 +43,44 @@ describe("cloudflare.config in production mode", () => {
   });
 });
 
+describe("cloudflare.config in staging mode", () => {
+  const worker = evaluateWorker("staging");
+  const production = evaluateWorker("production");
+
+  it("is served only from the staging custom domain", () => {
+    expect(worker.name).toBe("mlack-staging");
+    expect(worker.domains).toEqual(["staging.mlack.uk"]);
+    expect(worker.workersDev).toBe(false);
+    expect(worker.previewUrls).toBe(false);
+  });
+
+  it("runs the app in staging", () => {
+    expect(worker.env.NODE_ENV).toEqual({ type: "text", value: "staging" });
+  });
+
+  it("leaves secrets to be managed on the deployed Worker", () => {
+    expect(declaredSecretNames(worker.env)).toEqual([]);
+  });
+
+  it("isolates the database, uploads and ChatRoom from production", () => {
+    expect(worker.env.DB.name).toBe("mlack-db-staging");
+    expect(worker.env.DB.id).not.toBe(production.env.DB.id);
+    expect(worker.env.STORAGE.name).toBe("mlack-uploads-staging");
+    expect(worker.env.CHAT_ROOM.worker).toBe("mlack-staging");
+  });
+
+  it("targets the database used by the staging database scripts", () => {
+    for (const script of ["db:migrate:staging", "db:seed:staging"]) {
+      expect(packageScripts[script]).toContain(worker.env.DB.id);
+      expect(packageScripts[script]).not.toContain("--local");
+    }
+  });
+
+  it("deploys with the staging mode", () => {
+    expect(packageScripts["deploy:staging"]).toBe("pnpm build:client && cf deploy --mode staging");
+  });
+});
+
 describe.each([["development"], [undefined]])("cloudflare.config in %s mode", (mode) => {
   const worker = evaluateWorker(mode);
 
