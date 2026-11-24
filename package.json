@@ -18,7 +18,10 @@
     "db:seed": "cf d1 raw 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --sql \"$(cat hono/db/seed.sql)\"",
     "db:migrate:prod": "cf d1 migrations apply d6405044-202a-4a50-9612-089512467c9e --dir hono/db/migrations",
     "db:seed:prod": "cf d1 raw d6405044-202a-4a50-9612-089512467c9e --sql \"$(cat hono/db/seed.sql)\"",
-    "deploy": "pnpm build:client && cf deploy --mode production"
+    "db:migrate:staging": "cf d1 migrations apply 4cbf6290-3b57-4039-962f-fedd09463651 --dir hono/db/migrations",
+    "db:seed:staging": "cf d1 raw 4cbf6290-3b57-4039-962f-fedd09463651 --sql \"$(cat hono/db/seed.sql)\"",
+    "deploy": "pnpm build:client && cf deploy --mode production",
+    "deploy:staging": "pnpm build:client && cf deploy --mode staging"
   },
   "keywords": [
     "hono",

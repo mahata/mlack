@@ -50,10 +50,14 @@ describe("sessionMiddleware", () => {
     expect(response.headers.get("Set-Cookie")).toMatch(/^session=[^;]+; Path=\/; HttpOnly; SameSite=Lax$/);
   });
 
-  it("marks the refreshed cookie as Secure in production", async () => {
-    const response = await request("/me", { token: await tokenExpiringIn(45 * 60), nodeEnv: "production" });
+  it.each([
+    { nodeEnv: "production", secure: true },
+    { nodeEnv: "staging", secure: true },
+    { nodeEnv: "development", secure: false },
+  ])("marks the refreshed cookie as Secure only on deployed sites ($nodeEnv)", async ({ nodeEnv, secure }) => {
+    const response = await request("/me", { token: await tokenExpiringIn(45 * 60), nodeEnv });
 
-    expect(response.headers.get("Set-Cookie")).toContain("; Secure");
+    expect(response.headers.get("Set-Cookie")?.includes("; Secure")).toBe(secure);
   });
 
   it("ignores cookies signed with a different secret", async () => {
