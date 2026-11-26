@@ -44,3 +44,11 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    exclude-paths:
+      - ".github/workflows/daily-repo-status.lock.yml"
+    schedule:
+      interval: "weekly"
+      time: "09:00"
+      timezone: "UTC"
