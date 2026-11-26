@@ -72,7 +72,7 @@ jobs:
         run: pnpm test:e2e
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v5.0.0
+        uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
           name: playwright-report
