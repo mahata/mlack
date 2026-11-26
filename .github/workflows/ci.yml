@@ -13,13 +13,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v5.1.0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v5.0.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v5.0.0
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
@@ -42,13 +42,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v5.1.0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v5.0.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v5.0.0
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
@@ -72,7 +72,7 @@ jobs:
         run: pnpm test:e2e
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v5.0.0
         if: failure()
         with:
           name: playwright-report

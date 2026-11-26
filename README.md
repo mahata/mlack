@@ -167,6 +167,16 @@ The deploy job requires two repository secrets. Add them under **Settings > Secr
 
 The E2E job reuses the existing `SESSION_SECRET` secret already configured for CI.
 
+### GitHub Actions Dependencies
+
+Weekly Dependabot updates keep the hand-authored workflows and `.github/workflows/actions.lock` in sync. When you edit an Action reference, regenerate the lockfile with the [GitHub CLI extension](https://github.com/github/gh-actions-lock) instead of editing it by hand:
+
+```bash
+gh actions-lock .github/workflows/ci.yml .github/workflows/copilot-setup-steps.yml .github/workflows/dependabot-auto-merge.yml .github/workflows/deploy.yml
+```
+
+Pass explicit workflow paths when onboarding additional workflows. Do not include `daily-repo-status.lock.yml`: `gh aw compile` manages its Action SHA pins.
+
 ### Manual Deployment
 
 You can still deploy manually if needed:
